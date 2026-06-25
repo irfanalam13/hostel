@@ -1,0 +1,1732 @@
+{
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\__init__.py": {
+    "mtime": 1771328142.5208578,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\admin.py": {
+    "mtime": 1771328142.5117612,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\apps.py": {
+    "mtime": 1771328560.8197718,
+    "ast_hash": "ecb2f16df0fbfdb76f204bb19f7ffb5e",
+    "semantic_hash": "ecb2f16df0fbfdb76f204bb19f7ffb5e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.4895627,
+    "ast_hash": "034a587730854f7c3af1b4cbabfbc93a",
+    "semantic_hash": "034a587730854f7c3af1b4cbabfbc93a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\migrations\\0002_alter_user_role.py": {
+    "mtime": 1778776028.4309328,
+    "ast_hash": "3f5040aa54935135395e76bbe8d92c27",
+    "semantic_hash": "3f5040aa54935135395e76bbe8d92c27"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\migrations\\__init__.py": {
+    "mtime": 1771328142.525642,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\models.py": {
+    "mtime": 1778775234.2051177,
+    "ast_hash": "b04469c7256fc5a2f2e2650c434d4723",
+    "semantic_hash": "b04469c7256fc5a2f2e2650c434d4723"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\serializers.py": {
+    "mtime": 1778775277.6770804,
+    "ast_hash": "d6a95f64dc90a3e7b137ba816dd2de6f",
+    "semantic_hash": "d6a95f64dc90a3e7b137ba816dd2de6f"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\tests.py": {
+    "mtime": 1771328142.5208578,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\urls.py": {
+    "mtime": 1778775321.409763,
+    "ast_hash": "d8c299075c7020627d9b682c1c7b73ce",
+    "semantic_hash": "d8c299075c7020627d9b682c1c7b73ce"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\accounts\\views.py": {
+    "mtime": 1778775309.0142112,
+    "ast_hash": "45de5b3d5abac06d4f1a0ac59adb3e10",
+    "semantic_hash": "45de5b3d5abac06d4f1a0ac59adb3e10"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\admissions\\__init__.py": {
+    "mtime": 1778775509.7349083,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\admissions\\apps.py": {
+    "mtime": 1778775509.8725827,
+    "ast_hash": "7b1b1ad1ac22d1d3508706ca8a2bbf83",
+    "semantic_hash": "7b1b1ad1ac22d1d3508706ca8a2bbf83"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\admissions\\migrations\\0001_initial.py": {
+    "mtime": 1778776279.0774672,
+    "ast_hash": "384d6f95ebe2e546d98a0a7192720737",
+    "semantic_hash": "384d6f95ebe2e546d98a0a7192720737"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\admissions\\migrations\\__init__.py": {
+    "mtime": 1778775509.9987347,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\admissions\\models.py": {
+    "mtime": 1778775510.149012,
+    "ast_hash": "abd52280ce756388237dd8e457915cab",
+    "semantic_hash": "abd52280ce756388237dd8e457915cab"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\admissions\\serializers.py": {
+    "mtime": 1778775536.8170252,
+    "ast_hash": "6879990b3d44998eeff0988c37b63fbc",
+    "semantic_hash": "6879990b3d44998eeff0988c37b63fbc"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\admissions\\urls.py": {
+    "mtime": 1778775510.5543654,
+    "ast_hash": "2a96c81917521418162b8251a0f96505",
+    "semantic_hash": "2a96c81917521418162b8251a0f96505"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\admissions\\views.py": {
+    "mtime": 1778775526.1092422,
+    "ast_hash": "fb4ba2d49e3194dc41492bed299605a9",
+    "semantic_hash": "fb4ba2d49e3194dc41492bed299605a9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\__init__.py": {
+    "mtime": 1771329642.2095847,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\admin.py": {
+    "mtime": 1771329642.2043328,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\apps.py": {
+    "mtime": 1771330677.4912827,
+    "ast_hash": "1f5bb932f375d0304c7cf35965bf0cba",
+    "semantic_hash": "1f5bb932f375d0304c7cf35965bf0cba"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.474795,
+    "ast_hash": "ff4409ed26429dec3fadf3ec57778fe0",
+    "semantic_hash": "ff4409ed26429dec3fadf3ec57778fe0"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\migrations\\__init__.py": {
+    "mtime": 1771329642.2161503,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\models.py": {
+    "mtime": 1771330418.342733,
+    "ast_hash": "02c084b70a392fabcc0c67e5b7c0ac88",
+    "semantic_hash": "02c084b70a392fabcc0c67e5b7c0ac88"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\serializers.py": {
+    "mtime": 1771330432.4636838,
+    "ast_hash": "e8cbffdb851c21ee40e5675416d76258",
+    "semantic_hash": "e8cbffdb851c21ee40e5675416d76258"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\tests.py": {
+    "mtime": 1771329642.2043328,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\urls.py": {
+    "mtime": 1771330452.6451728,
+    "ast_hash": "40127084aaaa0e0222e718f14bcc3dc9",
+    "semantic_hash": "40127084aaaa0e0222e718f14bcc3dc9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\attendance\\views.py": {
+    "mtime": 1771330440.9753942,
+    "ast_hash": "bcee1e0283c459ed572423d74530c18f",
+    "semantic_hash": "bcee1e0283c459ed572423d74530c18f"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\__init__.py": {
+    "mtime": 1771328234.0405867,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\admin.py": {
+    "mtime": 1771328234.027472,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\apps.py": {
+    "mtime": 1771329574.6712663,
+    "ast_hash": "bedf003fd4bab7ab42c08afa78b42b12",
+    "semantic_hash": "bedf003fd4bab7ab42c08afa78b42b12"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\middleware.py": {
+    "mtime": 1771357959.1375382,
+    "ast_hash": "0a5599d80b22bc27f672435f12588c06",
+    "semantic_hash": "0a5599d80b22bc27f672435f12588c06"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.4915695,
+    "ast_hash": "72db710953e58d5ef67780e0f0b09d73",
+    "semantic_hash": "72db710953e58d5ef67780e0f0b09d73"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\migrations\\__init__.py": {
+    "mtime": 1771328234.0405867,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\models.py": {
+    "mtime": 1771352206.2841282,
+    "ast_hash": "a6a63f28edce215a14821838dbdaa578",
+    "semantic_hash": "a6a63f28edce215a14821838dbdaa578"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\serializers.py": {
+    "mtime": 1771329043.712244,
+    "ast_hash": "a4d67694e520db0b75968f8269bb36b3",
+    "semantic_hash": "a4d67694e520db0b75968f8269bb36b3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\tests.py": {
+    "mtime": 1771328234.0397203,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\urls.py": {
+    "mtime": 1771329063.80932,
+    "ast_hash": "b7bf7b44a39a23ba7a7331bc8cd0bef8",
+    "semantic_hash": "b7bf7b44a39a23ba7a7331bc8cd0bef8"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\auditlog\\views.py": {
+    "mtime": 1771329052.8220925,
+    "ast_hash": "f1d10faecb0ab52095d261cbe6dd075a",
+    "semantic_hash": "f1d10faecb0ab52095d261cbe6dd075a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\__init__.py": {
+    "mtime": 1771330794.8844917,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\admin.py": {
+    "mtime": 1771330794.8776052,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\apps.py": {
+    "mtime": 1771351598.718887,
+    "ast_hash": "296ec3a213b6d666729cdff038ff4201",
+    "semantic_hash": "296ec3a213b6d666729cdff038ff4201"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.46939,
+    "ast_hash": "4f5f698c66b07263c1dd28a4ebaf4243",
+    "semantic_hash": "4f5f698c66b07263c1dd28a4ebaf4243"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\migrations\\__init__.py": {
+    "mtime": 1771330794.8898318,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\models.py": {
+    "mtime": 1777117475.4526572,
+    "ast_hash": "cee01e196e2589eae69782556592a2cd",
+    "semantic_hash": "cee01e196e2589eae69782556592a2cd"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\serializers.py": {
+    "mtime": 1777117502.100617,
+    "ast_hash": "57faec56bd0a165d5cfadc2e1cacd944",
+    "semantic_hash": "57faec56bd0a165d5cfadc2e1cacd944"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\tasks.py": {
+    "mtime": 1777117490.191789,
+    "ast_hash": "e781deaa39b4db1521ad6864d5341c8d",
+    "semantic_hash": "e781deaa39b4db1521ad6864d5341c8d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\tests.py": {
+    "mtime": 1771330794.8817534,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\urls.py": {
+    "mtime": 1771447483.2044458,
+    "ast_hash": "ca7275fd623d84f8ff90c74e9e95e5b4",
+    "semantic_hash": "ca7275fd623d84f8ff90c74e9e95e5b4"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\backups\\views.py": {
+    "mtime": 1777117522.3698277,
+    "ast_hash": "7f55d984265110cce9b3818b3b7409d0",
+    "semantic_hash": "7f55d984265110cce9b3818b3b7409d0"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\__init__.py": {
+    "mtime": 1771329620.9292748,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\admin.py": {
+    "mtime": 1771329620.921143,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\apps.py": {
+    "mtime": 1771330688.7119606,
+    "ast_hash": "fccf781fe3fb2985c2d04faae046272c",
+    "semantic_hash": "fccf781fe3fb2985c2d04faae046272c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\management\\commands\\generate_monthly_dues.py": {
+    "mtime": 1771330376.883266,
+    "ast_hash": "650628c402fd64c31a60e608ddd628d5",
+    "semantic_hash": "650628c402fd64c31a60e608ddd628d5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.4765906,
+    "ast_hash": "8e140727d99f532e4fe6733215f0a8f9",
+    "semantic_hash": "8e140727d99f532e4fe6733215f0a8f9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\migrations\\0002_invoice_ledgerentry_vacaterequest.py": {
+    "mtime": 1771452856.6840422,
+    "ast_hash": "f0f56b2a5eb354f7d45bea5fd6132881",
+    "semantic_hash": "f0f56b2a5eb354f7d45bea5fd6132881"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\migrations\\__init__.py": {
+    "mtime": 1771329620.93658,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\models.py": {
+    "mtime": 1771452844.3484166,
+    "ast_hash": "1645ab5c10ac62b960ac8416d55b14c5",
+    "semantic_hash": "1645ab5c10ac62b960ac8416d55b14c5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\serializers.py": {
+    "mtime": 1771330312.2758808,
+    "ast_hash": "76875f2b601b49be91fdafc895ab0cf5",
+    "semantic_hash": "76875f2b601b49be91fdafc895ab0cf5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\services.py": {
+    "mtime": 1771330297.2477722,
+    "ast_hash": "bbbbfbde9808c778812d87a13a0d0ec1",
+    "semantic_hash": "bbbbfbde9808c778812d87a13a0d0ec1"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\tests.py": {
+    "mtime": 1771329620.9275749,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\urls.py": {
+    "mtime": 1771330332.0792046,
+    "ast_hash": "82c6205ff437ac9e569d0c4af336056e",
+    "semantic_hash": "82c6205ff437ac9e569d0c4af336056e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\billing\\views.py": {
+    "mtime": 1771330320.285222,
+    "ast_hash": "da9fc726adf8fa5adf181e36abb02215",
+    "semantic_hash": "da9fc726adf8fa5adf181e36abb02215"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\__init__.py": {
+    "mtime": 1771328072.5340383,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\admin.py": {
+    "mtime": 1771328072.4620025,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\apps.py": {
+    "mtime": 1771328388.7496078,
+    "ast_hash": "2dadf66dbf78601a0aeff271ad79a3a2",
+    "semantic_hash": "2dadf66dbf78601a0aeff271ad79a3a2"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\audit.py": {
+    "mtime": 1771331922.3759584,
+    "ast_hash": "759df3d464d3174f67cd22824db2a400",
+    "semantic_hash": "759df3d464d3174f67cd22824db2a400"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\middleware.py": {
+    "mtime": 1771357829.5410972,
+    "ast_hash": "3b3e678073740ec37be188260eaaef8c",
+    "semantic_hash": "3b3e678073740ec37be188260eaaef8c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.4935749,
+    "ast_hash": "c65ea5dafc2e2621fe37272c377a9459",
+    "semantic_hash": "c65ea5dafc2e2621fe37272c377a9459"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\migrations\\__init__.py": {
+    "mtime": 1771328072.5340383,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\models.py": {
+    "mtime": 1771328382.2554648,
+    "ast_hash": "7036043a6776191d300b5ea6c2237adb",
+    "semantic_hash": "7036043a6776191d300b5ea6c2237adb"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\permissions.py": {
+    "mtime": 1778775261.8015277,
+    "ast_hash": "095afd3622506e048799f7624b4dc87b",
+    "semantic_hash": "095afd3622506e048799f7624b4dc87b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\tests.py": {
+    "mtime": 1771328072.5123146,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\utils.py": {
+    "mtime": 1771328453.6656446,
+    "ast_hash": "7867b6bc5918af6dba2fffee76d334e1",
+    "semantic_hash": "7867b6bc5918af6dba2fffee76d334e1"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\common\\views.py": {
+    "mtime": 1771328072.5340383,
+    "ast_hash": "1b404a794ebb7b2a80ea56ac3c7b824b",
+    "semantic_hash": "1b404a794ebb7b2a80ea56ac3c7b824b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\complaints\\__init__.py": {
+    "mtime": 1778775732.756663,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\complaints\\apps.py": {
+    "mtime": 1778775732.8874452,
+    "ast_hash": "4e59205c0ba192f142989b7b7a5f3935",
+    "semantic_hash": "4e59205c0ba192f142989b7b7a5f3935"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\complaints\\migrations\\0001_initial.py": {
+    "mtime": 1778776279.2678988,
+    "ast_hash": "51e928697dac598f54bdf96e75cb5013",
+    "semantic_hash": "51e928697dac598f54bdf96e75cb5013"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\complaints\\migrations\\__init__.py": {
+    "mtime": 1778775733.0123649,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\complaints\\models.py": {
+    "mtime": 1778775733.1369114,
+    "ast_hash": "73fe5711bfc56384fbd0c609c2044008",
+    "semantic_hash": "73fe5711bfc56384fbd0c609c2044008"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\complaints\\serializers.py": {
+    "mtime": 1778775733.270374,
+    "ast_hash": "60ba1c16b194b4d0272d6eeefe495334",
+    "semantic_hash": "60ba1c16b194b4d0272d6eeefe495334"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\complaints\\urls.py": {
+    "mtime": 1778775733.529418,
+    "ast_hash": "fc8ad33ea5b5328fe5a0a8b09ef90f41",
+    "semantic_hash": "fc8ad33ea5b5328fe5a0a8b09ef90f41"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\complaints\\views.py": {
+    "mtime": 1778775733.3907495,
+    "ast_hash": "4fc07f45eed6a77b3efe74eceede86d7",
+    "semantic_hash": "4fc07f45eed6a77b3efe74eceede86d7"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\dashboard\\__init__.py": {
+    "mtime": 1771328208.8243883,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\dashboard\\admin.py": {
+    "mtime": 1771328208.811509,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\dashboard\\apps.py": {
+    "mtime": 1771328888.442141,
+    "ast_hash": "de27d6cf11627d1cbe1a6f15b70e98c9",
+    "semantic_hash": "de27d6cf11627d1cbe1a6f15b70e98c9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\dashboard\\migrations\\__init__.py": {
+    "mtime": 1771328208.8243883,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\dashboard\\models.py": {
+    "mtime": 1771328899.7681572,
+    "ast_hash": "d66d26e53e7ac2028454d3dd6f7e92ad",
+    "semantic_hash": "d66d26e53e7ac2028454d3dd6f7e92ad"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\dashboard\\tests.py": {
+    "mtime": 1771328208.811509,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\dashboard\\urls.py": {
+    "mtime": 1771328919.029917,
+    "ast_hash": "30f305ab33d43a13019fd31916f2cdd5",
+    "semantic_hash": "30f305ab33d43a13019fd31916f2cdd5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\dashboard\\views.py": {
+    "mtime": 1778775916.030362,
+    "ast_hash": "e0d45c1a4aac1d25b5b54d747b1914ac",
+    "semantic_hash": "e0d45c1a4aac1d25b5b54d747b1914ac"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\__init__.py": {
+    "mtime": 1771330779.637854,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\admin.py": {
+    "mtime": 1771330779.6344836,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\apps.py": {
+    "mtime": 1771351580.5106514,
+    "ast_hash": "303213215d3b169ced63ccf6d9511f22",
+    "semantic_hash": "303213215d3b169ced63ccf6d9511f22"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\excel.py": {
+    "mtime": 1771342117.594315,
+    "ast_hash": "ff8260ae6ffef8d2f9cc42fe7a7e8f13",
+    "semantic_hash": "ff8260ae6ffef8d2f9cc42fe7a7e8f13"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\migrations\\__init__.py": {
+    "mtime": 1771330779.6403487,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\models.py": {
+    "mtime": 1771330779.6344836,
+    "ast_hash": "d66d26e53e7ac2028454d3dd6f7e92ad",
+    "semantic_hash": "d66d26e53e7ac2028454d3dd6f7e92ad"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\tests.py": {
+    "mtime": 1771330779.637854,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\urls.py": {
+    "mtime": 1778775868.305056,
+    "ast_hash": "3526d3fcb42c6939e9c74b4fa46062fa",
+    "semantic_hash": "3526d3fcb42c6939e9c74b4fa46062fa"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\exports\\views.py": {
+    "mtime": 1778775854.927446,
+    "ast_hash": "d0e39fac6a460ded25752450fcd6df0c",
+    "semantic_hash": "d0e39fac6a460ded25752450fcd6df0c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\__init__.py": {
+    "mtime": 1771328180.406653,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\admin.py": {
+    "mtime": 1771328180.3957255,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\apps.py": {
+    "mtime": 1771328738.9091158,
+    "ast_hash": "6526d1f458db591a876f664c7f686a81",
+    "semantic_hash": "6526d1f458db591a876f664c7f686a81"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.4778836,
+    "ast_hash": "f242c670e6232778783b18ded186c9b7",
+    "semantic_hash": "f242c670e6232778783b18ded186c9b7"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\migrations\\__init__.py": {
+    "mtime": 1771328180.4094484,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\models.py": {
+    "mtime": 1771328731.9707305,
+    "ast_hash": "e0b0426dd6815c4b5310f063c594624c",
+    "semantic_hash": "e0b0426dd6815c4b5310f063c594624c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\serializers.py": {
+    "mtime": 1771328771.2807603,
+    "ast_hash": "243f789285946f33d9036183c916eae3",
+    "semantic_hash": "243f789285946f33d9036183c916eae3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\services.py": {
+    "mtime": 1771328754.1899815,
+    "ast_hash": "16bcbc5bbf0b15b157ab0324ce23c683",
+    "semantic_hash": "16bcbc5bbf0b15b157ab0324ce23c683"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\tests.py": {
+    "mtime": 1771328180.4006906,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\urls.py": {
+    "mtime": 1771328796.8750963,
+    "ast_hash": "fbf0cb129234d3444803c7c015b35df4",
+    "semantic_hash": "fbf0cb129234d3444803c7c015b35df4"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\fees\\views.py": {
+    "mtime": 1771328782.4143324,
+    "ast_hash": "703dd201aa2f04f50a9f45dcb7a0b509",
+    "semantic_hash": "703dd201aa2f04f50a9f45dcb7a0b509"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\__init__.py": {
+    "mtime": 1771329580.0017848,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\admin.py": {
+    "mtime": 1771329579.9282691,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\apps.py": {
+    "mtime": 1771330704.7284958,
+    "ast_hash": "051a2393b08b3ab7c0781f8fe57a4b9f",
+    "semantic_hash": "051a2393b08b3ab7c0781f8fe57a4b9f"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.46939,
+    "ast_hash": "b9c56dab243308ba097ce7a256624ec7",
+    "semantic_hash": "b9c56dab243308ba097ce7a256624ec7"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\migrations\\__init__.py": {
+    "mtime": 1771329580.0017848,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\models.py": {
+    "mtime": 1771358277.884125,
+    "ast_hash": "f5868b0d897735394f8b8b2fb498c155",
+    "semantic_hash": "f5868b0d897735394f8b8b2fb498c155"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\serializers.py": {
+    "mtime": 1771359240.267755,
+    "ast_hash": "45567e7fcd396b3c9ed2e94122e4a1ab",
+    "semantic_hash": "45567e7fcd396b3c9ed2e94122e4a1ab"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\tests.py": {
+    "mtime": 1771329579.9813738,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\urls.py": {
+    "mtime": 1771330205.831195,
+    "ast_hash": "d13209ca5620fee44aee67c86485c116",
+    "semantic_hash": "d13209ca5620fee44aee67c86485c116"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\hostel\\views.py": {
+    "mtime": 1771351882.247352,
+    "ast_hash": "35d0c25cff7c3edfb2691b691cb60b58",
+    "semantic_hash": "35d0c25cff7c3edfb2691b691cb60b58"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\notices\\__init__.py": {
+    "mtime": 1778775769.426106,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\notices\\apps.py": {
+    "mtime": 1778775769.5639281,
+    "ast_hash": "b80952eeae5688bd6b6735d9bf7f3947",
+    "semantic_hash": "b80952eeae5688bd6b6735d9bf7f3947"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\notices\\migrations\\0001_initial.py": {
+    "mtime": 1778776279.5847685,
+    "ast_hash": "7a5db0f4d2e2b10019557ad086e57978",
+    "semantic_hash": "7a5db0f4d2e2b10019557ad086e57978"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\notices\\migrations\\__init__.py": {
+    "mtime": 1778775769.7051914,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\notices\\models.py": {
+    "mtime": 1778775769.8391833,
+    "ast_hash": "551bf1e30c737b589df16679437c0d08",
+    "semantic_hash": "551bf1e30c737b589df16679437c0d08"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\notices\\serializers.py": {
+    "mtime": 1778775769.9694746,
+    "ast_hash": "441c17b9d51a14cf7cc2cfc7042c1216",
+    "semantic_hash": "441c17b9d51a14cf7cc2cfc7042c1216"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\notices\\urls.py": {
+    "mtime": 1778775770.219482,
+    "ast_hash": "c0295b0fcdbaad2518afe5819dde55ba",
+    "semantic_hash": "c0295b0fcdbaad2518afe5819dde55ba"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\notices\\views.py": {
+    "mtime": 1778775770.0979779,
+    "ast_hash": "e8a60d451325a6f4212c39891a75ccb0",
+    "semantic_hash": "e8a60d451325a6f4212c39891a75ccb0"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\operations\\__init__.py": {
+    "mtime": 1778775636.831565,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\operations\\apps.py": {
+    "mtime": 1778775636.9606855,
+    "ast_hash": "3513e2c65da16d5ad27258d7cbd33e8d",
+    "semantic_hash": "3513e2c65da16d5ad27258d7cbd33e8d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\operations\\migrations\\0001_initial.py": {
+    "mtime": 1778776279.7327826,
+    "ast_hash": "b4ce4f37d0bef502a053460fc830102d",
+    "semantic_hash": "b4ce4f37d0bef502a053460fc830102d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\operations\\migrations\\__init__.py": {
+    "mtime": 1778775637.0959153,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\operations\\models.py": {
+    "mtime": 1778775637.2248266,
+    "ast_hash": "f1d14903c7c4b512f9a154ed625862ba",
+    "semantic_hash": "f1d14903c7c4b512f9a154ed625862ba"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\operations\\serializers.py": {
+    "mtime": 1778775637.3413136,
+    "ast_hash": "18c3e6b39f03fd5fadec75e214696583",
+    "semantic_hash": "18c3e6b39f03fd5fadec75e214696583"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\operations\\urls.py": {
+    "mtime": 1778775637.5917985,
+    "ast_hash": "2330c45d78c7f50bc86078fc929a6b38",
+    "semantic_hash": "2330c45d78c7f50bc86078fc929a6b38"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\operations\\views.py": {
+    "mtime": 1778775650.820821,
+    "ast_hash": "3ee3d74ffcc05b8d41cd2a2564ef7b3e",
+    "semantic_hash": "3ee3d74ffcc05b8d41cd2a2564ef7b3e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\__init__.py": {
+    "mtime": 1771328199.223855,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\admin.py": {
+    "mtime": 1771328199.2142255,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\apps.py": {
+    "mtime": 1771328817.669824,
+    "ast_hash": "c9976b98e5b5ced17f583a8f070d5b53",
+    "semantic_hash": "c9976b98e5b5ced17f583a8f070d5b53"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.482601,
+    "ast_hash": "d303e517305e43f9edb036732b0a9ed2",
+    "semantic_hash": "d303e517305e43f9edb036732b0a9ed2"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\migrations\\__init__.py": {
+    "mtime": 1771328199.2258608,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\models.py": {
+    "mtime": 1771328812.4221904,
+    "ast_hash": "01b947630e63ebad25ffc8541bb6396c",
+    "semantic_hash": "01b947630e63ebad25ffc8541bb6396c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\serializers.py": {
+    "mtime": 1777117462.8130012,
+    "ast_hash": "90507bb5c2b1b69736b8197753ea38fe",
+    "semantic_hash": "90507bb5c2b1b69736b8197753ea38fe"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\services.py": {
+    "mtime": 1771328830.114226,
+    "ast_hash": "4670856fc1f065289ff2473f2f1565a6",
+    "semantic_hash": "4670856fc1f065289ff2473f2f1565a6"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\tests.py": {
+    "mtime": 1771328199.2199824,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\urls.py": {
+    "mtime": 1771328869.884245,
+    "ast_hash": "8575812895861c2333136edcfe0b0235",
+    "semantic_hash": "8575812895861c2333136edcfe0b0235"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\payments\\views.py": {
+    "mtime": 1771328857.1676576,
+    "ast_hash": "dd5d5d8135ad51e2c44345aeccf50a46",
+    "semantic_hash": "dd5d5d8135ad51e2c44345aeccf50a46"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\reports\\__init__.py": {
+    "mtime": 1771328220.5310402,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\reports\\admin.py": {
+    "mtime": 1771328220.5101268,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\reports\\apps.py": {
+    "mtime": 1771329541.420422,
+    "ast_hash": "68845fc4cd29f902753907e8a9036558",
+    "semantic_hash": "68845fc4cd29f902753907e8a9036558"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\reports\\migrations\\__init__.py": {
+    "mtime": 1771328220.531656,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\reports\\models.py": {
+    "mtime": 1771328220.5275066,
+    "ast_hash": "d66d26e53e7ac2028454d3dd6f7e92ad",
+    "semantic_hash": "d66d26e53e7ac2028454d3dd6f7e92ad"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\reports\\tests.py": {
+    "mtime": 1771328220.5275066,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\reports\\urls.py": {
+    "mtime": 1771328941.874394,
+    "ast_hash": "a56040932b760e6303cc525a275d11c8",
+    "semantic_hash": "a56040932b760e6303cc525a275d11c8"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\reports\\views.py": {
+    "mtime": 1771328931.1619518,
+    "ast_hash": "1a4effea3d8e7ce790b1301dd477b47c",
+    "semantic_hash": "1a4effea3d8e7ce790b1301dd477b47c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\__init__.py": {
+    "mtime": 1771329605.1812456,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\admin.py": {
+    "mtime": 1771329605.175993,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\apps.py": {
+    "mtime": 1771330734.363842,
+    "ast_hash": "6ec054e852fd08afe64a235d8a9ce4eb",
+    "semantic_hash": "6ec054e852fd08afe64a235d8a9ce4eb"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.46939,
+    "ast_hash": "9fe5fbae7d7724b4ece8db4b08d87bd3",
+    "semantic_hash": "9fe5fbae7d7724b4ece8db4b08d87bd3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\migrations\\0002_stay.py": {
+    "mtime": 1771452856.6880126,
+    "ast_hash": "7887a9a322b5a0e8c7406866a8b8b613",
+    "semantic_hash": "7887a9a322b5a0e8c7406866a8b8b613"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\migrations\\__init__.py": {
+    "mtime": 1771329605.189186,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\models.py": {
+    "mtime": 1771452705.1015182,
+    "ast_hash": "a5227a149ab659efe8b7eb8a44258c78",
+    "semantic_hash": "a5227a149ab659efe8b7eb8a44258c78"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\serializers.py": {
+    "mtime": 1777117424.8565934,
+    "ast_hash": "5b58ece15201dd563c5fc3f7254a0488",
+    "semantic_hash": "5b58ece15201dd563c5fc3f7254a0488"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\tests.py": {
+    "mtime": 1771329605.1793065,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\urls.py": {
+    "mtime": 1777117451.1540117,
+    "ast_hash": "15d2e39df1c26e5e09fdd3f1bf899154",
+    "semantic_hash": "15d2e39df1c26e5e09fdd3f1bf899154"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\residents\\views.py": {
+    "mtime": 1778776000.3923175,
+    "ast_hash": "99881413999936477b40d33326a7dee5",
+    "semantic_hash": "99881413999936477b40d33326a7dee5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\__init__.py": {
+    "mtime": 1771328153.9773664,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\admin.py": {
+    "mtime": 1771328153.9664288,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\apps.py": {
+    "mtime": 1771329518.4230306,
+    "ast_hash": "783f35872a2e23737e01aaf0622e9326",
+    "semantic_hash": "783f35872a2e23737e01aaf0622e9326"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.4875548,
+    "ast_hash": "774179f67e3b58dabbb3281afebad40a",
+    "semantic_hash": "774179f67e3b58dabbb3281afebad40a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\migrations\\0002_block_floor_alter_room_options_room_amenities_and_more.py": {
+    "mtime": 1778776279.879954,
+    "ast_hash": "8d46a9bb4dc48ae2fbb28699e8c89860",
+    "semantic_hash": "8d46a9bb4dc48ae2fbb28699e8c89860"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\migrations\\__init__.py": {
+    "mtime": 1771328153.9773664,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\models.py": {
+    "mtime": 1778775362.913309,
+    "ast_hash": "7ccaf3aedc3ae5ed44f02a2c63533307",
+    "semantic_hash": "7ccaf3aedc3ae5ed44f02a2c63533307"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\serializers.py": {
+    "mtime": 1778775384.6230178,
+    "ast_hash": "5a0d81065b408202891d95eca0556e64",
+    "semantic_hash": "5a0d81065b408202891d95eca0556e64"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\tests.py": {
+    "mtime": 1771328153.9692967,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\urls.py": {
+    "mtime": 1778775421.9902794,
+    "ast_hash": "a6364be974253bb9eb0ceee16e874f32",
+    "semantic_hash": "a6364be974253bb9eb0ceee16e874f32"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\rooms\\views.py": {
+    "mtime": 1778775412.2594545,
+    "ast_hash": "27965b71cc184137a978fc2648c9ac34",
+    "semantic_hash": "27965b71cc184137a978fc2648c9ac34"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\__init__.py": {
+    "mtime": 1771328171.752781,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\admin.py": {
+    "mtime": 1771328171.7416117,
+    "ast_hash": "ef4c241c5311eee11a93e9366f492a72",
+    "semantic_hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\apps.py": {
+    "mtime": 1771328680.5734773,
+    "ast_hash": "c4565534d8e3981c25d62cccf58eb814",
+    "semantic_hash": "c4565534d8e3981c25d62cccf58eb814"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.46939,
+    "ast_hash": "22d87a3377114541e405e03a2344b9d5",
+    "semantic_hash": "22d87a3377114541e405e03a2344b9d5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\migrations\\__init__.py": {
+    "mtime": 1771328171.7546008,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\models.py": {
+    "mtime": 1771328675.5272748,
+    "ast_hash": "541479ee58a776957e512be6c92366a1",
+    "semantic_hash": "541479ee58a776957e512be6c92366a1"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\serializers.py": {
+    "mtime": 1771328697.3561144,
+    "ast_hash": "bb4f2e1a2e74dca30c364e37fe994c84",
+    "semantic_hash": "bb4f2e1a2e74dca30c364e37fe994c84"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\tests.py": {
+    "mtime": 1771328171.7508178,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\urls.py": {
+    "mtime": 1771328719.884949,
+    "ast_hash": "7c6920f2dba78b491d08e38efc01a1b9",
+    "semantic_hash": "7c6920f2dba78b491d08e38efc01a1b9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\students\\views.py": {
+    "mtime": 1778775970.337043,
+    "ast_hash": "a31f424131c9d9105967e42aba58a969",
+    "semantic_hash": "a31f424131c9d9105967e42aba58a969"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\__init__.py": {
+    "mtime": 1771328121.1119134,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\admin.py": {
+    "mtime": 1771432225.0109882,
+    "ast_hash": "5e225c5707dc836cc92a3045d73d88bb",
+    "semantic_hash": "5e225c5707dc836cc92a3045d73d88bb"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\apps.py": {
+    "mtime": 1771328472.30197,
+    "ast_hash": "71f5b0e22f5b2ae0581f844eb0e56cb2",
+    "semantic_hash": "71f5b0e22f5b2ae0581f844eb0e56cb2"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\management\\__init__.py": {
+    "mtime": 1779455194.3781233,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\management\\commands\\__init__.py": {
+    "mtime": 1779455194.5020585,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\management\\commands\\seed_demo.py": {
+    "mtime": 1779455194.629455,
+    "ast_hash": "2be4eae2464c0d5c890e983e62a2e7c3",
+    "semantic_hash": "2be4eae2464c0d5c890e983e62a2e7c3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\migrations\\0001_initial.py": {
+    "mtime": 1771352275.466022,
+    "ast_hash": "62339345df707bd73e37323ee422d067",
+    "semantic_hash": "62339345df707bd73e37323ee422d067"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\migrations\\0002_alter_hostel_code.py": {
+    "mtime": 1771360295.2390654,
+    "ast_hash": "a252c75354826c614516f6d06b45a0af",
+    "semantic_hash": "a252c75354826c614516f6d06b45a0af"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\migrations\\__init__.py": {
+    "mtime": 1771328121.1119134,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\models.py": {
+    "mtime": 1771356055.7514513,
+    "ast_hash": "60e8cb93f39bb65a831ada7b109243d1",
+    "semantic_hash": "60e8cb93f39bb65a831ada7b109243d1"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\serializers.py": {
+    "mtime": 1771329979.9817371,
+    "ast_hash": "e550b41c2cfe2d869e461733b5eab4d9",
+    "semantic_hash": "e550b41c2cfe2d869e461733b5eab4d9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\tests.py": {
+    "mtime": 1771328121.1065595,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\urls.py": {
+    "mtime": 1771328529.6214468,
+    "ast_hash": "b9005547783c5928b8bb32599a74622b",
+    "semantic_hash": "b9005547783c5928b8bb32599a74622b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\apps\\tenants\\views.py": {
+    "mtime": 1771328517.1095383,
+    "ast_hash": "803a9c9f645400167ea1f044e9549269",
+    "semantic_hash": "803a9c9f645400167ea1f044e9549269"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\config\\__init__.py": {
+    "mtime": 1771351162.5316312,
+    "ast_hash": "71edf3528cd3bda70021b63ede3aca41",
+    "semantic_hash": "71edf3528cd3bda70021b63ede3aca41"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\config\\asgi.py": {
+    "mtime": 1771327692.5880737,
+    "ast_hash": "09ae6302340dd7c5350f52292250356b",
+    "semantic_hash": "09ae6302340dd7c5350f52292250356b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\config\\celery.py": {
+    "mtime": 1771351063.907145,
+    "ast_hash": "34363d07ad342892c20a734ef36a648d",
+    "semantic_hash": "34363d07ad342892c20a734ef36a648d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\config\\settings.py": {
+    "mtime": 1778775329.124203,
+    "ast_hash": "612efc39528dc39f2b9a5cc6d66eab0d",
+    "semantic_hash": "612efc39528dc39f2b9a5cc6d66eab0d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\config\\urls.py": {
+    "mtime": 1778775337.7357476,
+    "ast_hash": "37a643a1d078e000d995a4b8e9ba417a",
+    "semantic_hash": "37a643a1d078e000d995a4b8e9ba417a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\config\\wsgi.py": {
+    "mtime": 1771327692.6577544,
+    "ast_hash": "a84d331117eb39ac8499026591f369de",
+    "semantic_hash": "a84d331117eb39ac8499026591f369de"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\main.py": {
+    "mtime": 1777119896.562313,
+    "ast_hash": "165396fbebca4c73ed21f43517c87404",
+    "semantic_hash": "165396fbebca4c73ed21f43517c87404"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\manage.py": {
+    "mtime": 1771327692.578434,
+    "ast_hash": "747c8c1f612fb07e1ea90758e5c3b6ad",
+    "semantic_hash": "747c8c1f612fb07e1ea90758e5c3b6ad"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\eslint.config.mjs": {
+    "mtime": 1777118602.946837,
+    "ast_hash": "b150854e41383d2bd39c18e1a4cee0a6",
+    "semantic_hash": "b150854e41383d2bd39c18e1a4cee0a6"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\next-env.d.ts": {
+    "mtime": 1779455068.1566937,
+    "ast_hash": "d0f8375ae1199dc7acd3977fc33b78b8",
+    "semantic_hash": "d0f8375ae1199dc7acd3977fc33b78b8"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\next.config.ts": {
+    "mtime": 1771342356.305355,
+    "ast_hash": "073c476be067d6d4649b355483ee2690",
+    "semantic_hash": "073c476be067d6d4649b355483ee2690"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\package.json": {
+    "mtime": 1771401887.0594146,
+    "ast_hash": "c8bd15499a9f474387261752803b88c3",
+    "semantic_hash": "c8bd15499a9f474387261752803b88c3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\postcss.config.js": {
+    "mtime": 1771402056.18003,
+    "ast_hash": "c2adbc31cb667f24f29caa30d0ec2c67",
+    "semantic_hash": "c2adbc31cb667f24f29caa30d0ec2c67"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\admissions\\page.tsx": {
+    "mtime": 1779454411.1677315,
+    "ast_hash": "feff8b3f3b62b4600f633a6bf0157834",
+    "semantic_hash": "feff8b3f3b62b4600f633a6bf0157834"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\attendance\\page.tsx": {
+    "mtime": 1777117667.453699,
+    "ast_hash": "cabe788c0aa97ee73c34bb2f0eec9091",
+    "semantic_hash": "cabe788c0aa97ee73c34bb2f0eec9091"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\backup\\page.tsx": {
+    "mtime": 1777117899.0599256,
+    "ast_hash": "52355b4ed851e2abefce48367bd400d6",
+    "semantic_hash": "52355b4ed851e2abefce48367bd400d6"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\beds\\page.tsx": {
+    "mtime": 1771398811.6416678,
+    "ast_hash": "b7c97b7e3426377f47aae463ac0deb50",
+    "semantic_hash": "b7c97b7e3426377f47aae463ac0deb50"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\billing\\page.tsx": {
+    "mtime": 1777117260.754249,
+    "ast_hash": "d69e7067431e080b4c44cfa747809dee",
+    "semantic_hash": "d69e7067431e080b4c44cfa747809dee"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\complaints\\page.tsx": {
+    "mtime": 1779454411.332429,
+    "ast_hash": "19c018e5202781de670c9b70357f0c68",
+    "semantic_hash": "19c018e5202781de670c9b70357f0c68"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\dashboard\\layout.tsx": {
+    "mtime": 1771396160.049273,
+    "ast_hash": "e163099bcce93ed1f8fac1481c903d82",
+    "semantic_hash": "e163099bcce93ed1f8fac1481c903d82"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\dashboard\\page.tsx": {
+    "mtime": 1771442297.6641219,
+    "ast_hash": "d12e7680ad370931717ab2cd58fbe96e",
+    "semantic_hash": "d12e7680ad370931717ab2cd58fbe96e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\expenses\\page.tsx": {
+    "mtime": 1771398870.230608,
+    "ast_hash": "f2799dac53d99cb547d85b1c00b1bd0b",
+    "semantic_hash": "f2799dac53d99cb547d85b1c00b1bd0b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\exports\\page.tsx": {
+    "mtime": 1779454616.4599063,
+    "ast_hash": "d2ef0e0e77412ebc958906fbcdc6c805",
+    "semantic_hash": "d2ef0e0e77412ebc958906fbcdc6c805"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\fees\\page.tsx": {
+    "mtime": 1777117218.9003582,
+    "ast_hash": "15ca8662ec21cc45bf97f7f569223516",
+    "semantic_hash": "15ca8662ec21cc45bf97f7f569223516"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\gate\\page.tsx": {
+    "mtime": 1779454507.8713462,
+    "ast_hash": "224f71ee23b013b6c1fc1f087527f794",
+    "semantic_hash": "224f71ee23b013b6c1fc1f087527f794"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\layout.tsx": {
+    "mtime": 1777116961.5180008,
+    "ast_hash": "19602a00cd92dcd594b766dce3440fa5",
+    "semantic_hash": "19602a00cd92dcd594b766dce3440fa5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\leave\\page.tsx": {
+    "mtime": 1779454507.7439804,
+    "ast_hash": "e8bfca23e660fed478a2c628debadd26",
+    "semantic_hash": "e8bfca23e660fed478a2c628debadd26"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\notices\\page.tsx": {
+    "mtime": 1779454457.3570883,
+    "ast_hash": "9412f5847863a68508b7b2403f74c3f0",
+    "semantic_hash": "9412f5847863a68508b7b2403f74c3f0"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\payments\\page.tsx": {
+    "mtime": 1777117183.2869954,
+    "ast_hash": "ed9bdd23fbc6800cee0fd4bf1c5b16df",
+    "semantic_hash": "ed9bdd23fbc6800cee0fd4bf1c5b16df"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\profile\\page.tsx": {
+    "mtime": 1779454539.4422023,
+    "ast_hash": "2679a1e68785b8434b6d7b081cdb589d",
+    "semantic_hash": "2679a1e68785b8434b6d7b081cdb589d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\reports\\page.tsx": {
+    "mtime": 1771398886.1802404,
+    "ast_hash": "f40635a33d76ece092c4e2c5d85b066c",
+    "semantic_hash": "f40635a33d76ece092c4e2c5d85b066c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\residents\\page.tsx": {
+    "mtime": 1777117248.066477,
+    "ast_hash": "737d842121a8040ed958456e902931ad",
+    "semantic_hash": "737d842121a8040ed958456e902931ad"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\rooms\\page.tsx": {
+    "mtime": 1779454581.196317,
+    "ast_hash": "d67e7123af311e60cfbc6f11cc21659e",
+    "semantic_hash": "d67e7123af311e60cfbc6f11cc21659e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\settings\\page.tsx": {
+    "mtime": 1779454623.772084,
+    "ast_hash": "6688129cc5c2cac31b3440e9b5a5ea87",
+    "semantic_hash": "6688129cc5c2cac31b3440e9b5a5ea87"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\students\\[id]\\page.tsx": {
+    "mtime": 1771436673.3086622,
+    "ast_hash": "bea03dded2ee5783359c554fec0dcf3e",
+    "semantic_hash": "bea03dded2ee5783359c554fec0dcf3e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\students\\new\\page.tsx": {
+    "mtime": 1771434181.648175,
+    "ast_hash": "ed62d0dcf936c458afd5f46d2ccb55a8",
+    "semantic_hash": "ed62d0dcf936c458afd5f46d2ccb55a8"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\students\\page.tsx": {
+    "mtime": 1777117816.544127,
+    "ast_hash": "fee35f933eb484e81b252202bcfb0901",
+    "semantic_hash": "fee35f933eb484e81b252202bcfb0901"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\tenants\\hostels\\page.tsx": {
+    "mtime": 1777118026.0594375,
+    "ast_hash": "49fff85c4306bc3e2287f18c9b5f70c7",
+    "semantic_hash": "49fff85c4306bc3e2287f18c9b5f70c7"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\tenants\\page.tsx": {
+    "mtime": 1771433260.658715,
+    "ast_hash": "8c649482626c32e5c6d5c02dafefa97b",
+    "semantic_hash": "8c649482626c32e5c6d5c02dafefa97b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\tenants\\plans\\page.tsx": {
+    "mtime": 1771432974.8214707,
+    "ast_hash": "f2582b328e87ac67546bfb87006c25a6",
+    "semantic_hash": "f2582b328e87ac67546bfb87006c25a6"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\tenants\\subscriptions\\page.tsx": {
+    "mtime": 1777118040.1913803,
+    "ast_hash": "092c6b62efab4cc8b81f49edf7a5292f",
+    "semantic_hash": "092c6b62efab4cc8b81f49edf7a5292f"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\vacate\\page.tsx": {
+    "mtime": 1771398914.3812747,
+    "ast_hash": "cccfe941530fb570e9fb6e752c7b9682",
+    "semantic_hash": "cccfe941530fb570e9fb6e752c7b9682"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(protected)\\visitors\\page.tsx": {
+    "mtime": 1779454457.5812452,
+    "ast_hash": "a6748b9ae17f7b07a7408229c5b7a17a",
+    "semantic_hash": "a6748b9ae17f7b07a7408229c5b7a17a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(public)\\forgot-password\\page.tsx": {
+    "mtime": 1779454539.5757537,
+    "ast_hash": "b76a25e8d680c0cbaa139abc45ce7b5a",
+    "semantic_hash": "b76a25e8d680c0cbaa139abc45ce7b5a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(public)\\layout.tsx": {
+    "mtime": 1771405035.0480952,
+    "ast_hash": "ddb58c7f41b3cf81ae17b4fa41c4d101",
+    "semantic_hash": "ddb58c7f41b3cf81ae17b4fa41c4d101"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(public)\\login\\page.tsx": {
+    "mtime": 1779454667.386375,
+    "ast_hash": "dbf1a5bf34b6c932f40a7935e0bd968d",
+    "semantic_hash": "dbf1a5bf34b6c932f40a7935e0bd968d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(public)\\reset-password\\page.tsx": {
+    "mtime": 1779454546.8963022,
+    "ast_hash": "94f96eba32c172fd57320b6fd31d2f57",
+    "semantic_hash": "94f96eba32c172fd57320b6fd31d2f57"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(public)\\select-hostel\\page.tsx": {
+    "mtime": 1777118171.0611453,
+    "ast_hash": "b0a8cdf2ee358c71c5ce3175d0a45a18",
+    "semantic_hash": "b0a8cdf2ee358c71c5ce3175d0a45a18"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\(public)\\signup\\page.tsx": {
+    "mtime": 1779454687.2050512,
+    "ast_hash": "31f01fbb2368428a97a138ab23fe33ce",
+    "semantic_hash": "31f01fbb2368428a97a138ab23fe33ce"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\layout.tsx": {
+    "mtime": 1771400966.7451677,
+    "ast_hash": "35d48d1fa813626bb274290ef65e254d",
+    "semantic_hash": "35d48d1fa813626bb274290ef65e254d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\app\\page.tsx": {
+    "mtime": 1777262619.619603,
+    "ast_hash": "2da35c6ba50665c29c769cc8c28265df",
+    "semantic_hash": "2da35c6ba50665c29c769cc8c28265df"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\admissions\\api.ts": {
+    "mtime": 1778776451.6639173,
+    "ast_hash": "900532540e8af0e26d185f93aab0ba67",
+    "semantic_hash": "900532540e8af0e26d185f93aab0ba67"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\admissions\\types.ts": {
+    "mtime": 1778776451.3119452,
+    "ast_hash": "e4b3feb0df32ca86fd8c2649066d9394",
+    "semantic_hash": "e4b3feb0df32ca86fd8c2649066d9394"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\auth\\api\\auth.api.ts": {
+    "mtime": 1779454344.7429113,
+    "ast_hash": "024b2889c04bb54549db817d690b909d",
+    "semantic_hash": "024b2889c04bb54549db817d690b909d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\auth\\api\\login.ts": {
+    "mtime": 1777116946.4838314,
+    "ast_hash": "743fb92f516c56cccb964449346b8f4c",
+    "semantic_hash": "743fb92f516c56cccb964449346b8f4c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\auth\\components\\LoginForm.tsx": {
+    "mtime": 1771369206.2652903,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\auth\\components\\SignupForm.tsx": {
+    "mtime": 1771369220.9916334,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\auth\\types\\auth.types.ts": {
+    "mtime": 1771369245.4616208,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\backups\\api\\backups.api.ts": {
+    "mtime": 1777117843.645452,
+    "ast_hash": "6b872e8e7a93e9726189a2cd50157f0b",
+    "semantic_hash": "6b872e8e7a93e9726189a2cd50157f0b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\backups\\components\\BackupCreateForm.tsx": {
+    "mtime": 1777117875.5402653,
+    "ast_hash": "8b8402d2305a9d48b314db020d48c9d3",
+    "semantic_hash": "8b8402d2305a9d48b314db020d48c9d3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\backups\\components\\BackupList.tsx": {
+    "mtime": 1777118288.9085867,
+    "ast_hash": "a067fda0f259c007aeb78a77d601a37b",
+    "semantic_hash": "a067fda0f259c007aeb78a77d601a37b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\backups\\components\\BackupRestoreForm.tsx": {
+    "mtime": 1777117887.2363195,
+    "ast_hash": "09dd7c1c527353dc7f9305e2787fc2f9",
+    "semantic_hash": "09dd7c1c527353dc7f9305e2787fc2f9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\backups\\components\\HostelPicker.tsx": {
+    "mtime": 1777117862.9328742,
+    "ast_hash": "afb7f990e9535fa9a4f3d50a926e18a2",
+    "semantic_hash": "afb7f990e9535fa9a4f3d50a926e18a2"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\backups\\types\\backups.types.ts": {
+    "mtime": 1777117830.310325,
+    "ast_hash": "897b5fa6d5a425161d6878884f77d0a3",
+    "semantic_hash": "897b5fa6d5a425161d6878884f77d0a3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\beds\\api\\bed.api.ts": {
+    "mtime": 1778776734.9268112,
+    "ast_hash": "48827525299c2016a05fbfeddf85c7f0",
+    "semantic_hash": "48827525299c2016a05fbfeddf85c7f0"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\beds\\types\\bed.types.ts": {
+    "mtime": 1778776716.9353118,
+    "ast_hash": "1cd3e37c2a5a337ddd2d7f0d52f30e72",
+    "semantic_hash": "1cd3e37c2a5a337ddd2d7f0d52f30e72"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\billing\\billing.api.ts": {
+    "mtime": 1777118069.3104415,
+    "ast_hash": "0e553a87131de209f2777e9c338acce3",
+    "semantic_hash": "0e553a87131de209f2777e9c338acce3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\billing\\billing.types.ts": {
+    "mtime": 1777118055.734097,
+    "ast_hash": "4ebdb2228071807b696c38600a2564d4",
+    "semantic_hash": "4ebdb2228071807b696c38600a2564d4"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\complaints\\api.ts": {
+    "mtime": 1778776452.4109833,
+    "ast_hash": "59fa7d82319b439425d9ede67c3c32e2",
+    "semantic_hash": "59fa7d82319b439425d9ede67c3c32e2"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\complaints\\types.ts": {
+    "mtime": 1778776452.037465,
+    "ast_hash": "7e2b4fc2d1eb210bcfe1e42dc35461b9",
+    "semantic_hash": "7e2b4fc2d1eb210bcfe1e42dc35461b9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\dashboard\\api.ts": {
+    "mtime": 1771444519.909404,
+    "ast_hash": "20e879ba451c64b9c013ca5ec5c065cd",
+    "semantic_hash": "20e879ba451c64b9c013ca5ec5c065cd"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\dashboard\\components\\OwnerDashboardCards.tsx": {
+    "mtime": 1779454595.7959526,
+    "ast_hash": "1aca8cf27115369d0d9b5107bb14b116",
+    "semantic_hash": "1aca8cf27115369d0d9b5107bb14b116"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\dashboard\\types.ts": {
+    "mtime": 1779454587.6753442,
+    "ast_hash": "6254d3ae178f75cacd835c9629e10633",
+    "semantic_hash": "6254d3ae178f75cacd835c9629e10633"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\fees\\api\\fee-ledger.api.ts": {
+    "mtime": 1777117700.8162937,
+    "ast_hash": "bb552da248bf942908212bda9ea195a3",
+    "semantic_hash": "bb552da248bf942908212bda9ea195a3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\fees\\types\\fee-ledger.types.ts": {
+    "mtime": 1777117689.578597,
+    "ast_hash": "9c9563ad9320f6cd9df902a00db99116",
+    "semantic_hash": "9c9563ad9320f6cd9df902a00db99116"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\hostels\\api\\hostels.api.ts": {
+    "mtime": 1777116991.2413116,
+    "ast_hash": "4034787bbd30742f9c546e85db577c10",
+    "semantic_hash": "4034787bbd30742f9c546e85db577c10"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\hostels\\store.ts": {
+    "mtime": 1771398174.072114,
+    "ast_hash": "8c9a6c3a21d9dfe2dec2f91d079846d1",
+    "semantic_hash": "8c9a6c3a21d9dfe2dec2f91d079846d1"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\hostels\\types.ts": {
+    "mtime": 1771398077.1419854,
+    "ast_hash": "604bce39401a99f51b1e10b080dac92f",
+    "semantic_hash": "604bce39401a99f51b1e10b080dac92f"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\hostels\\types\\hostels.types.ts": {
+    "mtime": 1777118109.6242495,
+    "ast_hash": "fae67754f8bc80161da94ce1dae953b6",
+    "semantic_hash": "fae67754f8bc80161da94ce1dae953b6"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\notices\\api.ts": {
+    "mtime": 1778776453.1451967,
+    "ast_hash": "3ecc7657ea94b89bf52ada4b247db6ec",
+    "semantic_hash": "3ecc7657ea94b89bf52ada4b247db6ec"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\notices\\types.ts": {
+    "mtime": 1778776452.7952254,
+    "ast_hash": "4e234030f1d412d53f3165759db7aae4",
+    "semantic_hash": "4e234030f1d412d53f3165759db7aae4"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\operations\\api.ts": {
+    "mtime": 1778776454.2322617,
+    "ast_hash": "8604946f7e050faae16d9332a82acdf7",
+    "semantic_hash": "8604946f7e050faae16d9332a82acdf7"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\operations\\types.ts": {
+    "mtime": 1778776453.7835226,
+    "ast_hash": "ca2d3c502a9b6fa6c1c4bd7ab39f5fb5",
+    "semantic_hash": "ca2d3c502a9b6fa6c1c4bd7ab39f5fb5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\owner\\api\\owner.api.ts": {
+    "mtime": 1771369326.4447663,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\owner\\types\\owner.types.ts": {
+    "mtime": 1771369302.3468108,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\payments\\api\\payment.api.ts": {
+    "mtime": 1777117726.8712127,
+    "ast_hash": "ce65e1536b3f116dfb9ce6efe5151431",
+    "semantic_hash": "ce65e1536b3f116dfb9ce6efe5151431"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\payments\\components\\StudentDuesCard.tsx": {
+    "mtime": 1777117738.439617,
+    "ast_hash": "c167a7008726b0212ab004a21f39901a",
+    "semantic_hash": "c167a7008726b0212ab004a21f39901a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\payments\\components\\StudentPaymentForm.tsx": {
+    "mtime": 1777118152.5041995,
+    "ast_hash": "100f51a8b633312ad7bf53cfcda31d9d",
+    "semantic_hash": "100f51a8b633312ad7bf53cfcda31d9d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\payments\\components\\StudentPayments.tsx": {
+    "mtime": 1777117762.7516491,
+    "ast_hash": "ee25859ed4b5d4f9a46f7edae5bf843f",
+    "semantic_hash": "ee25859ed4b5d4f9a46f7edae5bf843f"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\payments\\components\\VacateStudentButton.tsx": {
+    "mtime": 1777117778.5988104,
+    "ast_hash": "9d9f2ad3c491ac55e7efcd7fd73320fc",
+    "semantic_hash": "9d9f2ad3c491ac55e7efcd7fd73320fc"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\payments\\types\\payment.types.ts": {
+    "mtime": 1777117714.062021,
+    "ast_hash": "2be5d6da7f5d4d7509e16e1b127ba85a",
+    "semantic_hash": "2be5d6da7f5d4d7509e16e1b127ba85a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\payments\\utils\\dues.ts": {
+    "mtime": 1771436163.2561853,
+    "ast_hash": "00101525a12f1d15326bbab3be9d7ebe",
+    "semantic_hash": "00101525a12f1d15326bbab3be9d7ebe"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\residents\\residents.api.ts": {
+    "mtime": 1777117655.4086137,
+    "ast_hash": "5af46319319597d93e2d22471148b7a1",
+    "semantic_hash": "5af46319319597d93e2d22471148b7a1"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\residents\\residents.types.ts": {
+    "mtime": 1777117641.3794584,
+    "ast_hash": "8895cc2b10969484281d8324c492a0e9",
+    "semantic_hash": "8895cc2b10969484281d8324c492a0e9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\api\\bed.api.ts": {
+    "mtime": 1777117127.8637512,
+    "ast_hash": "fb894b3be64cb422fc74f432ea49b6cd",
+    "semantic_hash": "fb894b3be64cb422fc74f432ea49b6cd"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\api\\document.api.ts": {
+    "mtime": 1777117136.1288488,
+    "ast_hash": "e6737667677ec40fb7c4b9aad42c2925",
+    "semantic_hash": "e6737667677ec40fb7c4b9aad42c2925"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\api\\student.api.ts": {
+    "mtime": 1778776759.197183,
+    "ast_hash": "3ba06dd116d6265227596c0bb371ab9d",
+    "semantic_hash": "3ba06dd116d6265227596c0bb371ab9d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\components\\AssignBed.tsx": {
+    "mtime": 1777117631.041306,
+    "ast_hash": "60a9f07b36e1fdd80393b7ec6bc096af",
+    "semantic_hash": "60a9f07b36e1fdd80393b7ec6bc096af"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\components\\StudentDocuments.tsx": {
+    "mtime": 1771434231.1334605,
+    "ast_hash": "d2ef2a4c01d480b12ebd6082f12fd39a",
+    "semantic_hash": "d2ef2a4c01d480b12ebd6082f12fd39a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\components\\StudentDuesCard.tsx": {
+    "mtime": 1777117173.5811133,
+    "ast_hash": "782b158ee80fcf97ba2922368c7f62ba",
+    "semantic_hash": "782b158ee80fcf97ba2922368c7f62ba"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\components\\StudentFilters.tsx": {
+    "mtime": 1771434609.9518588,
+    "ast_hash": "beab2f89e3eb26dd311891036144b501",
+    "semantic_hash": "beab2f89e3eb26dd311891036144b501"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\components\\StudentForm.tsx": {
+    "mtime": 1777117157.4947085,
+    "ast_hash": "1aa0f24dbb73a6c0c2b0f5ce04ad4a82",
+    "semantic_hash": "1aa0f24dbb73a6c0c2b0f5ce04ad4a82"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\components\\StudentPayments.tsx": {
+    "mtime": 1777117165.396466,
+    "ast_hash": "8c1a0ff47ce59bbc86523310b9c49ee3",
+    "semantic_hash": "8c1a0ff47ce59bbc86523310b9c49ee3"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\components\\StudentTable.tsx": {
+    "mtime": 1777117802.5910509,
+    "ast_hash": "abaad8495def8972d29be823bf432bba",
+    "semantic_hash": "abaad8495def8972d29be823bf432bba"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\components\\VacateStudentButton.tsx": {
+    "mtime": 1777117790.9250023,
+    "ast_hash": "9999e787522fde6f6912e7615e6b6535",
+    "semantic_hash": "9999e787522fde6f6912e7615e6b6535"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\students\\types\\student.types.ts": {
+    "mtime": 1778776743.5807505,
+    "ast_hash": "6e77454a93269310f2d31cb3cdd44dbf",
+    "semantic_hash": "6e77454a93269310f2d31cb3cdd44dbf"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\tenants\\api\\tenants.api.ts": {
+    "mtime": 1777117942.0613282,
+    "ast_hash": "e01a8deff8184b85fa8b13b2de99ad80",
+    "semantic_hash": "e01a8deff8184b85fa8b13b2de99ad80"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\tenants\\components\\HostelForm.tsx": {
+    "mtime": 1777117329.7221277,
+    "ast_hash": "9f5a9d654eaabf4ca7ed04b58cd299ba",
+    "semantic_hash": "9f5a9d654eaabf4ca7ed04b58cd299ba"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\tenants\\components\\HostelList.tsx": {
+    "mtime": 1777118000.3479972,
+    "ast_hash": "51d22b0748f8c18ca45d959f535af12a",
+    "semantic_hash": "51d22b0748f8c18ca45d959f535af12a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\tenants\\components\\PlanList.tsx": {
+    "mtime": 1777117318.8273363,
+    "ast_hash": "9cfae397033d4ef694ea3b9ce0d990af",
+    "semantic_hash": "9cfae397033d4ef694ea3b9ce0d990af"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\tenants\\components\\SubscriptionForm.tsx": {
+    "mtime": 1777117968.78609,
+    "ast_hash": "6bb9031a7ecb5598b0b959ad0956bdf1",
+    "semantic_hash": "6bb9031a7ecb5598b0b959ad0956bdf1"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\tenants\\components\\SubscriptionList.tsx": {
+    "mtime": 1777118013.1101222,
+    "ast_hash": "6e4b54d842163c046a3fd298a87fcaba",
+    "semantic_hash": "6e4b54d842163c046a3fd298a87fcaba"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\tenants\\types\\tenants.types.ts": {
+    "mtime": 1777117925.6937237,
+    "ast_hash": "106efb0744c779aed11b0a9387fe9e7c",
+    "semantic_hash": "106efb0744c779aed11b0a9387fe9e7c"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\features\\tenants\\utils\\tenants.helpers.ts": {
+    "mtime": 1771432731.7798483,
+    "ast_hash": "656069d384741015efe4d4567c06dd9f",
+    "semantic_hash": "656069d384741015efe4d4567c06dd9f"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\api\\apiClient.ts": {
+    "mtime": 1777116928.3961663,
+    "ast_hash": "87731932aba5d4d2c9179b9d8bbd193d",
+    "semantic_hash": "87731932aba5d4d2c9179b9d8bbd193d"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\api\\endpoints.ts": {
+    "mtime": 1771369423.6864884,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\auth\\AuthGate.tsx": {
+    "mtime": 1771399999.7886956,
+    "ast_hash": "19af40d91ba80450a9a718f0ee3b632b",
+    "semantic_hash": "19af40d91ba80450a9a718f0ee3b632b"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\auth\\auth.store.ts": {
+    "mtime": 1777116931.3518982,
+    "ast_hash": "79b65336c9b9e8c5814b32321bb2d0a5",
+    "semantic_hash": "79b65336c9b9e8c5814b32321bb2d0a5"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\lib\\auth.ts": {
+    "mtime": 1777117375.152488,
+    "ast_hash": "4fbb9b7a4802976feb4cf80736ad92eb",
+    "semantic_hash": "4fbb9b7a4802976feb4cf80736ad92eb"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\lib\\dates.ts": {
+    "mtime": 1771371748.6110878,
+    "ast_hash": "caa2072dbaf78030d33a1a5080702adc",
+    "semantic_hash": "caa2072dbaf78030d33a1a5080702adc"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\lib\\exporters.ts": {
+    "mtime": 1771398106.6649723,
+    "ast_hash": "b33c7cfac193ae9f65006450b0ad7402",
+    "semantic_hash": "b33c7cfac193ae9f65006450b0ad7402"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\lib\\finance.ts": {
+    "mtime": 1771398919.3037255,
+    "ast_hash": "fd0b5f728b6d4b8ef9b931f345650112",
+    "semantic_hash": "fd0b5f728b6d4b8ef9b931f345650112"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\lib\\hostel.ts": {
+    "mtime": 1771430672.4460094,
+    "ast_hash": "bc37ae96687a2fedae9e2271be958122",
+    "semantic_hash": "bc37ae96687a2fedae9e2271be958122"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\lib\\storage.ts": {
+    "mtime": 1771405656.7287228,
+    "ast_hash": "8e48bd55f6520afd9f78a2eba87d615a",
+    "semantic_hash": "8e48bd55f6520afd9f78a2eba87d615a"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\types\\common.ts": {
+    "mtime": 1771406847.5380874,
+    "ast_hash": "2af4578a1bd3fa1aaf3a1ccdbc719419",
+    "semantic_hash": "2af4578a1bd3fa1aaf3a1ccdbc719419"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\ui\\Button.tsx": {
+    "mtime": 1771401029.0415497,
+    "ast_hash": "438f507cc7a9ac1cfe101acd935004b8",
+    "semantic_hash": "438f507cc7a9ac1cfe101acd935004b8"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\ui\\Card.tsx": {
+    "mtime": 1771401012.560087,
+    "ast_hash": "64a38861531c1e37acb1714304ff9914",
+    "semantic_hash": "64a38861531c1e37acb1714304ff9914"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\ui\\Input.tsx": {
+    "mtime": 1771371969.833089,
+    "ast_hash": "3fa4aab2058966a225cd629d99d69671",
+    "semantic_hash": "3fa4aab2058966a225cd629d99d69671"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\ui\\Modal.tsx": {
+    "mtime": 1771399594.9417827,
+    "ast_hash": "08d228fe2f3c4d9ba46a461774b06bd4",
+    "semantic_hash": "08d228fe2f3c4d9ba46a461774b06bd4"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\ui\\Sidebar.tsx": {
+    "mtime": 1771406930.041775,
+    "ast_hash": "47a13ccb2517cf81192f029efd5dc567",
+    "semantic_hash": "47a13ccb2517cf81192f029efd5dc567"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\ui\\Table.tsx": {
+    "mtime": 1771401021.0916436,
+    "ast_hash": "8b91d44c78df29cdb3f5fd43e80ca5c9",
+    "semantic_hash": "8b91d44c78df29cdb3f5fd43e80ca5c9"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\src\\shared\\ui\\Topbar.tsx": {
+    "mtime": 1779454607.038991,
+    "ast_hash": "c2921f44eb9afccd71aefca2cfd284a4",
+    "semantic_hash": "c2921f44eb9afccd71aefca2cfd284a4"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\tailwind.config.ts": {
+    "mtime": 1771402088.1801343,
+    "ast_hash": "e72799d3517acd553876aaec6777ba03",
+    "semantic_hash": "e72799d3517acd553876aaec6777ba03"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\tsconfig.json": {
+    "mtime": 1771342356.305355,
+    "ast_hash": "ee17fd1c97c735e9f3564e3f5251f125",
+    "semantic_hash": "ee17fd1c97c735e9f3564e3f5251f125"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\README.md": {
+    "mtime": 1771327570.905891,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\requirements.txt": {
+    "mtime": 1771351483.8994293,
+    "ast_hash": "4986c3f687128d451ca82340a661153e",
+    "semantic_hash": "4986c3f687128d451ca82340a661153e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\backend\\templates\\reports\\monthly_due.html": {
+    "mtime": 1771328995.3903275,
+    "ast_hash": "98b3792676b6fa5271985c5646c5c82f",
+    "semantic_hash": "98b3792676b6fa5271985c5646c5c82f"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\README.md": {
+    "mtime": 1770151811.285347,
+    "ast_hash": "f15aaa42d5d299d091b1171097ea56ad",
+    "semantic_hash": "f15aaa42d5d299d091b1171097ea56ad"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\public\\file.svg": {
+    "mtime": 1770151811.3565044,
+    "ast_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71",
+    "semantic_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\public\\globe.svg": {
+    "mtime": 1770151811.3679078,
+    "ast_hash": "2aaafa6a49b6563925fe440891e32717",
+    "semantic_hash": "2aaafa6a49b6563925fe440891e32717"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\public\\next.svg": {
+    "mtime": 1770151811.3870134,
+    "ast_hash": "8e061864f388b47f33a1c3780831193e",
+    "semantic_hash": "8e061864f388b47f33a1c3780831193e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\public\\vercel.svg": {
+    "mtime": 1770151811.4007182,
+    "ast_hash": "c0af2f507b369b085b35ef4bbe3bcf1e",
+    "semantic_hash": "c0af2f507b369b085b35ef4bbe3bcf1e"
+  },
+  "C:\\Users\\admin\\OneDrive\\Desktop\\Projects\\hostel\\frontend\\public\\window.svg": {
+    "mtime": 1770151811.4170668,
+    "ast_hash": "a2760511c65806022ad20adf74370ff3",
+    "semantic_hash": "a2760511c65806022ad20adf74370ff3"
+  }
+}
