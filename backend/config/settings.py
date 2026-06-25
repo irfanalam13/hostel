@@ -38,7 +38,7 @@ if not DEBUG and (not SECRET_KEY or SECRET_KEY.startswith("django-insecure")):
 
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
-    default=["localhost", "127.0.0.1"] if DEBUG else [],
+    default=["hostel-mwre.onrender.com","localhost","127.0.0.1"] if DEBUG else [],
 )
 # Fail fast instead of silently 400-ing every request in production.
 if not DEBUG and not ALLOWED_HOSTS:
@@ -240,7 +240,7 @@ AXES_LOCKOUT_CALLABLE = "apps.accounts.lockout.lockout_response"
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=["http://localhost:3000"] if DEBUG else [],
+    default=[    "https://hostel-mwre.onrender.com"] if DEBUG else [],
 )
 CORS_ALLOW_HEADERS = list(default_headers) + ["x-hostel-code", "x-hostel-id"]
 CORS_ALLOW_CREDENTIALS = True
