@@ -1,0 +1,32 @@
+# Coverage is measured ONLY over the canonical Track A apps plus the shared
+# auth / tenancy / permission layer they depend on. Track B (admissions,
+# students, rooms, fees, payments) is legacy per the product decision to make
+# residents+billing canonical, so it is deliberately out of scope for the gate.
+[run]
+branch = True
+source =
+    apps.common
+    apps.tenants
+    apps.accounts
+    apps.hostel
+    apps.residents
+    apps.billing
+omit =
+    */migrations/*
+    */tests/*
+    */tests.py
+    */__init__.py
+    */apps.py
+    */admin.py
+    apps/*/management/*
+    config/*
+
+[report]
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    def __str__
+    def __repr__
+    raise NotImplementedError
+    if TYPE_CHECKING:

@@ -1,0 +1,12 @@
+# Dependency folders (Token Killers)
+node_modules/
+.next/
+dist/
+build/
+venv/
+.env*
+
+# Databases and logs
+*.log
+*.sqlite3
+.data/

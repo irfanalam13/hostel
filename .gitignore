@@ -1,0 +1,42 @@
+# =============================================================================
+# Repository-root ignore rules (in addition to backend/ and frontend/ rules)
+# =============================================================================
+
+# --- Secrets & local config — NEVER commit -------------------------------
+.env
+*.env
+!.env.example
+
+# --- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Databases & user data (may contain PII) --------------------------------
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3.bak*
+/backend/media/
+/backend/staticfiles/
+
+# --- Node / Next.js ---------------------------------------------------------
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.vercel
+
+# --- Logs -------------------------------------------------------------------
+logs/
+*.log
+
+# --- OS / editor ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

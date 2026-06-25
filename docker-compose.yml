@@ -1,0 +1,144 @@
+# =============================================================================
+# Hostel SaaS — full production-style stack
+#
+#   docker compose up -d          start everything in the background
+#   docker compose down           stop and remove containers
+#   docker compose logs -f web    follow backend logs
+#
+# All configuration comes from the root `.env` file (copy `.env.example`).
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — primary datastore
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hostel}
+      POSTGRES_USER: ${POSTGRES_USER:-hostel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hostel}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hostel} -d ${POSTGRES_DB:-hostel}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Redis — Celery broker / result backend / cache
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # web — Django + Gunicorn (applies migrations on start)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      RUN_MIGRATIONS: "1"
+    volumes:
+      - media_data:/app/media
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # celery_worker — background task execution
+  # ---------------------------------------------------------------------------
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    command: ["celery", "-A", "config", "worker", "--loglevel=info"]
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    healthcheck:
+      # `inspect ping` exits 0 when at least one worker replies, non-zero otherwise.
+      test: ["CMD", "celery", "-A", "config", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # celery_beat — periodic task scheduler
+  # ---------------------------------------------------------------------------
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    # Schedule/pid files go to a writable path (/app is owned by root, read-only
+    # to the non-root app user). Empty --pidfile disables the pid file.
+    command: ["celery", "-A", "config", "beat", "--loglevel=info", "--schedule", "/tmp/celerybeat-schedule", "--pidfile="]
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    # beat is neither an HTTP server nor a pingable worker; the inherited image
+    # HEALTHCHECK (curl :8000) does not apply. Liveness = pid 1 alive.
+    healthcheck:
+      disable: true
+
+  # ---------------------------------------------------------------------------
+  # frontend — Next.js (standalone server)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      web:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:

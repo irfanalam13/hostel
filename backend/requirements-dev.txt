@@ -1,0 +1,9 @@
+# Test / CI tooling (Phase 10 — test coverage). Install alongside the runtime
+# deps:  pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+
+pytest
+pytest-django
+pytest-cov
+coverage
+factory_boy

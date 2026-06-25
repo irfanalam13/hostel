@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Secrets & local config — NEVER commit
+.env
+*.env
+!.env.example
+
+# Local database & user data (may contain PII)
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+
+# Test / coverage artifacts
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+/test-media/
