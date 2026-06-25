@@ -1,0 +1,60 @@
+import { apiFetch } from "@/shared/api/apiClient";
+
+export type SignupPayload = {
+  username: string;
+  email?: string;
+  password: string;
+  password2: string;
+  hostel_name: string;
+  hostel_phone?: string;
+  hostel_address?: string;
+  owner_name?: string;
+};
+
+export type AuthUser = {
+  id: number;
+  username: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  is_staff?: boolean;
+  is_active?: boolean;
+};
+
+export type SignupResponse = {
+  user: AuthUser;
+  hostel_code?: string | null;
+  access: string;
+  refresh: string;
+};
+
+export const authApi = {
+  signup(payload: SignupPayload) {
+    return apiFetch<SignupResponse>("/auth/signup/", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify(payload),
+    });
+  },
+
+  me() {
+    return apiFetch<AuthUser>("/auth/me/");
+  },
+
+  forgotPassword(payload: { email?: string; username?: string }) {
+    return apiFetch<{ detail: string; uid?: string; token?: string }>("/auth/password/forgot/", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify(payload),
+    });
+  },
+
+  resetPassword(payload: { uid: string; token: string; new_password: string }) {
+    return apiFetch<{ detail: string }>("/auth/password/reset/", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify(payload),
+    });
+  },
+};
