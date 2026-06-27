@@ -43,15 +43,23 @@ export const authApi = {
   },
 
   forgotPassword(payload: { email?: string; username?: string }) {
-    return apiFetch<{ detail: string; uid?: string; token?: string }>("/auth/password/forgot/", {
+    return apiFetch<{ detail: string }>("/auth/password/forgot/", {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
     });
   },
 
-  resetPassword(payload: { uid: string; token: string; new_password: string }) {
+  resetPassword(payload: { email_or_username: string; otp: string; new_password: string }) {
     return apiFetch<{ detail: string }>("/auth/password/reset/", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify(payload),
+    });
+  },
+
+  forgotHostelID(payload: { email_or_username: string }) {
+    return apiFetch<{ detail: string }>("/auth/hostel-id/forgot/", {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),

@@ -4,8 +4,8 @@ from django.conf import settings
 
 from apps.tenants.models import Hostel
 
-# Hostel codes look like "H-7K2Q9A" (slug). Reject anything else before hitting the DB.
-_CODE_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+# Official backend-generated Hostel IDs look like "HTL-7F4D91A2".
+_CODE_RE = re.compile(r"^HTL-[A-Z0-9]{8}$")
 
 # Health-check endpoints must stay dependency-free (a liveness probe should not
 # touch the DB), so tenant resolution is skipped for them.
@@ -28,7 +28,7 @@ class HostelResolveMiddleware:
 
         hostel = None
 
-        code = request.headers.get("X-HOSTEL-CODE")
+        code = (request.headers.get("X-HOSTEL-CODE") or "").strip().upper()
         if code and _CODE_RE.match(code):
             hostel = Hostel.objects.filter(code=code, is_active=True).first()
         elif not code:

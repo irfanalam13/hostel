@@ -16,7 +16,7 @@ export default function SettingsPage() {
           <span className="font-mono">{API_BASE}</span>
         </div>
         <div>
-          <span className="text-gray-500">Hostel Code:</span>{" "}
+          <span className="text-gray-500">Hostel ID:</span>{" "}
           <span className="font-mono">{authStore.getHostelCode() || "-"}</span>
         </div>
         <div>

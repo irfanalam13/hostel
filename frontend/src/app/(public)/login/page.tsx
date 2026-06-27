@@ -13,7 +13,10 @@ import { useAuth } from "@/shared/auth/AuthProvider";
 type LoginResponse = {
   detail?: string;
   user?: { role?: string };
+  hostel_code?: string;
 };
+
+const HOSTEL_ID_RE = /^HTL-[A-Z0-9]{8}$/;
 
 function extractErrorMessage(data: any) {
   if (!data) return "Login failed";
@@ -56,7 +59,8 @@ export default function LoginPage() {
     const code = hostelCode.trim();
     const user = username.trim();
 
-    if (!code) return toast.warning("Hostel code is required.");
+    if (!code) return toast.warning("Hostel ID is required.");
+    if (!HOSTEL_ID_RE.test(code)) return toast.warning("Use the official Hostel ID format: HTL-XXXXXXXX.");
     if (!user) return toast.warning("Username is required.");
     if (!password) return toast.warning("Password is required.");
 
@@ -66,16 +70,15 @@ export default function LoginPage() {
       const data = await apiFetch<LoginResponse>("/auth/login/", {
         method: "POST",
         auth: false,
-        headers: { "X-Hostel-Code": code },
-        body: JSON.stringify({ username: user, password }),
+        body: JSON.stringify({ hostel_id: code, username: user, password }),
       });
 
       // Access/refresh JWTs are set as httpOnly cookies by the backend; the
       // auth layer records the session marker, hostel code and user context.
-      authStore.setHostelCode(code);
+      authStore.setHostelCode(data?.hostel_code || code);
       onLoggedIn(
         data?.user ? ({ ...(data.user as any), role: data.user.role } as any) : null,
-        code
+        data?.hostel_code || code
       );
 
       toast.success("Welcome back!", "Login successful");
@@ -99,23 +102,19 @@ export default function LoginPage() {
         className="max-w-md w-full bg-white border rounded-2xl p-6 shadow-sm"
       >
         <h1 className="text-2xl font-bold mb-1">Login</h1>
-        <p className="text-gray-600 mb-6">Use your staff account + hostel code.</p>
+        <p className="text-gray-600 mb-6">Use your staff account + Hostel ID.</p>
 
         <div className="space-y-3">
           <Input
             id="hostel_code"
             name="hostel_code"
-            label="Hostel Code"
+            label="Hostel ID"
             value={hostelCode}
             onChange={(e) => {
-
-            const value = e.target.value;
-            if (value.length <= 15){
-              
-              setHostelCode(e.target.value)
-              }
+              const value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+              if (value.length <= 12) setHostelCode(value);
             }}
-            placeholder="e.g. H-3F9A1C"
+            placeholder="e.g. HTL-7F4D91A2"
             required
             autoComplete="off"
           />
@@ -125,13 +124,7 @@ export default function LoginPage() {
             name="username"
             label="Username"
             value={username}
-            onChange={(e) => {
-
-            const value = e.target.value;
-            if (value.length <= 15){
-              setUsername(e.target.value)
-              }
-            }}
+            onChange={(e) => setUsername(e.target.value)}
             required
             autoComplete="username"
           />
@@ -142,20 +135,14 @@ export default function LoginPage() {
             label="Password"
             type="password"
             value={password}
-            onChange={(e) => {
-
-            const value = e.target.value;
-            if (value.length <= 15){
-              setPassword(e.target.value)
-              }
-            }}
+            onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
           />
         </div>
 
         <Button type="submit" className="mt-5 w-full" loading={loading}>
-          {loading ? "Logging in…" : "Login"}
+          {loading ? "Logging in..." : "Login"}
         </Button>
 
         <div className="mt-4 text-center text-sm">
@@ -171,8 +158,14 @@ export default function LoginPage() {
           </Link>
         </div>
 
+        <div className="mt-2 text-center text-sm">
+          <Link href="/forgot-hostel-id" className="font-semibold text-blue-600 hover:underline">
+            Forgot Hostel ID?
+          </Link>
+        </div>
+
         <div className="mt-4 text-xs text-gray-500 text-center">
-          Tenant header used: <span className="font-mono">X-Hostel-Code</span>
+          Official format: <span className="font-mono">HTL-XXXXXXXX</span>
         </div>
       </form>
     </main>

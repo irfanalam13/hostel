@@ -9,17 +9,17 @@ type Size = "sm" | "md";
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
   size?: Size;
-  /** Shows a spinner and disables the button while a request is in flight. */
   loading?: boolean;
 };
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-zinc-900 text-white hover:opacity-90",
-  // `secondary` was already used in some pages without being defined — it
-  // previously fell through to ghost styling. Now it's a first-class variant.
-  secondary: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200",
-  ghost: "bg-white text-zinc-800 border border-zinc-200 hover:bg-zinc-50",
-  danger: "bg-red-600 text-white hover:opacity-90",
+  primary:
+    "bg-[var(--accent)] text-white shadow-sm hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)]",
+  secondary:
+    "border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:border-[var(--border-hover)] hover:bg-[var(--background-secondary)]",
+  ghost:
+    "bg-transparent text-[var(--foreground-secondary)] hover:bg-[var(--background-secondary)] hover:text-[var(--foreground)]",
+  danger: "bg-[var(--error)] text-white shadow-sm hover:brightness-95",
 };
 
 const SIZES: Record<Size, string> = {
@@ -37,13 +37,11 @@ export function Button({
   ...props
 }: Props) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100";
+    "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100";
 
   return (
     <button
       {...props}
-      // A loading button is always disabled so a double-click can't fire the
-      // request twice.
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={`${base} ${VARIANTS[variant]} ${SIZES[size]} ${className}`}

@@ -14,6 +14,7 @@ from .views import (
     SignupView,
     UserHostelViewSet,
     UserViewSet,
+    ForgotHostelIDView,
 )
 
 router = DefaultRouter()
@@ -31,6 +32,7 @@ urlpatterns = [
     path("me/", MeView.as_view(), name="me"),
     path("password/forgot/", PasswordResetRequestView.as_view(), name="password_reset_request"),
     path("password/reset/", PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
+    path("hostel-id/forgot/", ForgotHostelIDView.as_view(), name="forgot_hostel_id"),
 ]
 
 # Add router endpoints

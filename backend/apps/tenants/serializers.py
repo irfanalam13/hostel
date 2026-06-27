@@ -11,7 +11,7 @@ class HostelSerializer(serializers.ModelSerializer):
         model = Hostel
         fields = ["id", "name", "code", "phone", "address", "plan_name",
                   "subscription_active_until", "is_active", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "code", "created_at"]
 class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription

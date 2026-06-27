@@ -30,7 +30,7 @@ class Command(BaseCommand):
             admin.save()
 
         hostel, _ = Hostel.objects.get_or_create(
-            code="H-DEMO",
+            code="HTL-DEMO0001",
             defaults={
                 "name": "Hostel Demo",
                 "address": "Kathmandu, Nepal",
@@ -162,4 +162,4 @@ class Command(BaseCommand):
             defaults={"purpose": "College", "recorded_by": admin},
         )
 
-        self.stdout.write(self.style.SUCCESS("Demo data ready. Login: admin / admin12345, Hostel Code: H-DEMO"))
+        self.stdout.write(self.style.SUCCESS("Demo data ready. Login: admin / admin12345, Hostel ID: HTL-DEMO0001"))

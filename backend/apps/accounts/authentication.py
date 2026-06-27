@@ -9,6 +9,8 @@ from django.conf import settings
 from django.middleware.csrf import CsrfViewMiddleware
 from rest_framework import exceptions
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from apps.accounts.models import UserHostel
+from apps.tenants.models import Hostel
 
 
 class _CSRFCheck(CsrfViewMiddleware):
@@ -33,6 +35,20 @@ class CookieJWTAuthentication(JWTAuthentication):
 
         validated_token = self.get_validated_token(raw_token)
         user = self.get_user(validated_token)
+        hostel_code = validated_token.get("hostel_code")
+        hostel_id = validated_token.get("hostel_id")
+
+        if not hostel_code or not hostel_id:
+            raise exceptions.AuthenticationFailed("Token is missing hostel context.")
+
+        hostel = Hostel.objects.filter(id=hostel_id, code=hostel_code, is_active=True).first()
+        if not hostel:
+            raise exceptions.AuthenticationFailed("Invalid token hostel context.")
+
+        if not UserHostel.objects.filter(user=user, hostel=hostel, is_active=True).exists():
+            raise exceptions.AuthenticationFailed("Invalid token hostel membership.")
+
+        request.hostel = hostel
 
         # Cookie-borne credentials are ambient -> require CSRF on writes.
         if from_cookie:

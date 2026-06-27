@@ -34,7 +34,7 @@ def test_valid_code_resolves_hostel(hostel):
 
 
 def test_unknown_code_resolves_to_none(db):
-    assert _resolve(HTTP_X_HOSTEL_CODE="H-NOPE99") is None
+    assert _resolve(HTTP_X_HOSTEL_CODE="HTL-NOPE9999") is None
 
 
 def test_malformed_code_is_rejected_before_db(db):
@@ -86,4 +86,4 @@ def test_emergency_mode_locks_everything_but_auth(api, auth_client, make_user, h
 
     assert client.get("/api/residents/").status_code == 503
     # Auth endpoints stay reachable so an admin can log in to drive recovery.
-    assert api.post("/api/auth/login/", {"username": "x", "password": "y"}).status_code != 503
+    assert api.post("/api/auth/login/", {"hostel_id": "HTL-NOPE9999", "username": "x", "password": "y"}).status_code != 503

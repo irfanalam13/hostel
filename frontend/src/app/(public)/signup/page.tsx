@@ -438,7 +438,7 @@ export default function SignupPage() {
       >
         <h1 className="text-2xl font-bold mb-1">Create Hostel</h1>
         <p className="text-gray-600 mb-6">
-          Creates hostel + owner account and gives you a hostel code.
+          Creates hostel + owner account and gives you a Hostel ID.
         </p>
 
         <div className="space-y-3">
@@ -518,7 +518,7 @@ export default function SignupPage() {
             onChange={(e) => {
 
             const value = e.target.value;
-            if (value.length <= 15){
+            if (value.length <= 30){
               setUsername(e.target.value)
               }
             }}
@@ -540,7 +540,7 @@ export default function SignupPage() {
             onChange={(e) => {
 
             const value = e.target.value;
-            if (value.length <= 15){
+            if (value.length <= 30){
               setEmail(e.target.value)
               }
             }}
@@ -614,16 +614,16 @@ export default function SignupPage() {
 
         {signupDone && (
           <div className="mt-4 text-sm bg-green-50 border border-green-200 rounded-xl p-3">
-            <div className="font-semibold text-green-800">Signup successful ✅</div>
+            <div className="font-semibold text-green-800">Signup successful</div>
 
             {createdHostelCode ? (
               <>
-                <div className="mt-2 font-semibold text-green-800">Your Hostel Code:</div>
+                <div className="mt-2 font-semibold text-green-800">Your Hostel ID:</div>
                 <div className="font-mono text-green-900 text-lg">{createdHostelCode}</div>
 
                 <div className="mt-3 flex gap-2">
                   <Button type="button" onClick={copyCode}>
-                    Copy code
+                    Copy ID
                   </Button>
                   <Button type="button" onClick={() => router.push("/login")}>
                     Go to login
@@ -634,12 +634,12 @@ export default function SignupPage() {
                 </div>
 
                 <div className="text-green-800 mt-2">
-                  Use this code on the login page.
+                  Use this Hostel ID on the login page.
                 </div>
               </>
             ) : (
               <div className="mt-2 text-green-800">
-                Hostel created, but hostel code was not returned by API.
+                Hostel created, but Hostel ID was not returned by API.
               </div>
             )}
           </div>

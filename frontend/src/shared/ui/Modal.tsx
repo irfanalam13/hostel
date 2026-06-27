@@ -22,11 +22,11 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl bg-white rounded-2xl border border-gray-200 p-4"
+        className="w-full max-w-xl rounded-3xl border border-[var(--border)] bg-[var(--card-elevated)] p-4 shadow-[var(--shadow-lg)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <div className="text-base font-semibold">{title}</div>
+          <div className="text-base font-semibold text-[var(--foreground)]">{title}</div>
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>

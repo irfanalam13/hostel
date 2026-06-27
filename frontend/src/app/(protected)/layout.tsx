@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { authStore } from "@/shared/auth/auth.store";
 import { PageSkeleton } from "@/shared/ui/Skeleton";
+import { SidebarProvider } from "@/shared/providers/SidebarContext";
+import Sidebar from "@/shared/ui/Sidebar";
+import { MobileBottomNav } from "@/shared/ui/MobileBottomNav";
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -36,5 +39,17 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   // Redirecting — don't flash protected content.
   if (status === "unauthenticated") return null;
 
-  return <div className="mx-auto max-w-6xl p-4">{children}</div>;
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto pb-[64px] lg:pb-0 scrollbar-thin">
+            {children}
+          </main>
+          <MobileBottomNav />
+        </div>
+      </div>
+    </SidebarProvider>
+  );
 }

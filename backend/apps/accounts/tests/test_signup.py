@@ -4,7 +4,7 @@ Covered (Phase 10 §1 + §8 negative cases for the signup payload)."""
 import pytest
 
 from apps.accounts.models import User, UserHostel
-from apps.tenants.models import Hostel
+from apps.tenants.models import HOSTEL_CODE_RE, Hostel
 
 SIGNUP = "/api/auth/signup/"
 
@@ -28,6 +28,7 @@ def test_signup_creates_owner_hostel_and_link(api):
     assert resp.status_code == 201
     assert resp.data["detail"] == "Signup successful"
     assert resp.data["hostel_code"]  # returned for the SPA
+    assert HOSTEL_CODE_RE.match(resp.data["hostel_code"])
 
     user = User.objects.get(username="newowner")
     assert user.role == "OWNER"

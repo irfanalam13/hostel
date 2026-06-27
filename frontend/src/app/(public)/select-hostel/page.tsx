@@ -9,35 +9,39 @@ export default function SelectHostelPage() {
   const router = useRouter();
   const [code, setCode] = useState(hostelStore.getCode() || "");
   const [error, setError] = useState("");
+  const hostelIdPattern = /^HTL-[A-Z0-9]{8}$/;
 
   function save() {
-    const c = code.trim();
+    const c = code.trim().toUpperCase();
     if (!c) {
-      setError("Enter hostel code (example: abc123)");
+      setError("Enter your Hostel ID.");
+      return;
+    }
+    if (!hostelIdPattern.test(c)) {
+      setError("Use the official Hostel ID format: HTL-XXXXXXXX.");
       return;
     }
     hostelStore.set({ code: c });
     authStore.setHostelCode(c);
-    router.push("/dashboard");
+    router.push("/login");
   }
 
   return (
     <div className="mx-auto max-w-md p-6">
       <h1 className="text-xl font-semibold text-zinc-900">Select Hostel</h1>
       <p className="mt-1 text-sm text-zinc-500">
-        Enter your hostel code. This will be sent as{" "}
-        <code>X-HOSTEL-CODE</code> header on every API request.
+        Enter your Hostel ID to prefill login. Access is verified by the secure login session.
       </p>
 
       <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
-        <label className="text-sm text-zinc-700">Hostel code</label>
+        <label className="text-sm text-zinc-700">Hostel ID</label>
         <input
           value={code}
           onChange={(e) => {
-            const value = e.target.value;
-            if (value.length <= 15){
-            setCode(e.target.value)}}}
-          placeholder="e.g. greenhostel"
+            const value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+            if (value.length <= 12) setCode(value);
+          }}
+          placeholder="e.g. HTL-7F4D91A2"
           className="mt-2 w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none focus:ring-2"
         />
 

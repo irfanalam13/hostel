@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 
-from apps.tenants.models import Hostel  # adjust import path
+from apps.tenants.models import Hostel, HOSTEL_CODE_RE
 
 
 def _run_password_validators(value, user=None):
@@ -125,9 +125,30 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    uid = serializers.CharField()
-    token = serializers.CharField()
+    email_or_username = serializers.CharField()
+    otp = serializers.CharField(max_length=6)
     new_password = serializers.CharField(write_only=True, min_length=8)
 
     def validate_new_password(self, value):
         return _run_password_validators(value)
+
+
+class ForgotHostelIDSerializer(serializers.Serializer):
+    email_or_username = serializers.CharField(required=True)
+
+
+class SecureLoginSerializer(serializers.Serializer):
+    hostel_id = serializers.CharField(required=True, trim_whitespace=True)
+    username = serializers.CharField(required=True, trim_whitespace=True)
+    password = serializers.CharField(required=True, write_only=True, trim_whitespace=False)
+
+    default_error_messages = {
+        "invalid_login": "Invalid Hostel ID, email, or password.",
+    }
+
+    def validate(self, attrs):
+        attrs["hostel_id"] = attrs["hostel_id"].strip().upper()
+        if not HOSTEL_CODE_RE.match(attrs["hostel_id"]):
+            raise serializers.ValidationError({"detail": self.error_messages["invalid_login"]})
+        return attrs
+

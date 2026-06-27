@@ -145,10 +145,13 @@ def auth_client():
 
     def _client(user, hostel=None):
         client = APIClient()
-        access = str(RefreshToken.for_user(user).access_token)
-        creds = {"HTTP_AUTHORIZATION": f"Bearer {access}"}
+        refresh = RefreshToken.for_user(user)
         if hostel is not None:
-            creds["HTTP_X_HOSTEL_CODE"] = hostel.code
+            refresh["hostel_id"] = str(hostel.id)
+            refresh["hostel_code"] = hostel.code
+            refresh["role"] = user.role
+        access = str(refresh.access_token)
+        creds = {"HTTP_AUTHORIZATION": f"Bearer {access}"}
         client.credentials(**creds)
         return client
 

@@ -36,7 +36,7 @@ export default function ProfilePage() {
             <div className="font-medium">{user?.role || "-"}</div>
           </div>
           <div>
-            <div className="text-zinc-500">Hostel Code</div>
+            <div className="text-zinc-500">Hostel ID</div>
             <div className="font-mono">{authStore.getHostelCode() || "-"}</div>
           </div>
         </div>

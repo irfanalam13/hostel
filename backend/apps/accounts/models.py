@@ -22,3 +22,28 @@ class UserHostel(TimeStampedModel):
 
     class Meta:
         unique_together = ("user", "hostel")
+
+
+class PasswordResetOTP(TimeStampedModel):
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="password_reset_otps")
+    otp = models.CharField(max_length=6)
+    is_used = models.BooleanField(default=False)
+
+    def is_valid(self):
+        from django.utils import timezone
+        from datetime import timedelta
+        # Valid for 15 minutes
+        return not self.is_used and (timezone.now() - self.created_at) < timedelta(minutes=15)
+
+
+class SignupOTP(TimeStampedModel):
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="signup_otps")
+    otp = models.CharField(max_length=6)
+    is_used = models.BooleanField(default=False)
+
+    def is_valid(self):
+        from django.utils import timezone
+        from datetime import timedelta
+        # Valid for 15 minutes
+        return not self.is_used and (timezone.now() - self.created_at) < timedelta(minutes=15)
+

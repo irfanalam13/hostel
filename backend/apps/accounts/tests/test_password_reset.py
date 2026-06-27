@@ -26,7 +26,7 @@ def test_forgot_sends_email_for_existing_account(api, user):
     resp = api.post(FORGOT, {"email": "reset@example.com"})
     assert resp.status_code == 200
     assert len(mail.outbox) == 1
-    assert "reset-password" in mail.outbox[0].body
+    assert "One-Time Password" in mail.outbox[0].body
 
 
 def test_forgot_unknown_email_does_not_enumerate(api):
@@ -42,32 +42,43 @@ def test_forgot_requires_email_or_username(api):
 
 
 def test_reset_confirm_changes_password(api, user):
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
-    resp = api.post(RESET, {"uid": uid, "token": token, "new_password": "BrandNew!99"})
+    api.post(FORGOT, {"email": "reset@example.com"})
+    otp = user.password_reset_otps.first().otp
+    
+    resp = api.post(RESET, {"email_or_username": user.email, "otp": otp, "new_password": "BrandNew!99"})
     assert resp.status_code == 200
 
     user.refresh_from_db()
     assert user.check_password("BrandNew!99")
-    # The new password actually works at the login endpoint.
-    assert api.post(LOGIN, {"username": user.username, "password": "BrandNew!99"}).status_code == 200
+    # The new password actually works at the login endpoint with the backend-generated Hostel ID.
+    hostel_code = user.hostel_links.first().hostel.code
+    assert api.post(LOGIN, {"hostel_id": hostel_code, "username": user.username, "password": "BrandNew!99"}).status_code == 200
 
 
 def test_reset_with_bad_token_rejected(api, user):
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    resp = api.post(RESET, {"uid": uid, "token": "invalid-token", "new_password": "BrandNew!99"})
+    api.post(FORGOT, {"email": "reset@example.com"})
+    resp = api.post(RESET, {"email_or_username": user.email, "otp": "000000", "new_password": "BrandNew!99"})
     assert resp.status_code == 400
     user.refresh_from_db()
     assert user.check_password("OldPass!234")  # unchanged
 
 
 def test_reset_with_bad_uid_rejected(api):
-    resp = api.post(RESET, {"uid": "Zzzz", "token": "x", "new_password": "BrandNew!99"})
+    resp = api.post(RESET, {"email_or_username": "invalid@example.com", "otp": "123456", "new_password": "BrandNew!99"})
     assert resp.status_code == 400
 
 
 def test_reset_rejects_weak_new_password(api, user):
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
-    resp = api.post(RESET, {"uid": uid, "token": token, "new_password": "123"})
+    api.post(FORGOT, {"email": "reset@example.com"})
+    otp = user.password_reset_otps.first().otp
+    resp = api.post(RESET, {"email_or_username": user.email, "otp": otp, "new_password": "123"})
     assert resp.status_code == 400
+
+
+def test_forgot_hostel_id_sends_email(api, user):
+    FORGOT_HOSTEL_ID = "/api/auth/hostel-id/forgot/"
+    resp = api.post(FORGOT_HOSTEL_ID, {"email_or_username": user.email})
+    assert resp.status_code == 200
+    assert len(mail.outbox) == 1
+    hostel_code = user.hostel_links.first().hostel.code
+    assert hostel_code in mail.outbox[0].body

@@ -1,9 +1,11 @@
-import uuid
+import random
+import re
+import string
 from django.db import models
 from apps.common.models import TimeStampedModel
-import uuid
-from django.db import models
-from apps.common.models import TimeStampedModel
+
+
+HOSTEL_CODE_RE = re.compile(r"^HTL-[A-Z0-9]{8}$")
 
 
 
@@ -18,13 +20,13 @@ class Plan(TimeStampedModel):
 
 
 def generate_hostel_code():
-    # Short, readable, unique code e.g. "H-7K2Q9A"
-    return "H-" + uuid.uuid4().hex[:6].upper()
+    alphabet = string.ascii_uppercase + string.digits
+    return "HTL-" + "".join(random.choices(alphabet, k=8))
 
 
 class Hostel(TimeStampedModel):
     name = models.CharField(max_length=120)
-    code = models.SlugField(max_length=40, unique=True, blank=True)  # used in header
+    code = models.CharField(max_length=12, unique=True, db_index=True, blank=True)  # official Hostel ID
 
     address = models.CharField(max_length=255, blank=True, default="")
     phone = models.CharField(max_length=30, blank=True, default="")
@@ -37,12 +39,16 @@ class Hostel(TimeStampedModel):
     subscription_active_until = models.DateField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
+        if self.pk:
+            original_code = Hostel.objects.filter(pk=self.pk).values_list("code", flat=True).first()
+            if original_code:
+                self.code = original_code
         if not self.code:
-            # Ensure uniqueness even if collision happens (rare)
             code = generate_hostel_code()
             while Hostel.objects.filter(code=code).exists():
                 code = generate_hostel_code()
             self.code = code
+        self.code = self.code.upper()
         super().save(*args, **kwargs)
 
     def __str__(self):

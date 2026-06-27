@@ -17,7 +17,7 @@ export type Toast = {
   variant: ToastVariant;
   title?: string;
   message: string;
-  duration: number; // ms; 0 = sticky
+  duration: number;
 };
 
 type ToastInput = Omit<Partial<Toast>, "id"> & { message: string };
@@ -41,11 +41,11 @@ function nextId() {
   return `toast_${Date.now()}_${counter}`;
 }
 
-const VARIANT_STYLES: Record<ToastVariant, { bar: string; icon: string; ring: string }> = {
-  success: { bar: "bg-emerald-500", icon: "✓", ring: "ring-emerald-100" },
-  error: { bar: "bg-red-500", icon: "✕", ring: "ring-red-100" },
-  warning: { bar: "bg-amber-500", icon: "!", ring: "ring-amber-100" },
-  info: { bar: "bg-blue-500", icon: "i", ring: "ring-blue-100" },
+const VARIANT_STYLES: Record<ToastVariant, { color: string; icon: string }> = {
+  success: { color: "var(--success)", icon: "OK" },
+  error: { color: "var(--error)", icon: "!" },
+  warning: { color: "var(--warning)", icon: "!" },
+  info: { color: "var(--info)", icon: "i" },
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -72,12 +72,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         duration: input.duration ?? DEFAULT_DURATION,
       };
       setToasts((list) => {
-        // De-dupe identical back-to-back messages (e.g. a retry loop firing the
-        // same API error) so the user isn't spammed.
         const last = list[list.length - 1];
-        if (last && last.message === toast.message && last.variant === toast.variant) {
-          return list;
-        }
+        if (last && last.message === toast.message && last.variant === toast.variant) return list;
         return [...list, toast];
       });
       if (toast.duration > 0) {
@@ -95,7 +91,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts([]);
   }, []);
 
-  // Clean up any pending timers on unmount.
   useEffect(() => {
     const map = timers.current;
     return () => {
@@ -138,30 +133,31 @@ function Toaster({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: strin
           <div
             key={t.id}
             role={t.variant === "error" ? "alert" : "status"}
-            className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg ring-1 ${style.ring}`}
+            className="pointer-events-auto flex w-full max-w-sm items-start gap-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card-elevated)] shadow-[var(--shadow-lg)]"
           >
-            <div className={`flex h-full w-1.5 shrink-0 ${style.bar}`} aria-hidden />
+            <div className="flex h-full w-1.5 shrink-0" style={{ backgroundColor: style.color }} aria-hidden />
             <div className="flex flex-1 items-start gap-2 py-3 pr-1">
               <span
-                className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white ${style.bar}`}
+                className="mt-0.5 grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1 text-[9px] font-bold text-white"
+                style={{ backgroundColor: style.color }}
                 aria-hidden
               >
                 {style.icon}
               </span>
               <div className="min-w-0 flex-1">
                 {t.title ? (
-                  <div className="text-sm font-semibold text-zinc-900">{t.title}</div>
+                  <div className="text-sm font-semibold text-[var(--foreground)]">{t.title}</div>
                 ) : null}
-                <div className="break-words text-sm text-zinc-700">{t.message}</div>
+                <div className="break-words text-sm text-[var(--foreground-secondary)]">{t.message}</div>
               </div>
             </div>
             <button
               type="button"
               onClick={() => onDismiss(t.id)}
               aria-label="Dismiss notification"
-              className="px-3 py-3 text-zinc-400 transition hover:text-zinc-700"
+              className="px-3 py-3 text-[var(--muted)] transition hover:text-[var(--foreground)]"
             >
-              ✕
+              x
             </button>
           </div>
         );
@@ -172,8 +168,6 @@ function Toaster({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: strin
 
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error("useToast must be used within a <ToastProvider>.");
-  }
+  if (!ctx) throw new Error("useToast must be used within a <ToastProvider>.");
   return ctx;
 }

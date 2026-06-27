@@ -27,20 +27,19 @@ def test_member_only_sees_own_hostel_residents(auth_client, make_user, hostel, o
 
 
 def test_spoofed_hostel_code_is_rejected(auth_client, make_user, hostel, other_hostel):
-    """A user of hostel A pointing the X-Hostel-Code at hostel B is denied."""
+    """A user of hostel A with a token scoped to hostel B is denied."""
     ResidentFactory(hostel=other_hostel, full_name="Theirs")
     user = make_user(role="WARDEN", hostel=hostel)  # member of A only
 
     # auth_client scopes to other_hostel (B) — user is not a member of B.
     resp = auth_client(user, other_hostel).get(RESIDENTS)
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 def test_missing_hostel_context_is_rejected(auth_client, make_user, hostel):
     user = make_user(role="WARDEN", hostel=hostel)
-    # No X-Hostel-Code header -> request.hostel is None -> IsHostelResolved fails.
     resp = auth_client(user, hostel=None).get(RESIDENTS)
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 def test_inactive_membership_is_denied(auth_client, make_user, hostel):
@@ -49,7 +48,7 @@ def test_inactive_membership_is_denied(auth_client, make_user, hostel):
     user = make_user(role="WARDEN", hostel=hostel)
     UserHostel.objects.filter(user=user, hostel=hostel).update(is_active=False)
     resp = auth_client(user, hostel).get(RESIDENTS)
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 def test_anonymous_with_valid_code_cannot_read(api, hostel):

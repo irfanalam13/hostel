@@ -26,36 +26,73 @@ def user(make_user, hostel):
     return make_user(role="WARDEN", hostel=hostel, password="S3cretPass!")
 
 
+def token_for(user, hostel):
+    refresh = RefreshToken.for_user(user)
+    refresh["hostel_id"] = str(hostel.id)
+    refresh["hostel_code"] = hostel.code
+    refresh["role"] = user.role
+    return refresh.access_token
+
+
+def detail_text(resp):
+    detail = resp.data["detail"]
+    if isinstance(detail, list):
+        return str(detail[0])
+    return str(detail)
+
+
 # --- login success / failure -----------------------------------------------
 def test_login_success_sets_cookies_and_returns_user(api, user):
-    resp = api.post(LOGIN, {"username": user.username, "password": "S3cretPass!"})
+    hostel = user.hostel_links.get(is_active=True).hostel
+    resp = api.post(LOGIN, {"hostel_id": hostel.code, "username": user.username, "password": "S3cretPass!"})
     assert resp.status_code == 200
     assert resp.data["detail"] == "Login successful"
     assert resp.data["user"]["username"] == user.username
+    assert resp.data["hostel_code"] == hostel.code
     # httpOnly cookies are set for both tokens.
     assert "access_token" in resp.cookies
     assert "refresh_token" in resp.cookies
     assert resp.cookies["access_token"]["httponly"]
+    access = AccessToken(resp.cookies["access_token"].value)
+    assert access["hostel_id"] == str(hostel.id)
+    assert access["hostel_code"] == hostel.code
+    assert access["role"] == user.role
 
 
 def test_login_wrong_password_rejected(api, user):
-    resp = api.post(LOGIN, {"username": user.username, "password": "wrong"})
-    assert resp.status_code == 401
+    hostel = user.hostel_links.get(is_active=True).hostel
+    resp = api.post(LOGIN, {"hostel_id": hostel.code, "username": user.username, "password": "wrong"})
+    assert resp.status_code == 400
+    assert detail_text(resp) == "Invalid Hostel ID, email, or password."
     assert "access_token" not in resp.cookies
 
 
 def test_login_unknown_user_rejected(api):
-    resp = api.post(LOGIN, {"username": "ghost", "password": "whatever"})
-    assert resp.status_code == 401
+    resp = api.post(LOGIN, {"hostel_id": "HTL-ABCDEFG1", "username": "ghost", "password": "whatever"})
+    assert resp.status_code == 400
+    assert detail_text(resp) == "Invalid Hostel ID, email, or password."
 
 
 def test_login_missing_fields_rejected(api, user):
-    assert api.post(LOGIN, {"username": user.username}).status_code == 400
+    assert api.post(LOGIN, {"username": user.username, "password": "S3cretPass!"}).status_code == 400
+
+
+def test_login_rejects_invalid_hostel_id_format(api, user):
+    resp = api.post(LOGIN, {"hostel_id": "H-DEMO", "username": user.username, "password": "S3cretPass!"})
+    assert resp.status_code == 400
+    assert detail_text(resp) == "Invalid Hostel ID, email, or password."
+
+
+def test_login_rejects_user_from_other_hostel(api, user, other_hostel):
+    resp = api.post(LOGIN, {"hostel_id": other_hostel.code, "username": user.username, "password": "S3cretPass!"})
+    assert resp.status_code == 400
+    assert detail_text(resp) == "Invalid Hostel ID, email, or password."
 
 
 # --- token refresh ----------------------------------------------------------
 def test_refresh_with_cookie_issues_new_access(api, user):
-    login = api.post(LOGIN, {"username": user.username, "password": "S3cretPass!"})
+    hostel = user.hostel_links.get(is_active=True).hostel
+    login = api.post(LOGIN, {"hostel_id": hostel.code, "username": user.username, "password": "S3cretPass!"})
     assert login.status_code == 200
     # The client retains the refresh cookie; refresh should mint a new access.
     resp = api.post(REFRESH)
@@ -88,7 +125,8 @@ def test_logout_blacklists_refresh_token(api, user):
 
 
 def test_logout_clears_cookies(api, user):
-    api.post(LOGIN, {"username": user.username, "password": "S3cretPass!"})
+    hostel = user.hostel_links.get(is_active=True).hostel
+    api.post(LOGIN, {"hostel_id": hostel.code, "username": user.username, "password": "S3cretPass!"})
     resp = api.post(LOGOUT)
     assert resp.status_code == 200
     # Cookies are cleared (expired) on logout.
@@ -97,7 +135,8 @@ def test_logout_clears_cookies(api, user):
 
 # --- expired / invalid access token ----------------------------------------
 def test_expired_access_token_denied(api, user):
-    token = AccessToken.for_user(user)
+    hostel = user.hostel_links.get(is_active=True).hostel
+    token = token_for(user, hostel)
     token.set_exp(lifetime=timedelta(minutes=-5))  # already expired
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
     assert api.get(ME).status_code == 401
@@ -109,18 +148,27 @@ def test_garbage_access_token_denied(api):
 
 
 def test_valid_access_token_reaches_me(api, user):
-    token = str(AccessToken.for_user(user))
+    hostel = user.hostel_links.get(is_active=True).hostel
+    token = str(token_for(user, hostel))
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
     resp = api.get(ME)
     assert resp.status_code == 200
     assert resp.data["username"] == user.username
+    assert resp.data["hostel_code"] == hostel.code
+
+
+def test_access_token_without_hostel_claims_denied(api, user):
+    token = str(AccessToken.for_user(user))
+    api.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    assert api.get(ME).status_code == 401
 
 
 # --- multiple sessions ------------------------------------------------------
 def test_multiple_sessions_both_valid(api, user):
     """Two independent logins both yield working access tokens."""
-    t1 = str(AccessToken.for_user(user))
-    t2 = str(AccessToken.for_user(user))
+    hostel = user.hostel_links.get(is_active=True).hostel
+    t1 = str(token_for(user, hostel))
+    t2 = str(token_for(user, hostel))
     assert t1 != t2
     for tok in (t1, t2):
         client = type(api)()

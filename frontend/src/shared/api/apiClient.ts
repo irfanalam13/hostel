@@ -111,11 +111,10 @@ function buildHeaders(options: ApiOptions = {}) {
     headers.set("X-CSRFToken", csrfToken);
   }
 
-  const hostelCode = authStore.getHostelCode() || hostelStore.getCode();
-  if (hostelCode) headers.set("X-Hostel-Code", hostelCode);
-
-  const hostelId = hostelStore.getId();
-  if (hostelId) headers.set("X-Hostel-ID", hostelId);
+  if (options.auth === false) {
+    const hostelCode = authStore.getHostelCode() || hostelStore.getCode();
+    if (hostelCode) headers.set("X-Hostel-Code", hostelCode);
+  }
 
   return headers;
 }

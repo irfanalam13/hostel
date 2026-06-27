@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { authApi } from "@/features/auth/api/auth.api";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 
-export default function ForgotPasswordPage() {
-  const router = useRouter();
+export default function ForgotHostelIDPage() {
   const [identifier, setIdentifier] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,15 +16,10 @@ export default function ForgotPasswordPage() {
     if (loading) return;
     setLoading(true);
     try {
-      const payload = identifier.includes("@") ? { email: identifier } : { username: identifier };
-      const res = await authApi.forgotPassword(payload);
+      const res = await authApi.forgotHostelID({ email_or_username: identifier });
       setMessage(res.detail);
-      // Redirect after 2 seconds so they can read the success message
-      setTimeout(() => {
-        router.push(`/reset-password?email_or_username=${encodeURIComponent(identifier)}`);
-      }, 2000);
     } catch (err: any) {
-      setMessage(err?.message || "Failed to request password reset.");
+      setMessage(err?.message || "Failed to request Hostel ID.");
     } finally {
       setLoading(false);
     }
@@ -35,11 +28,18 @@ export default function ForgotPasswordPage() {
   return (
     <main className="min-h-screen bg-zinc-50 p-6">
       <form onSubmit={submit} className="mx-auto mt-16 max-w-md rounded-2xl border bg-white p-6 shadow-sm">
-        <h1 className="mb-1 text-2xl font-semibold">Reset Password</h1>
-        <p className="mb-4 text-sm text-zinc-500">Enter your username or email.</p>
-        <Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Username or email" required />
+        <h1 className="mb-1 text-2xl font-semibold">Retrieve Hostel ID</h1>
+        <p className="mb-4 text-sm text-zinc-500">
+          Enter the username or email linked to your account. Your registered Hostel ID details will be sent to your email inbox.
+        </p>
+        <Input 
+          value={identifier} 
+          onChange={(e) => setIdentifier(e.target.value)} 
+          placeholder="Username or email" 
+          required 
+        />
         <Button className="mt-4 w-full" type="submit" loading={loading}>
-          {loading ? "Sending..." : "Continue"}
+          {loading ? "Sending..." : "Request Hostel ID"}
         </Button>
         {message ? <div className="mt-4 text-sm text-zinc-700 bg-zinc-100 p-3 rounded-lg">{message}</div> : null}
         <Link className="mt-4 block text-sm text-zinc-500 hover:text-zinc-900" href="/login">

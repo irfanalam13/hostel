@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const replace = vi.fn();
@@ -25,9 +25,9 @@ function renderLogin() {
 }
 
 async function fillAndSubmit(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText("Hostel Code"), "H-ABC123");
-  await user.type(screen.getByLabelText("Username"), "warden");
-  await user.type(screen.getByLabelText("Password"), "secret123");
+  fireEvent.change(screen.getByLabelText("Hostel ID"), { target: { value: "HTL-ABC12345" } });
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "warden" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret123" } });
   await user.click(screen.getByRole("button", { name: /login/i }));
 }
 
@@ -43,15 +43,21 @@ describe("Login flow", () => {
   it("logs in, shows a success toast and redirects to the dashboard", async () => {
     const user = userEvent.setup();
     apiFetch.mockImplementation((path: string) => {
-      if (path === "/auth/login/") return Promise.resolve({ detail: "ok", user: { role: "WARDEN" } });
+      if (path === "/auth/login/") {
+        return Promise.resolve({ detail: "ok", hostel_code: "HTL-ABC12345", user: { role: "WARDEN" } });
+      }
       return Promise.reject(new Error("401")); // /auth/me
     });
     renderLogin();
     await fillAndSubmit(user);
 
-    await waitFor(() =>
-      expect(apiFetch).toHaveBeenCalledWith("/auth/login/", expect.objectContaining({ method: "POST" }))
-    );
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith(
+      "/auth/login/",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ hostel_id: "HTL-ABC12345", username: "warden", password: "secret123" }),
+      })
+    ));
     expect(await screen.findByText("Login successful")).toBeInTheDocument();
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard"));
   });
