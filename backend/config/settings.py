@@ -240,7 +240,7 @@ AXES_LOCKOUT_CALLABLE = "apps.accounts.lockout.lockout_response"
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=[    "https://hostel-mwre.onrender.com"] if DEBUG else [],
+    default=["https://hostel-mwre.onrender.com"] if DEBUG else [],
 )
 CORS_ALLOW_HEADERS = list(default_headers) + ["x-hostel-code", "x-hostel-id"]
 CORS_ALLOW_CREDENTIALS = True
@@ -256,7 +256,7 @@ if not DEBUG:
 
 CSRF_TRUSTED_ORIGINS = env.list(
     "CSRF_TRUSTED_ORIGINS",
-    default=["http://localhost:3000"],
+    default=["http://localhost:3000", "https://hostel-mwre.onrender.com",]
 )
 # The CSRF cookie must be readable by JS so the SPA can echo it back in X-CSRFToken.
 CSRF_COOKIE_HTTPONLY = False
@@ -294,6 +294,8 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@hostel.local")
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
 
