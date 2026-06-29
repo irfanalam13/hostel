@@ -9,9 +9,14 @@ name: CI
 #   - e2e.yml                    browser E2E + perf + DAST          (Phase 7)
 on:
   push:
-    branches: [main, master, develop]
-  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+      - "feature/**"
 
+  pull_request:
+    
 # Cancel superseded runs on the same ref so a force-push doesn't pile up runners.
 concurrency:
   group: ci-${{ github.ref }}
