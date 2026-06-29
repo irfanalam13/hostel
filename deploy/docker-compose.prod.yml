@@ -63,6 +63,9 @@ services:
     image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
     restart: unless-stopped
     env_file: .env
+    # Sidecars never migrate — deploy.sh owns schema changes (see web).
+    environment:
+      RUN_MIGRATIONS: "0"
     command: ["celery", "-A", "config", "worker", "--loglevel=info"]
     volumes:
       - media_data:/app/media
@@ -80,6 +83,9 @@ services:
     image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
     restart: unless-stopped
     env_file: .env
+    # Sidecars never migrate — deploy.sh owns schema changes (see web).
+    environment:
+      RUN_MIGRATIONS: "0"
     command: ["celery", "-A", "config", "beat", "--loglevel=info", "--schedule", "/tmp/celerybeat-schedule", "--pidfile="]
     depends_on:
       redis: { condition: service_healthy }
@@ -101,7 +107,10 @@ services:
       DOMAIN: ${DOMAIN:?set DOMAIN}
     volumes:
       - ./nginx/templates:/etc/nginx/templates:ro
+      - ./nginx/snippets:/etc/nginx/snippets:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      # Shared with the certbot service for the ACME http-01 webroot challenge.
+      - certbot_www:/var/www/certbot:ro
     ports:
       - "80:80"
       - "443:443"
@@ -113,3 +122,5 @@ volumes:
   postgres_data:
   redis_data:
   media_data:
+  # ACME http-01 challenge webroot, written by certbot, read by nginx.
+  certbot_www:

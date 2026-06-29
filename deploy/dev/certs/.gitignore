@@ -1,0 +1,4 @@
+# Locally-issued mkcert dev certificates — machine-specific, NEVER committed.
+# Regenerate any time with scripts/setup-dev-https.{ps1,sh}.
+*
+!.gitignore
