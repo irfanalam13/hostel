@@ -25,6 +25,10 @@ COPY . .
 # backend URL the browser will call must be supplied here.
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+# VAPID public key for Web Push — inlined so the installed PWA can subscribe.
+# Empty by default; push UI hides itself until this is provided.
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build

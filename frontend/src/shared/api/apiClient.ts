@@ -1,6 +1,7 @@
 import { authStore } from "@/shared/auth/auth.store";
 import { hostelStore } from "@/shared/lib/hostel";
 import { emitUnauthorized } from "@/shared/auth/events";
+import { enqueueRequest } from "@/shared/pwa/outbox";
 
 export const API_BASE = (
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:8000/api"
@@ -11,9 +12,30 @@ type QueryParams = Record<string, string | number | boolean | null | undefined>;
 type ApiOptions = RequestInit & {
   auth?: boolean;
   params?: QueryParams;
+  /**
+   * Opt-in: when an unsafe request (POST/PUT/PATCH/DELETE) fails because the
+   * device is offline, persist it to the IndexedDB outbox and let Background
+   * Sync replay it later (public/sw.js). The call then rejects with an
+   * OfflineQueuedError so the caller can show a "saved, will sync" message.
+   * Only JSON (string) bodies are queueable — FormData uploads are not.
+   */
+  offlineQueue?: boolean;
+  /** Idempotency key so an identical retry isn't queued twice. */
+  dedupeKey?: string;
+  /** Human label shown in the pending-sync UI. */
+  queueLabel?: string;
 };
 
 type ApiResult<T> = { data: T };
+
+/** Thrown when a request was saved to the offline outbox instead of sent. */
+export class OfflineQueuedError extends Error {
+  readonly queued = true;
+  constructor(message = "You're offline — this change was saved and will sync automatically.") {
+    super(message);
+    this.name = "OfflineQueuedError";
+  }
+}
 
 function withParams(url: string, params?: QueryParams) {
   if (!params) return url;
@@ -187,10 +209,29 @@ export async function apiFetch<T = unknown>(
   // Initial request. For safe (idempotent) methods we retry once on a transient
   // network failure so a flaky connection doesn't surface as a hard error.
   let res: Response;
+  const firstInit = buildOptions();
   try {
-    res = await fetch(url, buildOptions());
+    res = await fetch(url, firstInit);
   } catch (networkErr) {
-    if (isUnsafe(options.method)) throw networkErr;
+    if (isUnsafe(options.method)) {
+      // Offline + opt-in → persist to the outbox for Background Sync.
+      if (options.offlineQueue && typeof firstInit.body === "string") {
+        const headers: Record<string, string> = {};
+        (firstInit.headers as Headers).forEach((value, key) => {
+          headers[key] = value;
+        });
+        await enqueueRequest({
+          url,
+          method: (options.method || "POST").toUpperCase(),
+          headers,
+          body: firstInit.body,
+          dedupeKey: options.dedupeKey,
+          label: options.queueLabel,
+        });
+        throw new OfflineQueuedError();
+      }
+      throw networkErr;
+    }
     await new Promise((r) => setTimeout(r, 300));
     res = await fetch(url, buildOptions());
   }

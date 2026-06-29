@@ -1,4 +1,5 @@
 import { apiFetch } from "@/shared/api/apiClient";
+import { offlineWrite } from "@/shared/api/offlineWrite";
 import type { Bed, BedAssignment, Block, Floor, Room } from "../types/bed.types";
 
 export type { Bed, BedAssignment, Block, Floor, Room };
@@ -89,9 +90,11 @@ export async function getActiveAssignmentByBed(bedId: string) {
 export function createBedAssignment(
   payload: Pick<BedAssignment, "student" | "bed" | "is_active" | "start_date">
 ) {
-  return apiFetch<BedAssignment>("/rooms/bed-assignments/", {
-    method: "POST",
-    body: JSON.stringify(payload),
+  // Offline-capable room allocation. The conditional unique constraint on active
+  // assignments + the idempotency key prevent a double-booked bed on replay.
+  return offlineWrite<BedAssignment>("/rooms/bed-assignments/", payload, {
+    label: "Allocate room / bed",
+    entity: "bed_assignment",
   });
 }
 

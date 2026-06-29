@@ -12,6 +12,14 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
+/.lighthouseci
+/cypress/videos
+/cypress/screenshots
+/cypress/downloads
+# Playwright browser binaries are installed via `npm run e2e:install`, not vendored.
+/playwright/.cache
 
 # next.js
 /.next/

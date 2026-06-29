@@ -1,9 +1,9 @@
 import random
 import re
+import uuid
 import string
 from django.db import models
 from apps.common.models import TimeStampedModel
-
 
 HOSTEL_CODE_RE = re.compile(r"^HTL-[A-Z0-9]{8}$")
 
@@ -34,7 +34,8 @@ class Hostel(TimeStampedModel):
 
     is_active = models.BooleanField(default=True)
 
-    # SaaS subscription basics
+    # SaaS settings and subscription basics
+    settings = models.JSONField(default=dict, blank=True)
     plan_name = models.CharField(max_length=50, default="basic")
     subscription_active_until = models.DateField(null=True, blank=True)
 
@@ -53,8 +54,6 @@ class Hostel(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
-    
-    
     
 class Subscription(TimeStampedModel):
     hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name="subscriptions")

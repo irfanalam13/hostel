@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { getUnreadCount, listInbox, markAllRead as apiMarkAllRead, markRead } from "@/features/notifications/api";
+import type { InboxNotification } from "@/features/notifications/types";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { useSidebar } from "@/shared/providers/SidebarContext";
 import { useTheme } from "@/shared/providers/ThemeContext";
 import { usePwa } from "@/shared/providers/PwaProvider";
+import { useBackgroundRefresh } from "@/shared/pwa/useBackgroundRefresh";
 import { CommandPalette } from "./CommandPalette";
 import {
   Menu,
@@ -30,11 +34,27 @@ export function Topbar({ title = "Dashboard" }: { title?: string }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [notifs, setNotifs] = useState([
-    { id: 1, text: "New admission request pending approval", time: "10m ago", read: false },
-    { id: 2, text: "Payment received from Demo Student", time: "1h ago", read: false },
-    { id: 3, text: "Complaint #104 resolved by staff", time: "5h ago", read: true },
-  ]);
+  const [notifs, setNotifs] = useState<InboxNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadNotifs = useCallback(async () => {
+    try {
+      // Authoritative unread count (not capped by the list page size) plus a
+      // preview list for the dropdown.
+      const [list, unread] = await Promise.all([listInbox(), getUnreadCount()]);
+      setNotifs(list);
+      setUnreadCount(unread);
+    } catch {
+      /* unauthenticated or offline — keep the bell quiet */
+    }
+  }, []);
+
+  // Initial load; the background-task scheduler keeps the badge current
+  // afterwards (foreground timer while open, Periodic Background Sync when away).
+  useEffect(() => {
+    loadNotifs();
+  }, [loadNotifs]);
+  useBackgroundRefresh("refresh-notifications", loadNotifs);
 
   // Handle Ctrl+K shortcut
   useEffect(() => {
@@ -58,10 +78,26 @@ export function Topbar({ title = "Dashboard" }: { title?: string }) {
     }
   }
 
-  const unreadCount = notifs.filter((n) => !n.read).length;
+  const markAllRead = async () => {
+    setNotifs((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+    try {
+      await apiMarkAllRead();
+    } catch {
+      loadNotifs();
+    }
+  };
 
-  const markAllRead = () => {
-    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+  const openNotif = async (n: InboxNotification) => {
+    if (!n.is_read) {
+      setNotifs((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+      try {
+        await markRead(n.recipient_id);
+      } catch {
+        /* best effort */
+      }
+    }
   };
 
   return (
@@ -175,7 +211,9 @@ export function Topbar({ title = "Dashboard" }: { title?: string }) {
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-zinc-900" />
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold leading-none ring-2 ring-[var(--card)] tabular-nums">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
             )}
           </button>
 
@@ -195,18 +233,30 @@ export function Topbar({ title = "Dashboard" }: { title?: string }) {
                   )}
                 </div>
                 <div className="divide-y divide-[var(--border)] max-h-60 overflow-y-auto">
-                  {notifs.map((n) => (
-                    <div
-                      key={n.id}
-                      className={`px-4 py-3 text-xs leading-normal transition hover:bg-[var(--background-secondary)] ${
-                        !n.read ? "bg-[var(--accent-soft)] font-medium" : "text-[var(--muted)]"
-                      }`}
-                    >
-                      <p className="text-[var(--foreground)]">{n.text}</p>
-                      <span className="block mt-1 text-[10px] text-[var(--muted)]">{n.time}</span>
-                    </div>
-                  ))}
+                  {notifs.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-xs text-[var(--muted)]">No notifications</div>
+                  ) : (
+                    notifs.slice(0, 8).map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => openNotif(n)}
+                        className={`cursor-pointer px-4 py-3 text-xs leading-normal transition hover:bg-[var(--background-secondary)] ${
+                          !n.is_read ? "bg-[var(--accent-soft)] font-medium" : "text-[var(--muted)]"
+                        }`}
+                      >
+                        <p className="text-[var(--foreground)]">{n.title}</p>
+                        {n.body ? <p className="mt-0.5 line-clamp-2 text-[var(--muted)]">{n.body}</p> : null}
+                      </div>
+                    ))
+                  )}
                 </div>
+                <Link
+                  href="/notifications"
+                  onClick={() => setIsNotifOpen(false)}
+                  className="block border-t border-[var(--border)] px-4 py-2.5 text-center text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--background-secondary)]"
+                >
+                  View all notifications
+                </Link>
               </div>
             </>
           )}

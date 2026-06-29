@@ -2,11 +2,18 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
-from apps.common import health
+from apps.common import health, views as common_views
 
 urlpatterns = [
+    # 🏠 Root status / landing page (proves the backend is up; links to docs)
+    path("", common_views.index, name="index"),
+
     path("admin/", admin.site.urls),
 
     # ❤️ Health checks (unauthenticated, for load balancers / uptime monitors)
@@ -18,6 +25,7 @@ urlpatterns = [
     # 📄 API Schema & Docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 
     # 🔐 Auth (ALL auth inside accounts app — cookie-based JWT)
     path("api/auth/", include("apps.accounts.urls")),
@@ -38,6 +46,9 @@ urlpatterns = [
     path("api/operations/", include("apps.operations.urls")),
     path("api/complaints/", include("apps.complaints.urls")),
     path("api/notices/", include("apps.notices.urls")),
+    path("api/notifications/", include("apps.notifications.urls")),
+    path("api/push/", include("apps.notifications.push_urls")),
+    path("api/analytics/", include("apps.analytics.urls")),
     path("api/audit/", include("apps.auditlog.urls")),
     path("api/backups/", include("apps.backups.urls")),
     path("api/exports/", include("apps.exports.urls")),

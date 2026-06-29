@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admission Form {{ admission.application_number }}</title>
+  <style>
+    @page { size: A4; margin: 1.5cm; }
+    body { font-family: "Helvetica", "Arial", sans-serif; font-size: 11px; color: #1a1a1a; }
+    h1 { font-size: 18px; margin: 0 0 2px; }
+    .muted { color: #666; }
+    .header { border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 14px;
+              display: flex; justify-content: space-between; align-items: flex-start; }
+    .photo { width: 90px; height: 110px; border: 1px solid #ccc; object-fit: cover; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-weight: bold;
+             border: 1px solid #999; font-size: 10px; }
+    section { margin-bottom: 12px; }
+    .section-title { background: #f0f0f0; padding: 4px 8px; font-weight: bold; font-size: 12px;
+                     border-left: 3px solid #333; margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 3px 6px; vertical-align: top; }
+    td.label { color: #555; width: 28%; }
+    td.value { font-weight: 600; }
+    .row { display: flex; flex-wrap: wrap; }
+    .footer { margin-top: 30px; display: flex; justify-content: space-between; }
+    .sign { width: 40%; border-top: 1px solid #333; padding-top: 4px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Hostel Admission Form</h1>
+      <div class="muted">Application No: <strong>{{ admission.application_number }}</strong></div>
+      <div class="muted">Date: {{ admission.application_date }}</div>
+      <div style="margin-top:6px;"><span class="badge">{{ admission.get_status_display }}</span></div>
+    </div>
+    {% if admission.photo %}<img class="photo" src="{{ admission.photo.url }}" alt="photo" />{% endif %}
+  </div>
+
+  <section>
+    <div class="section-title">1. Student Profile</div>
+    <table>
+      <tr><td class="label">Full Name</td><td class="value">{{ admission.full_name }}</td>
+          <td class="label">Name (Nepali)</td><td class="value">{{ admission.name_nepali }}</td></tr>
+      <tr><td class="label">Date of Birth</td><td class="value">{{ admission.date_of_birth|default:"-" }}</td>
+          <td class="label">Gender</td><td class="value">{{ admission.get_gender_display }}</td></tr>
+      <tr><td class="label">Phone</td><td class="value">{{ admission.phone }}</td>
+          <td class="label">Alt. Phone</td><td class="value">{{ admission.alternate_phone }}</td></tr>
+      <tr><td class="label">Email</td><td class="value">{{ admission.email }}</td>
+          <td class="label">Blood Group</td><td class="value">{{ admission.blood_group }}</td></tr>
+      <tr><td class="label">Citizenship No.</td><td class="value">{{ admission.citizenship_number }}</td>
+          <td class="label">Nationality</td><td class="value">{{ admission.nationality }}</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="section-title">2. Address</div>
+    <table>
+      <tr><td class="label">Permanent</td><td class="value" colspan="3">
+        {{ admission.street_tole }}, Ward {{ admission.ward_number }}, {{ admission.municipality }},
+        {{ admission.district }}, {{ admission.province }}</td></tr>
+      <tr><td class="label">Temporary</td><td class="value" colspan="3">
+        {{ admission.temp_street_tole }}, {{ admission.temp_municipality }}, {{ admission.temp_district }}</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="section-title">3. Education & Food</div>
+    <table>
+      <tr><td class="label">Institute</td><td class="value">{{ admission.educational_institute }}</td>
+          <td class="label">Level</td><td class="value">{{ admission.get_current_level_display }}</td></tr>
+      <tr><td class="label">Faculty</td><td class="value">{{ admission.faculty }}</td>
+          <td class="label">Class Timing</td><td class="value">{{ admission.get_class_timing_display }}</td></tr>
+      <tr><td class="label">Food Preference</td><td class="value">{{ admission.get_food_preference_display }}</td>
+          <td class="label">Allergy</td><td class="value">{{ admission.food_allergy }}</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="section-title">4. Guardian Information</div>
+    <table>
+      <tr><td class="label">Father</td><td class="value">{{ admission.father_name }} ({{ admission.father_phone }})</td>
+          <td class="label">Mother</td><td class="value">{{ admission.mother_name }} ({{ admission.mother_phone }})</td></tr>
+      <tr><td class="label">Local Guardian</td><td class="value">{{ admission.local_guardian_name }} ({{ admission.local_guardian_phone }})</td>
+          <td class="label">Relation</td><td class="value">{{ admission.local_guardian_relation }}</td></tr>
+      <tr><td class="label">Emergency Contact</td><td class="value">{{ admission.emergency_contact_name }} ({{ admission.emergency_contact_phone }})</td>
+          <td class="label">Relation</td><td class="value">{{ admission.emergency_contact_relation }}</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="section-title">5. Hostel Allocation & Fees (Official Use)</div>
+    <table>
+      <tr><td class="label">Preferred Room Type</td><td class="value">{{ admission.get_preferred_room_type_display }}</td>
+          <td class="label">Booking Date</td><td class="value">{{ admission.booking_date|default:"-" }}</td></tr>
+      <tr><td class="label">Monthly Fee</td><td class="value">Rs. {{ admission.monthly_fee }}</td>
+          <td class="label">Security Deposit</td><td class="value">Rs. {{ admission.security_deposit }}</td></tr>
+      <tr><td class="label">Admission Fee</td><td class="value">Rs. {{ admission.admission_fee }}</td>
+          <td class="label">Discount</td><td class="value">Rs. {{ admission.discount }}</td></tr>
+      <tr><td class="label">Receipt No.</td><td class="value">{{ admission.receipt_number }}</td>
+          <td class="label">Payment Status</td><td class="value">{{ admission.get_payment_status_display }}</td></tr>
+    </table>
+  </section>
+
+  <div class="footer">
+    <div class="sign">Applicant Signature</div>
+    <div class="sign">Authorized Signature</div>
+  </div>
+</body>
+</html>

@@ -37,6 +37,9 @@ class AuditEvent(models.Model):
         RETENTION = "retention", "Retention deletion"
         RETENTION_FAILED = "retention_failed", "Retention deletion failed"
         MAINTENANCE = "maintenance", "Maintenance mode change"
+        # --- Security (Phase 10) ---
+        ACCESS_DENIED = "access_denied", "Access denied"
+        AUTH_FAILED = "auth_failed", "Authentication failed"
 
     id = models.BigAutoField(primary_key=True)
 

@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
 import { useSidebar } from "@/shared/providers/SidebarContext";
 import { usePwa } from "@/shared/providers/PwaProvider";
 import {
@@ -22,8 +21,10 @@ import {
   Key,
   LayoutDashboard,
   LogOut,
+  Bell,
   Megaphone,
   Receipt,
+  RefreshCw,
   Settings,
   User,
   UserCheck,
@@ -48,6 +49,8 @@ const MODULES = [
   { name: "Visitors", href: "/visitors", icon: UserRound },
   { name: "Complaints", href: "/complaints", icon: AlertTriangle },
   { name: "Notices", href: "/notices", icon: Megaphone },
+  { name: "Notifications", href: "/notifications", icon: Bell },
+  { name: "Sync", href: "/sync", icon: RefreshCw },
   { name: "Vacate", href: "/vacate", icon: LogOut },
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Exports", href: "/exports", icon: Download },
@@ -76,15 +79,10 @@ export default function Sidebar() {
             <Building2 className="h-5 w-5" />
           </div>
           {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              className="flex min-w-0 flex-col"
-            >
+            <div className="anim-fade-in flex min-w-0 flex-col">
               <span className="text-sm font-semibold leading-tight text-[var(--foreground)]">Hostel</span>
               <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">Management</span>
-            </motion.div>
+            </div>
           )}
         </Link>
 
@@ -114,6 +112,10 @@ export default function Sidebar() {
               <Link
                 href={item.href}
                 onClick={handleLinkClick}
+                // 23 always-in-viewport links would otherwise each prefetch their
+                // route on every page load — wasteful on mobile/low-end devices.
+                // Defer to hover/touch prefetch instead.
+                prefetch={false}
                 className={`relative flex select-none items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? "bg-[var(--accent)] text-white shadow-sm"
@@ -121,11 +123,7 @@ export default function Sidebar() {
                 }`}
               >
                 <Icon className={`h-5 w-5 shrink-0 transition-transform duration-200 ${isActive ? "text-white" : "text-[var(--muted)]"}`} />
-                {!isCollapsed && (
-                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="truncate">
-                    {item.name}
-                  </motion.span>
-                )}
+                {!isCollapsed && <span className="anim-fade-in truncate">{item.name}</span>}
               </Link>
 
               {isCollapsed && hoveredItem === item.name && (
@@ -164,28 +162,17 @@ export default function Sidebar() {
         {content}
       </aside>
 
-      <AnimatePresence>
-        {isMobileOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMobileOpen(false)}
-              className="fixed inset-0 z-40 bg-black lg:hidden"
-            />
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 top-0 z-50 w-[260px] shadow-[var(--shadow-lg)] lg:hidden"
-            >
-              {content}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {isMobileOpen && (
+        <>
+          <div
+            onClick={() => setIsMobileOpen(false)}
+            className="anim-fade-in fixed inset-0 z-40 bg-black/40 lg:hidden"
+          />
+          <div className="anim-slide-in-left fixed bottom-0 left-0 top-0 z-50 w-[260px] shadow-[var(--shadow-lg)] lg:hidden">
+            {content}
+          </div>
+        </>
+      )}
     </>
   );
 }

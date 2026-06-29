@@ -1,4 +1,5 @@
 import { api } from "@/shared/api/apiClient";
+import { offlineWrite } from "@/shared/api/offlineWrite";
 import type { EntryExitLog, LeaveRequest, VisitorLog } from "./types";
 
 export async function listLeaveRequests(params?: { status?: string; student?: string }) {
@@ -27,8 +28,11 @@ export async function listVisitors(params?: { student?: string }) {
 }
 
 export async function createVisitor(payload: Partial<VisitorLog>) {
-  const res = await api.post<VisitorLog>("/operations/visitor-logs/", payload);
-  return res.data;
+  // Offline-capable: gate staff can log visitors without connectivity.
+  return offlineWrite<VisitorLog>("/operations/visitor-logs/", payload, {
+    label: `Visitor entry${payload.visitor_name ? `: ${payload.visitor_name}` : ""}`,
+    entity: "visitor",
+  });
 }
 
 export async function checkoutVisitor(id: string) {
@@ -42,6 +46,9 @@ export async function listEntryExit(params?: { direction?: string; student?: str
 }
 
 export async function createEntryExit(payload: Partial<EntryExitLog>) {
-  const res = await api.post<EntryExitLog>("/operations/entry-exit/", payload);
-  return res.data;
+  // Offline-capable gate log.
+  return offlineWrite<EntryExitLog>("/operations/entry-exit/", payload, {
+    label: `Gate ${payload.direction || "entry/exit"} log`,
+    entity: "entry_exit",
+  });
 }

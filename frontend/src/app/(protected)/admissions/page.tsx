@@ -1,180 +1,225 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { approveAdmission, createAdmission, listAdmissions, rejectAdmission } from "@/features/admissions/api";
-import type { AdmissionRequest } from "@/features/admissions/types";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  bulkApprove,
+  bulkReject,
+  exportAdmissionsExcel,
+  getAnalytics,
+  listAdmissions,
+} from "@/features/admissions/api";
+import type { AdmissionAnalytics, AdmissionRequest } from "@/features/admissions/types";
+import { ADMISSION_STATUS_LABELS, SOURCE_OPTIONS } from "@/features/admissions/types";
+import { AdmissionTable } from "@/features/admissions/components/AdmissionTable";
+import { AdmissionDetailModal } from "@/features/admissions/components/AdmissionDetailModal";
+import { AdmissionAnalytics as AnalyticsView } from "@/features/admissions/components/AdmissionAnalytics";
 import { getBeds } from "@/features/beds/api/bed.api";
 import type { Bed } from "@/features/beds/types/bed.types";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
-import { Table } from "@/shared/ui/Table";
+import { Select } from "@/shared/ui/Select";
+import { Spinner } from "@/shared/ui/Spinner";
 import { Topbar } from "@/shared/ui/Topbar";
+import { useToast } from "@/shared/ui/toast/ToastProvider";
 
 export default function AdmissionsPage() {
+  const toast = useToast();
+  const [tab, setTab] = useState<"list" | "analytics">("list");
+
   const [rows, setRows] = useState<AdmissionRequest[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
-  const [status, setStatus] = useState("");
-  const [message, setMessage] = useState("");
+  const [analytics, setAnalytics] = useState<AdmissionAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [bedByRequest, setBedByRequest] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({
-    full_name: "",
-    phone: "",
-    guardian_name: "",
-    guardian_phone: "",
-    address: "",
-    preferred_join_date: new Date().toISOString().slice(0, 10),
-    requested_bed: "",
-    notes: "",
-  });
 
-  const availableBeds = useMemo(
-    () => beds.filter((bed) => bed.status === "AVAILABLE"),
-    [beds]
-  );
+  const [status, setStatus] = useState("");
+  const [source, setSource] = useState("");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [active, setActive] = useState<AdmissionRequest | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setLoading(true);
-    setMessage("");
     try {
       const [admissions, bedRows] = await Promise.all([
-        listAdmissions({ status: status || undefined }),
+        listAdmissions({
+          status: status || undefined,
+          source: source || undefined,
+          search: search || undefined,
+          ordering: "-created_at",
+        }),
         getBeds(),
       ]);
       setRows(admissions);
       setBeds(bedRows);
-    } catch (err: any) {
-      setMessage(err?.message || "Failed to load admissions.");
+      setSelected(new Set());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load admissions.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [status, source, search, toast]);
 
   useEffect(() => {
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, [refresh]);
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    await createAdmission({
-      ...form,
-      requested_bed: form.requested_bed || null,
-      preferred_join_date: form.preferred_join_date || null,
+  useEffect(() => {
+    if (tab === "analytics" && !analytics) {
+      getAnalytics()
+        .then(setAnalytics)
+        .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load analytics."));
+    }
+  }, [tab, analytics, toast]);
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-    setForm({
-      full_name: "",
-      phone: "",
-      guardian_name: "",
-      guardian_phone: "",
-      address: "",
-      preferred_join_date: new Date().toISOString().slice(0, 10),
-      requested_bed: "",
-      notes: "",
-    });
-    setMessage("Admission request created.");
-    await refresh();
   }
 
-  async function approve(row: AdmissionRequest) {
-    await approveAdmission(row.id, {
-      bed: bedByRequest[row.id] || row.requested_bed || undefined,
-      join_date: row.preferred_join_date || undefined,
-    });
-    setMessage("Admission approved and student record created.");
-    await refresh();
+  function toggleAll(checked: boolean) {
+    setSelected(checked ? new Set(rows.map((r) => r.id)) : new Set());
   }
 
-  async function reject(row: AdmissionRequest) {
-    await rejectAdmission(row.id, "Rejected from admissions screen.");
-    setMessage("Admission rejected.");
-    await refresh();
+  async function doBulk(kind: "approve" | "reject") {
+    const ids = Array.from(selected);
+    if (!ids.length) return toast.warning("Select at least one application.");
+    try {
+      if (kind === "approve") {
+        const res = await bulkApprove(ids);
+        toast.success(`Approved ${res.approved_count} application(s).`);
+        if (res.errors?.length) toast.warning(res.errors[0]);
+      } else {
+        const res = await bulkReject(ids);
+        toast.success(`Rejected ${res.rejected_count} application(s).`);
+      }
+      setAnalytics(null);
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Bulk action failed.");
+    }
+  }
+
+  async function exportCsv() {
+    try {
+      await exportAdmissionsExcel();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed.");
+    }
   }
 
   return (
     <div>
       <Topbar title="Admissions" />
-      {message ? <div className="mb-3 text-sm text-zinc-700">{message}</div> : null}
 
-      <form onSubmit={save} className="mb-4 grid gap-3 rounded-2xl border bg-white p-4 md:grid-cols-4">
-        <Input label="Full name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
-        <Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
-        <Input label="Guardian" value={form.guardian_name} onChange={(e) => setForm({ ...form, guardian_name: e.target.value })} />
-        <Input label="Guardian phone" value={form.guardian_phone} onChange={(e) => setForm({ ...form, guardian_phone: e.target.value })} />
-        <Input label="Join date" type="date" value={form.preferred_join_date} onChange={(e) => setForm({ ...form, preferred_join_date: e.target.value })} />
-        <Input label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-        <select className="rounded-lg border border-gray-200 px-3 py-2" value={form.requested_bed} onChange={(e) => setForm({ ...form, requested_bed: e.target.value })}>
-          <option value="">Requested bed</option>
-          {availableBeds.map((bed) => (
-            <option key={bed.id} value={bed.id}>
-              {bed.code || `${bed.room_detail?.room_no || bed.room}-${bed.bed_no}`}
-            </option>
-          ))}
-        </select>
-        <div className="flex items-end">
-          <Button type="submit" className="w-full">Create</Button>
+      <div className="px-4 py-4 sm:px-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex gap-1 rounded-xl bg-[var(--background-secondary)] p-1 text-sm">
+            {(["list", "analytics"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`rounded-lg px-4 py-1.5 font-medium capitalize transition ${
+                  tab === t ? "bg-[var(--accent)] text-white" : "text-[var(--foreground-secondary)]"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <Link href="/admissions/new">
+            <Button>+ New Application</Button>
+          </Link>
         </div>
-      </form>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <select className="rounded-lg border border-gray-200 px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
-        <Button variant="ghost" onClick={refresh} disabled={loading}>
-          {loading ? "Loading..." : "Refresh"}
-        </Button>
+        {tab === "list" && (
+          <>
+            <div className="mb-4 flex flex-wrap items-end gap-2">
+              <div className="w-44">
+                <Select
+                  label="Status"
+                  placeholder="All statuses"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  options={Object.entries(ADMISSION_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+                />
+              </div>
+              <div className="w-40">
+                <Select
+                  label="Source"
+                  placeholder="All sources"
+                  value={source}
+                  onChange={(e) => setSource(e.target.value)}
+                  options={SOURCE_OPTIONS}
+                />
+              </div>
+              <div className="w-56">
+                <Input
+                  label="Search"
+                  placeholder="Name, phone, app no…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && refresh()}
+                />
+              </div>
+              <Button variant="secondary" onClick={refresh}>
+                Apply
+              </Button>
+              <div className="ml-auto flex gap-2">
+                <Button variant="secondary" onClick={exportCsv}>
+                  Export CSV
+                </Button>
+                <Button variant="secondary" disabled={!selected.size} onClick={() => doBulk("approve")}>
+                  Approve ({selected.size})
+                </Button>
+                <Button variant="danger" disabled={!selected.size} onClick={() => doBulk("reject")}>
+                  Reject ({selected.size})
+                </Button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="grid place-items-center py-16">
+                <Spinner />
+              </div>
+            ) : (
+              <AdmissionTable
+                rows={rows}
+                loading={loading}
+                selected={selected}
+                onToggle={toggle}
+                onToggleAll={toggleAll}
+                onOpen={setActive}
+              />
+            )}
+          </>
+        )}
+
+        {tab === "analytics" &&
+          (analytics ? (
+            <AnalyticsView data={analytics} />
+          ) : (
+            <div className="grid place-items-center py-16">
+              <Spinner />
+            </div>
+          ))}
       </div>
 
-      <Table>
-        <thead>
-          <tr className="border-b text-left">
-            <th className="p-3">Applicant</th>
-            <th className="p-3">Guardian</th>
-            <th className="p-3">Requested Bed</th>
-            <th className="p-3">Status</th>
-            <th className="p-3">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id} className="border-b">
-              <td className="p-3">
-                <div className="font-medium">{row.full_name}</div>
-                <div className="text-xs text-zinc-500">{row.phone}</div>
-              </td>
-              <td className="p-3">{row.guardian_name || "-"} {row.guardian_phone ? `(${row.guardian_phone})` : ""}</td>
-              <td className="p-3">{row.requested_bed_code || "-"}</td>
-              <td className="p-3">{row.status}</td>
-              <td className="p-3">
-                {row.status === "PENDING" ? (
-                  <div className="flex flex-wrap gap-2">
-                    <select className="rounded-lg border border-gray-200 px-2 py-1 text-sm" value={bedByRequest[row.id] || ""} onChange={(e) => setBedByRequest({ ...bedByRequest, [row.id]: e.target.value })}>
-                      <option value="">Bed</option>
-                      {availableBeds.map((bed) => (
-                        <option key={bed.id} value={bed.id}>
-                          {bed.code || `${bed.room_detail?.room_no || bed.room}-${bed.bed_no}`}
-                        </option>
-                      ))}
-                    </select>
-                    <Button onClick={() => approve(row)}>Approve</Button>
-                    <Button variant="danger" onClick={() => reject(row)}>Reject</Button>
-                  </div>
-                ) : (
-                  row.student_name || row.decision_note || "-"
-                )}
-              </td>
-            </tr>
-          ))}
-          {!rows.length && !loading ? (
-            <tr>
-              <td className="p-6 text-center text-sm text-zinc-500" colSpan={5}>No admission requests found.</td>
-            </tr>
-          ) : null}
-        </tbody>
-      </Table>
+      {active && (
+        <AdmissionDetailModal
+          admission={active}
+          beds={beds}
+          onClose={() => setActive(null)}
+          onChanged={() => {
+            setAnalytics(null);
+            refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

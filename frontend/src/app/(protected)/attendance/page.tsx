@@ -1,23 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/shared/api/apiClient";
+import { listAttendance, markAttendance, type Attendance } from "@/features/attendance/api";
+import { OfflineQueuedError } from "@/shared/api/apiClient";
 import { listResidents } from "@/features/residents/residents.api";
 import type { Resident } from "@/features/residents/residents.types";
 import { Topbar } from "@/shared/ui/Topbar";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 import { Table } from "@/shared/ui/Table";
-
-type Attendance = {
-  id: number;
-  resident: string;
-  date: string;
-  status: "present" | "absent" | "went_home";
-  note?: string;
-};
+import { useToast } from "@/shared/ui/toast/ToastProvider";
 
 export default function AttendancePage() {
+  const toast = useToast();
   const [residents, setResidents] = useState<Resident[]>([]);
   const [rows, setRows] = useState<Attendance[]>([]);
   const [resident, setResident] = useState("");
@@ -29,12 +24,12 @@ export default function AttendancePage() {
   async function refresh() {
     setError("");
     try {
-      const [residentRows, attendanceRes] = await Promise.all([
+      const [residentRows, attendanceRows] = await Promise.all([
         listResidents({ status: "active" }),
-        api.get<Attendance[]>("/attendance/", { params: { date } }),
+        listAttendance({ date }),
       ]);
       setResidents(residentRows);
-      setRows(attendanceRes.data);
+      setRows(attendanceRows);
     } catch (err: any) {
       setError(err?.message || "Failed to load attendance.");
     }
@@ -46,12 +41,17 @@ export default function AttendancePage() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    await api.post<Attendance>("/attendance/", {
-      resident,
-      date,
-      status,
-      note,
-    });
+    try {
+      await markAttendance({ resident, date, status, note });
+      toast.success("Attendance marked.");
+    } catch (err) {
+      if (err instanceof OfflineQueuedError) {
+        toast.info("You're offline — attendance saved and will sync automatically.");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Failed to mark attendance.");
+        return;
+      }
+    }
     setNote("");
     await refresh();
   }

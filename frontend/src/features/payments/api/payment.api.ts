@@ -1,4 +1,5 @@
 import { api } from "@/shared/api/apiClient";
+import { offlineWrite } from "@/shared/api/offlineWrite";
 import type { Payment, PaymentCreateInput, StudentDuesSummary } from "../types/payment.types";
 import { getStudentLedgers } from "@/features/fees/api/fee-ledger.api";
 
@@ -20,8 +21,12 @@ export function getPaymentsByStudent(studentId: string) {
 }
 
 export async function createPayment(data: PaymentCreateInput) {
-  const res = await api.post<Payment>("/payments/payments/", data);
-  return res.data;
+  // Offline-capable: a queued replay is de-duplicated server-side by its
+  // idempotency key, so a lost ack can't record the same payment twice.
+  return offlineWrite<Payment>("/payments/payments/", data, {
+    label: `Collect payment${data.amount ? ` Rs ${data.amount}` : ""}`,
+    entity: "payment",
+  });
 }
 
 export async function getStudentDuesSummary(studentId: string): Promise<StudentDuesSummary> {

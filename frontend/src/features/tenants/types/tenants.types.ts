@@ -17,7 +17,15 @@ export type Hostel = {
   plan_name?: string | null;
   subscription_active_until?: string | null; // ISO date
   is_active: boolean;
+  settings?: HostelSettings;
   created_at: string; // ISO datetime
+};
+
+/** Free-form JSON on Hostel.settings; these keys are read by the backend. */
+export type HostelSettings = {
+  default_application_fee?: number;
+  max_upload_size_mb?: number;
+  [key: string]: unknown;
 };
 
 export type HostelCreateInput = {
@@ -26,6 +34,7 @@ export type HostelCreateInput = {
   phone?: string;
   address?: string;
   is_active?: boolean;
+  settings?: HostelSettings;
 };
 
 export type Subscription = {

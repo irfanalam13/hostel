@@ -1,5 +1,6 @@
 // src/features/students/api/student.api.ts
 import { apiFetch } from "@/shared/api/apiClient";
+import { offlineWrite } from "@/shared/api/offlineWrite";
 import type { Student } from "../types/student.types";
 
 export type StudentListParams = {
@@ -24,9 +25,10 @@ export function getStudent(id: number | string) {
 }
 
 export function createStudent(data: Partial<Student>) {
-  return apiFetch<Student>(`/students/students/`, {
-    method: "POST",
-    body: JSON.stringify(data),
+  // Offline-capable: queued + replayed with an idempotency key when offline.
+  return offlineWrite<Student>(`/students/students/`, data, {
+    label: `Register student${data.full_name ? `: ${data.full_name}` : ""}`,
+    entity: "student",
   });
 }
 

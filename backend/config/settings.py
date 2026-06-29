@@ -85,6 +85,9 @@ INSTALLED_APPS = [
     "apps.auditlog",
     "apps.exports",
     "apps.backups",
+    "apps.notifications",
+    "apps.idempotency",
+    "apps.analytics",
 ]
 
 MIDDLEWARE = [
@@ -109,6 +112,10 @@ MIDDLEWARE = [
     "apps.auditlog.middleware.AuditLogMiddleware",
     "apps.common.middleware.HostelContextMiddleware",
 
+    # Offline-sync idempotency + payload integrity (needs request.user/.hostel,
+    # so it runs after tenant resolution and before brute-force protection).
+    "apps.idempotency.middleware.IdempotencyMiddleware",
+
     # Brute-force protection (must be last so request is fully built)
     "axes.middleware.AxesMiddleware",
 ]
@@ -131,14 +138,25 @@ TEMPLATES = [{
 WSGI_APPLICATION = "config.wsgi.application"
 
 # ---------------------------------------------------------------------------
-# Database — Postgres in prod via DATABASE_URL, SQLite for local dev
+# Database — Postgres via DATABASE_URL (.env), SQLite fallback for local dev
 # ---------------------------------------------------------------------------
+# DATABASE_URL is read from backend/.env. A full Postgres URL works as-is, e.g.:
+#   postgresql://USER:PASS@HOST:5432/DBNAME?sslmode=require
+# Query params (sslmode, channel_binding, …) are passed through to the driver
+# as OPTIONS, so managed providers like Neon/Supabase work without extra config.
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
     )
 }
+
+# Production hardening for Postgres: reuse connections across requests
+# (essential with pooled providers like Neon) and verify each pooled connection
+# is alive before use. SQLite ignores these, so guard on the engine.
+if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+    DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=600)
+    DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -385,7 +403,43 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.backups.tasks.check_missed_backups",
         "schedule": crontab(hour="*/6", minute=30),  # every 6 hours
     },
+    # Push notifications.
+    "notifications-send-scheduled": {
+        "task": "apps.notifications.tasks.send_scheduled_notifications",
+        "schedule": crontab(minute="*"),  # every minute: dispatch anything due
+    },
+    "notifications-retry-failed": {
+        "task": "apps.notifications.tasks.retry_failed_deliveries",
+        "schedule": crontab(minute="*/5"),  # every 5 minutes
+    },
+    "notifications-prune-subscriptions": {
+        "task": "apps.notifications.tasks.prune_expired_subscriptions",
+        "schedule": crontab(hour=4, minute=30),  # daily 04:30
+    },
+    # PWA analytics retention.
+    "analytics-prune-old": {
+        "task": "apps.analytics.tasks.prune_old_analytics",
+        "schedule": crontab(hour=4, minute=45),  # daily 04:45
+    },
 }
+
+# ---------------------------------------------------------------------------
+# Web Push (VAPID) — used by apps.notifications
+# ---------------------------------------------------------------------------
+# Generate a keypair with:  python manage.py vapid_keys
+# The PUBLIC key is also exposed to the browser as NEXT_PUBLIC_VAPID_PUBLIC_KEY.
+# Push delivery is disabled (no-op) until both VAPID_PRIVATE_KEY and
+# VAPID_SUBJECT are set.
+VAPID_PUBLIC_KEY = env("NEXT_PUBLIC_VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", default="")
+VAPID_SUBJECT = env("VAPID_SUBJECT", default="")
+NOTIFICATIONS_MAX_RETRIES = env.int("NOTIFICATIONS_MAX_RETRIES", default=3)
+
+# Application version surfaced on the system-status dashboard.
+APP_VERSION = env("APP_VERSION", default="1.0.0")
+
+# PWA analytics: how long to keep raw events before pruning.
+ANALYTICS_RETENTION_DAYS = env.int("ANALYTICS_RETENTION_DAYS", default=90)
 
 # ---------------------------------------------------------------------------
 # Logging

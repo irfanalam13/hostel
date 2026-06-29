@@ -1,0 +1,113 @@
+/**
+ * Service-worker registration + safe update lifecycle.
+ *
+ * Update flow:
+ *   1. A new SW is found → it installs and enters the "waiting" state.
+ *   2. We surface "update available" to the UI (UpdateBanner).
+ *   3. User clicks "Update now" → applyUpdate() posts SKIP_WAITING.
+ *   4. The new SW activates → "controllerchange" fires → we reload once.
+ *
+ * `onUpdate` may also be triggered for a *critical/forced* update if the SW
+ * decides to skip waiting itself; the reload-on-controllerchange guard handles
+ * both paths without an infinite reload loop.
+ */
+
+export type RegisterCallbacks = {
+  onReady?: (reg: ServiceWorkerRegistration) => void;
+  onUpdateAvailable?: (reg: ServiceWorkerRegistration) => void;
+  onMessage?: (data: unknown) => void;
+};
+
+let waitingWorker: ServiceWorker | null = null;
+let reloading = false;
+
+export function isPwaSupported(): boolean {
+  return typeof navigator !== "undefined" && "serviceWorker" in navigator;
+}
+
+export function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    // iOS Safari
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
+export function registerServiceWorker(cb: RegisterCallbacks = {}): void {
+  if (!isPwaSupported()) return;
+
+  // Reload exactly once when the new worker takes control.
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    cb.onMessage?.(event.data);
+  });
+
+  const onLoad = () => {
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((reg) => {
+        cb.onReady?.(reg);
+
+        // Already waiting (installed before this page load).
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          waitingWorker = reg.waiting;
+          cb.onUpdateAvailable?.(reg);
+        }
+
+        reg.addEventListener("updatefound", () => {
+          const installing = reg.installing;
+          if (!installing) return;
+          installing.addEventListener("statechange", () => {
+            if (installing.state === "installed" && navigator.serviceWorker.controller) {
+              // A previous SW controls the page → this is an update, not first install.
+              waitingWorker = reg.waiting ?? installing;
+              cb.onUpdateAvailable?.(reg);
+            }
+          });
+        });
+
+        // Periodically check for updates (e.g. long-lived installed app).
+        setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+      })
+      .catch((err) => console.error("[PWA] SW registration failed", err));
+  };
+
+  if (document.readyState === "complete") onLoad();
+  else window.addEventListener("load", onLoad, { once: true });
+}
+
+/**
+ * Ask the active service worker for its version (the SW replies to GET_VERSION
+ * over a MessageChannel). The SW's cache names are derived from this same
+ * version string, so it doubles as the cache version. Resolves null if there's
+ * no controlling worker or it doesn't answer in time.
+ */
+export function getServiceWorkerVersion(timeoutMs = 2000): Promise<string | null> {
+  const controller = isPwaSupported() ? navigator.serviceWorker.controller : null;
+  if (!controller) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    channel.port1.onmessage = (event) => {
+      clearTimeout(timer);
+      resolve((event.data as { version?: string })?.version ?? null);
+    };
+    controller.postMessage({ type: "GET_VERSION" }, [channel.port2]);
+  });
+}
+
+/** Tell the waiting worker to activate; the reload happens on controllerchange. */
+export function applyUpdate(): void {
+  const worker = waitingWorker;
+  if (!worker) {
+    window.location.reload();
+    return;
+  }
+  worker.postMessage({ type: "SKIP_WAITING" });
+}

@@ -24,6 +24,22 @@ def _resolve_actor(actor, request):
     return None
 
 
+def client_ip(request):
+    """Best-effort real client IP.
+
+    Behind a proxy/load-balancer the connecting address is the proxy, so prefer
+    the first hop in X-Forwarded-For (set by trusted infra) and fall back to
+    REMOTE_ADDR. We deliberately take only the left-most entry and don't trust
+    the rest of the chain for anything security-critical.
+    """
+    if request is None:
+        return None
+    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    if xff:
+        return xff.split(",")[0].strip()[:64] or None
+    return request.META.get("REMOTE_ADDR")
+
+
 def record_event(
     request=None,
     *,
@@ -39,7 +55,7 @@ def record_event(
         resolved_actor = _resolve_actor(actor, request)
         if hostel is None and request is not None:
             hostel = getattr(request, "hostel", None)
-        ip = request.META.get("REMOTE_ADDR") if request is not None else None
+        ip = client_ip(request)
         ua = request.META.get("HTTP_USER_AGENT", "")[:2000] if request is not None else ""
 
         AuditEvent.objects.create(

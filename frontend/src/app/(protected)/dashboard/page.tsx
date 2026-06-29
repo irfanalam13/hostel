@@ -6,12 +6,44 @@ import { useApi } from "@/shared/hooks/useApi";
 import { loadState } from "@/features/hostels/store";
 import { ymToday } from "@/shared/lib/dates";
 import { computeDues, occupancy, sumPayments } from "@/shared/lib/finance";
+import dynamic from "next/dynamic";
 import { getOwnerDashboard } from "@/features/dashboard/api";
 import type { OwnerDashboardResponse } from "@/features/dashboard/types";
-import { DashboardAnalytics } from "@/features/dashboard/components/DashboardAnalytics";
-import { DashboardWidgets } from "@/features/dashboard/components/DashboardWidgets";
+import { SystemStatusPanel } from "@/features/system/SystemStatusPanel";
+import { AnalyticsPanel } from "@/features/analytics/AnalyticsPanel";
 import { Button } from "@/shared/ui/Button";
-import { PageSkeleton } from "@/shared/ui/Skeleton";
+import { PageSkeleton, Skeleton } from "@/shared/ui/Skeleton";
+
+// The dashboard chart blocks pull in recharts (~the heaviest dependency). Both
+// live behind a single dynamic import so recharts is split out of the initial
+// dashboard JS and fetched once, on demand — a skeleton holds the layout while
+// the chunk loads.
+const ChartBlockSkeleton = ({ height }: { height: string }) => (
+  <div className="rounded-[20px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]">
+    <Skeleton className="mb-4 h-4 w-40" />
+    <Skeleton className={`w-full ${height}`} />
+  </div>
+);
+
+const DashboardCharts = dynamic(
+  () => import("@/features/dashboard/components/DashboardCharts").then((m) => m.DashboardCharts),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-3">
+          <ChartBlockSkeleton height="h-40" />
+          <ChartBlockSkeleton height="h-40" />
+          <ChartBlockSkeleton height="h-40" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2">
+          <ChartBlockSkeleton height="h-64" />
+          <ChartBlockSkeleton height="h-64" />
+        </div>
+      </div>
+    ),
+  },
+);
 import { Topbar } from "@/shared/ui/Topbar";
 import {
   AlertCircle,
@@ -251,22 +283,28 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <DashboardAnalytics state={state} apiData={data || undefined} />
+        <SystemStatusPanel />
 
-        {error && (
-          <div className="flex items-center gap-3 rounded-[20px] border border-[color-mix(in_srgb,var(--warning)_28%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_10%,var(--card))] p-4 text-xs text-[var(--foreground-secondary)]">
-            <AlertCircle className="h-5 w-5 shrink-0 text-[var(--warning)]" />
-            <div>
-              <span className="font-bold text-[var(--foreground)]">Standalone demo mode:</span> Connection to backend API failed ({error}). Displaying local storage state variables.
-            </div>
-            <Button variant="secondary" size="sm" onClick={refetch} className="ml-auto">
-              <RefreshCw className="h-3 w-3" />
-              <span>Retry</span>
-            </Button>
-          </div>
-        )}
+        <AnalyticsPanel />
 
-        <DashboardWidgets state={state} />
+        <DashboardCharts
+          state={state}
+          apiData={data || undefined}
+          errorSlot={
+            error ? (
+              <div className="flex items-center gap-3 rounded-[20px] border border-[color-mix(in_srgb,var(--warning)_28%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_10%,var(--card))] p-4 text-xs text-[var(--foreground-secondary)]">
+                <AlertCircle className="h-5 w-5 shrink-0 text-[var(--warning)]" />
+                <div>
+                  <span className="font-bold text-[var(--foreground)]">Standalone demo mode:</span> Connection to backend API failed ({error}). Displaying local storage state variables.
+                </div>
+                <Button variant="secondary" size="sm" onClick={refetch} className="ml-auto">
+                  <RefreshCw className="h-3 w-3" />
+                  <span>Retry</span>
+                </Button>
+              </div>
+            ) : null
+          }
+        />
       </div>
     </div>
   );

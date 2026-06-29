@@ -154,3 +154,97 @@ html.dark .border-slate-200 {
 html.dark table tr {
   border-color: var(--border);
 }
+
+/*
+ * Lightweight CSS entrance animations — these replace the former framer-motion
+ * usages (sidebar labels/drawer, PWA banners). Pure compositor transforms
+ * (transform/opacity) keep them cheap on low-end devices, and dropping the JS
+ * animation library trims the critical-path bundle.
+ */
+@keyframes anim-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes anim-slide-up {
+  from { opacity: 0; transform: translateY(1rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes anim-slide-down {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes anim-slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.anim-fade-in { animation: anim-fade-in 200ms ease both; }
+.anim-slide-up { animation: anim-slide-up 280ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-slide-down { animation: anim-slide-down 260ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-slide-in-left { animation: anim-slide-in-left 260ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-in,
+  .anim-slide-up,
+  .anim-slide-down,
+  .anim-slide-in-left {
+    animation: none;
+  }
+}
+
+/*
+ * Landing page (marketing) styles. Scroll-reveal + decorative backdrops, all
+ * compositor-only (opacity/transform) and fully reduced-motion aware.
+ */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Subtle dotted grid backdrop for the hero. */
+.landing-grid-bg {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--foreground) 7%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+/* Soft accent glow behind the hero headline. */
+.landing-hero-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 50% at 50% 0%,
+    color-mix(in srgb, var(--accent) 22%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* Glow inside the CTA banner. */
+.landing-cta-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(60% 120% at 100% 0%, rgb(255 255 255 / 0.18) 0%, transparent 60%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

@@ -74,16 +74,27 @@ class HostelContextMiddleware:
 # serves data, not HTML. The browsable DRF UI (dev only) needs inline styles,
 # so CSP is skipped when DEBUG is on to avoid breaking it.
 _DEFAULT_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
-_DEFAULT_PERMISSIONS_POLICY = "geolocation=(), microphone=(), camera=(), payment=()"
+# Deny every powerful feature — this is a JSON API, it needs none of them.
+_DEFAULT_PERMISSIONS_POLICY = (
+    "accelerometer=(), autoplay=(), camera=(), display-capture=(), "
+    "encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), "
+    "magnetometer=(), microphone=(), midi=(), payment=(), usb=(), "
+    "interest-cohort=(), browsing-topics=()"
+)
 
 
 class SecurityHeadersMiddleware:
-    """Adds defence-in-depth response headers on every request.
+    """Adds defence-in-depth response headers on every API response.
 
-    Referrer-Policy and Permissions-Policy are always set. Content-Security-Policy
-    is applied outside DEBUG (so it doesn't break the dev browsable API) and is
-    overridable via the CSP_POLICY setting. X-Frame-Options / nosniff / HSTS are
-    handled by Django's own SecurityMiddleware + settings.
+    Always set: Referrer-Policy, Permissions-Policy, COOP, CORP and
+    X-Permitted-Cross-Domain-Policies. Content-Security-Policy is applied outside
+    DEBUG (so it doesn't break the dev browsable API) and is overridable via the
+    CSP_POLICY setting. X-Frame-Options / nosniff / HSTS are handled by Django's
+    SecurityMiddleware + settings.
+
+    NOTE on CORP: `same-origin` is safe for the cross-origin SPA because its API
+    calls use CORS-mode fetch (governed by CORS, not CORP). CORP only blocks
+    no-cors embedding of the API as a subresource — which we want to deny.
     """
 
     def __init__(self, get_response):
@@ -94,11 +105,16 @@ class SecurityHeadersMiddleware:
         )
         self.csp = getattr(settings, "CSP_POLICY", _DEFAULT_CSP)
         self.csp_enabled = getattr(settings, "CSP_ENABLED", not settings.DEBUG)
+        self.coop = getattr(settings, "CROSS_ORIGIN_OPENER_POLICY", "same-origin")
+        self.corp = getattr(settings, "CROSS_ORIGIN_RESOURCE_POLICY", "same-origin")
 
     def __call__(self, request):
         response = self.get_response(request)
         response.setdefault("Referrer-Policy", self.referrer_policy)
         response.setdefault("Permissions-Policy", self.permissions_policy)
+        response.setdefault("Cross-Origin-Opener-Policy", self.coop)
+        response.setdefault("Cross-Origin-Resource-Policy", self.corp)
+        response.setdefault("X-Permitted-Cross-Domain-Policies", "none")
         if self.csp_enabled and self.csp:
             response.setdefault("Content-Security-Policy", self.csp)
         return response

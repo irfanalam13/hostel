@@ -64,3 +64,37 @@ class CookieJWTAuthentication(JWTAuthentication):
         reason = check.process_view(request, None, (), {})
         if reason:
             raise exceptions.PermissionDenied(f"CSRF Failed: {reason}")
+
+
+# --- drf-spectacular: describe this custom auth so Swagger/ReDoc render an
+# "Authorize" option and stop warning about an unresolved authenticator. The
+# scheme advertises both the httpOnly access-token cookie (how the SPA auths)
+# and the Bearer header (for non-browser clients). -------------------------
+try:
+    from drf_spectacular.extensions import OpenApiAuthenticationExtension
+
+    class CookieJWTScheme(OpenApiAuthenticationExtension):
+        target_class = "apps.accounts.authentication.CookieJWTAuthentication"
+        name = ["cookieAuth", "bearerAuth"]
+
+        def get_security_definition(self, auto_schema):
+            return [
+                {
+                    "type": "apiKey",
+                    "in": "cookie",
+                    "name": settings.JWT_AUTH_COOKIE,
+                    "description": (
+                        "httpOnly access-token cookie set by POST /api/auth/login/. "
+                        "In Swagger UI, call the login endpoint first — the browser then "
+                        "sends this cookie automatically on same-origin 'Try it out' calls."
+                    ),
+                },
+                {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "JWT",
+                    "description": "For non-browser clients: Authorization: Bearer <access token>.",
+                },
+            ]
+except Exception:  # pragma: no cover - drf-spectacular always present, but be safe
+    pass
