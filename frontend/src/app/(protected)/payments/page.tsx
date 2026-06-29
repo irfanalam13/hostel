@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthed } from "@/shared/lib/auth";
+import { useMemo, useState } from "react";
 import { Topbar } from "@/shared/ui/Topbar";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
@@ -14,7 +12,6 @@ import { isoToday, ymToday } from "@/shared/lib/dates";
 import { computeDues } from "@/shared/lib/finance";
 
 export default function PaymentsPage() {
-  const router = useRouter();
   const toast = useToast();
   const [tick, setTick] = useState(0);
   const [open, setOpen] = useState(false);
@@ -24,10 +21,6 @@ export default function PaymentsPage() {
   const [studentId, setStudentId] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [note, setNote] = useState("");
-
-  useEffect(() => {
-    if (!isAuthed()) router.replace("/login");
-  }, [router]);
 
   const state = useMemo(() => loadState(), [tick]);
   const activeStudents = state.students.filter(s => s.status === "active");

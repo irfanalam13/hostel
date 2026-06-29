@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthed } from "@/shared/lib/auth";
+import { useMemo, useState } from "react";
 import { Topbar } from "@/shared/ui/Topbar";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
@@ -13,7 +11,6 @@ import { loadState, addRoom, addBed, assignBed, unassignBed } from "@/features/h
 import { occupancy } from "@/shared/lib/finance";
 
 export default function BedsPage() {
-  const router = useRouter();
   const toast = useToast();
   const [tick, setTick] = useState(0);
 
@@ -31,10 +28,6 @@ export default function BedsPage() {
   const [assignStudentId, setAssignStudentId] = useState("");
   const [assignRoomId, setAssignRoomId] = useState("");
   const [assignBedId, setAssignBedId] = useState("");
-
-  useEffect(() => {
-    if (!isAuthed()) router.replace("/login");
-  }, [router]);
 
   const state = useMemo(() => loadState(), [tick]);
   const rooms = state.rooms;

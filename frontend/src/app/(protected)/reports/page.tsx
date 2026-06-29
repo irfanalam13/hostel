@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthed } from "@/shared/lib/auth";
+import { useMemo, useState } from "react";
 import { Topbar } from "@/shared/ui/Topbar";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
@@ -13,14 +11,9 @@ import { dailyCollections, sumPayments, sumExpenses } from "@/shared/lib/finance
 import { downloadCSV } from "@/shared/lib/exporters";
 
 export default function ReportsPage() {
-  const router = useRouter();
   const [tick, setTick] = useState(0);
   const [month, setMonth] = useState(ymToday());
   const [date, setDate] = useState(isoToday());
-
-  useEffect(() => {
-    if (!isAuthed()) router.replace("/login");
-  }, [router]);
 
   const state = useMemo(() => loadState(), [tick]);
 

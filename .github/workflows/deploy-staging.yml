@@ -1,0 +1,103 @@
+name: Deploy — Staging
+
+# Roadmap Prompt 06 — automatic staging deployment on every push to develop.
+# Builds + pushes images, ships them to the staging VPS via SSH with a
+# health-gated, auto-rolling-back rollout (deploy.sh), runs smoke tests, and
+# records a GitHub Deployment for history. Production (Prompt 07) only runs
+# from tags, so a red staging run never reaches production.
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  # One staging rollout at a time; don't cancel an in-flight deploy.
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-images.yml
+    with:
+      tag: staging-${{ github.sha }}
+      api_base_url: ${{ vars.STAGING_API_BASE_URL }}
+    secrets: inherit
+
+  deploy:
+    name: Deploy to staging VPS
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record deployment (in_progress)
+        uses: actions/github-script@v7
+        id: deployment
+        with:
+          script: |
+            const dep = await github.rest.repos.createDeployment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              ref: context.sha, environment: 'staging',
+              auto_merge: false, required_contexts: [], transient_environment: true,
+            });
+            return dep.data.id;
+
+      - name: Copy deploy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+          source: "deploy"
+          target: ${{ secrets.STAGING_PATH }}
+          overwrite: true
+
+      - name: Run health-gated rollout
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+          envs: GHCR_USER,GHCR_TOKEN
+          script: |
+            set -e
+            cd "${{ secrets.STAGING_PATH }}/deploy"
+            chmod +x deploy.sh rollback.sh
+            ./deploy.sh "${{ needs.build.outputs.backend_image }}" "${{ needs.build.outputs.frontend_image }}"
+        env:
+          GHCR_USER: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Smoke tests (public endpoints)
+        run: |
+          set -euo pipefail
+          base="${{ vars.STAGING_URL }}"
+          for path in /health/ /health/database/ /health/cache/ /health/celery/; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "${base}${path}")
+            test "$code" = "200" || { echo "::error::smoke ${path} -> ${code}"; exit 1; }
+            echo "✓ ${path} 200"
+          done
+
+      - name: Finalize deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner, repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state, environment_url: '${{ vars.STAGING_URL }}',
+              description: `Staging deploy ${state}`,
+            });

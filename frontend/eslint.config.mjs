@@ -11,6 +11,16 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "off",
     },
   },
+  // E2E / Cypress test tooling is not React app code: Playwright fixtures take a
+  // `use` callback (not the React `use` hook) and Cypress augments its types via
+  // `namespace`. Disable the React/TS rules that misfire on that infrastructure.
+  {
+    files: ["e2e/**", "cypress/**"],
+    rules: {
+      "react-hooks/rules-of-hooks": "off",
+      "@typescript-eslint/no-namespace": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

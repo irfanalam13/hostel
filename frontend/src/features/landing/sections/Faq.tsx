@@ -3,14 +3,15 @@ import { Plus } from "lucide-react";
 import { Section } from "../components/Section";
 import { SectionHeader } from "../components/SectionHeader";
 import { Reveal } from "../components/Reveal";
-import { FAQS } from "../content";
+import { FAQS, type Faq as FaqItem } from "../content";
 import { SECTION_IDS } from "../constants";
 
 /**
  * Native <details>/<summary> accordion — accessible and zero-JS by default
- * (keyboard + screen-reader friendly out of the box).
+ * (keyboard + screen-reader friendly out of the box). FAQs are backend-driven
+ * (with a static fallback) and passed in from the page.
  */
-export function Faq() {
+export function Faq({ faqs = FAQS }: { faqs?: FaqItem[] }) {
   return (
     <Section id={SECTION_IDS.faq} width="narrow">
       <SectionHeader
@@ -20,7 +21,7 @@ export function Faq() {
       />
 
       <div className="mt-12 space-y-3">
-        {FAQS.map((faq, i) => (
+        {faqs.map((faq, i) => (
           <Reveal key={faq.question} delay={(i % 3) * 60}>
             <details className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)] [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]">

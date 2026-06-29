@@ -10,8 +10,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Hostel Management System",
-    short_name: "Hostel MS",
+    name: "MY Hostel",
+    short_name: "MH",
     description:
       "Manage residents, rooms, billing, payments and occupancy for your hostel — online and offline.",
     // "/" resolves to the right place based on session; the query lets us

@@ -45,7 +45,11 @@ class CookieJWTAuthentication(JWTAuthentication):
         if not hostel:
             raise exceptions.AuthenticationFailed("Invalid token hostel context.")
 
-        if not UserHostel.objects.filter(user=user, hostel=hostel, is_active=True).exists():
+        # Superusers bypass the membership guard so platform admins can reach any
+        # tenant — mirroring apps.common.permissions.user_is_hostel_member.
+        if not user.is_superuser and not UserHostel.objects.filter(
+            user=user, hostel=hostel, is_active=True
+        ).exists():
             raise exceptions.AuthenticationFailed("Invalid token hostel membership.")
 
         request.hostel = hostel

@@ -212,6 +212,8 @@ export type Testimonial = {
   quote: string;
   name: string;
   role: string;
+  /** 1–5; defaults to 5 when omitted (e.g. static fallback copy). */
+  rating?: number;
 };
 
 export const TESTIMONIALS: Testimonial[] = [

@@ -37,7 +37,7 @@ from .restore import (
     restore_hostel,
 )
 from .retention import apply_retention
-from .storage import create_snapshot, load_backup_data, sha256_hex
+from .storage import create_snapshot
 from .validation import validate_backup
 
 _TMP_MEDIA = tempfile.mkdtemp(prefix="dr-tests-")

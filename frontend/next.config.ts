@@ -17,9 +17,12 @@ const baseSecurityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  // Emit a self-contained server bundle (.next/standalone) for a small,
-  // dependency-free production Docker image.
-  output: "standalone",
+  // Emit a self-contained server bundle (.next/standalone) ONLY for self-hosted
+  // Docker images (the Dockerfile sets NEXT_OUTPUT_STANDALONE=1). On Vercel we
+  // leave this off: Vercel has its own deploy pipeline and doesn't need it, and
+  // the standalone packager's SRI-manifest copy step breaks when the app is built
+  // from a subdirectory (e.g. /vercel/path0/frontend) — see experimental.sri below.
+  output: process.env.NEXT_OUTPUT_STANDALONE === "1" ? "standalone" : undefined,
   // Don't leak the framework or ship browser source maps to production clients.
   poweredByHeader: false,
   productionBrowserSourceMaps: false,

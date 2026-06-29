@@ -13,17 +13,23 @@ import { Faq } from "./sections/Faq";
 import { CtaBanner } from "./sections/CtaBanner";
 import { Contact } from "./sections/Contact";
 import { getPricingTiers } from "./plans";
+import { getTestimonials } from "./testimonials";
+import { getFaqs } from "./site";
 
 /**
  * Full marketing landing page. Composition only — each section owns its content
  * and styling. Order is conversion-oriented: hook → proof → value → install →
  * pricing → trust → objections → convert.
  *
- * Server component: pricing is fetched from the backend (with a static fallback)
- * so plans and discounts stay live without a redeploy.
+ * Server component: pricing and testimonials are fetched from the backend (with
+ * static fallbacks) so plans, discounts and reviews stay live without a redeploy.
  */
 export async function LandingPage() {
-  const pricingTiers = await getPricingTiers();
+  const [pricingTiers, testimonials, faqs] = await Promise.all([
+    getPricingTiers(),
+    getTestimonials(),
+    getFaqs(),
+  ]);
   return (
     <MarketingShell>
       <Hero />
@@ -33,9 +39,9 @@ export async function LandingPage() {
       <Audiences />
       <PwaSection />
       <Pricing tiers={pricingTiers} />
-      <Testimonials />
+      <Testimonials items={testimonials.items} stats={testimonials.stats} />
       <Compliance />
-      <Faq />
+      <Faq faqs={faqs} />
       <CtaBanner />
       <Contact />
     </MarketingShell>

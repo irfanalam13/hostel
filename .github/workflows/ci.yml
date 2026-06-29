@@ -1,16 +1,30 @@
 name: CI
 
-# Runs on every push and pull request. A PR cannot be merged green unless the
-# blocking jobs (test, build, migrations, security) all pass — no manual review
-# is required to discover broken code.
+# Fast feedback gate for every push and PR: lint, unit/integration tests +
+# migration checks, and a Docker build of both services. A PR cannot merge green
+# unless every blocking job passes — no manual review is needed to catch broken
+# code. Heavier gates live in sibling workflows:
+#   - production-validation.yml  full stack boot + deploy checks (Prompts 02/05)
+#   - security.yml               SAST / deps / containers / SBOM   (Prompt 04)
+#   - e2e.yml                    browser E2E + perf + DAST          (Phase 7)
 on:
   push:
-    branches: [main, master, develop]
+    branches:
+      - main
+      - master
+      - develop
+      - "feature/**"
   pull_request:
 
+# Cancel superseded runs on the same ref so a force-push doesn't pile up runners.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+# Least privilege by default. Jobs that need more (e.g. publishing a check run)
+# opt in explicitly at the job level.
+permissions:
+  contents: read
 
 env:
   PYTHON_VERSION: "3.13"
@@ -18,44 +32,39 @@ env:
 
 jobs:
   # ===========================================================================
-  # 1. LINT
+  # 1. LINT — blocking. No `|| true`: a lint failure blocks the merge.
   # ===========================================================================
   lint-backend:
     name: Lint (backend)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: ./.github/actions/setup-backend
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install linters
-        run: pip install ruff flake8 black
-      # Style checks are advisory: they report issues without failing the build,
-      # so a pre-existing style nit in legacy code never blocks a green PR.
-      - name: Ruff
+          # Lint needs only ruff, not the full app/test stack.
+          install: "false"
+      - name: Install ruff
+        run: pip install ruff
+      # Rule set + line length come from backend/pyproject.toml [tool.ruff].
+      - name: Ruff (lint)
         working-directory: backend
-        run: ruff check . || true
-      - name: Flake8
+        run: ruff check --output-format=github .
+      - name: Ruff (format check)
         working-directory: backend
-        run: flake8 . --max-line-length=120 --extend-ignore=E203,W503 || true
-      - name: Black (check)
-        working-directory: backend
-        run: black --check . || true
+        # Advisory until the one-time repo-wide `ruff format` lands (~223 files);
+        # surfaced here so the drift stays visible without blocking unrelated PRs.
+        continue-on-error: true
+        run: ruff format --check .
 
   lint-frontend:
     name: Lint (frontend)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-frontend
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install deps
-        working-directory: frontend
-        run: npm ci
       - name: ESLint
         working-directory: frontend
         run: npm run lint
@@ -64,11 +73,14 @@ jobs:
         run: npx tsc --noEmit
 
   # ===========================================================================
-  # 2. TEST  (+ 4. MIGRATION VALIDATION)
+  # 2. TEST (backend) + migration validation. JUnit + coverage reports.
   # ===========================================================================
   test-backend:
     name: Test + migrations (backend)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write        # dorny/test-reporter publishes a check run
     services:
       postgres:
         image: postgres:16-alpine
@@ -95,123 +107,124 @@ jobs:
       CELERY_RESULT_BACKEND: redis://localhost:6379/0
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: ./.github/actions/setup-backend
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
-      # --- 4. Migration validation -------------------------------------------
+          install-dev: "true"
+      # --- Migration validation (Prompt 04 of the roadmap) -------------------
       - name: Check for missing migrations
         working-directory: backend
         run: python manage.py makemigrations --check --dry-run
       - name: Validate migration plan
         working-directory: backend
         run: python manage.py migrate --plan
-      # --- 3. Tests + coverage gate ------------------------------------------
-      # pytest.ini pins DJANGO_SETTINGS_MODULE=config.settings_test (isolated
-      # in-memory DB) and fails the build below 80% coverage of the canonical
-      # Track A apps (see .coveragerc). A regression in auth/RBAC/admissions/
-      # billing/checkout therefore blocks the merge.
-      - name: Run tests with coverage gate (>=80%)
+      # --- Tests + coverage gate (>=80%, enforced by pytest.ini) -------------
+      # pytest.ini pins config.settings_test and --cov-fail-under=80 over the
+      # canonical Track A apps (.coveragerc), so an auth/RBAC/billing regression
+      # blocks the merge. JUnit + Cobertura XML are emitted for reporting.
+      - name: Run tests (coverage gate + JUnit)
         working-directory: backend
-        run: pytest --cov-report=xml --cov-report=term-missing
-      - name: Upload coverage report
+        run: >-
+          pytest
+          --junitxml=test-results/junit.xml
+          --cov-report=xml
+          --cov-report=term-missing
+      - name: Publish test report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Backend tests
+          path: backend/test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: false
+      - name: Coverage summary
+        if: always()
+        run: python .github/scripts/coverage_summary.py backend/coverage.xml "Backend coverage"
+      - name: Upload test + coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-coverage
+          name: backend-test-results
           path: |
+            backend/test-results/junit.xml
             backend/coverage.xml
             backend/htmlcov
+          retention-days: 14
 
+  # ===========================================================================
+  # 3. TEST (frontend) — vitest with JUnit output.
+  # ===========================================================================
   test-frontend:
     name: Test (frontend)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-frontend
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install deps
+      - name: Run tests (vitest + JUnit)
         working-directory: frontend
-        run: npm ci
-      - name: Run tests
-        working-directory: frontend
-        # Run a "test" script if one exists; otherwise this is a no-op so the
-        # job stays green until a test runner is added.
-        run: npm run test --if-present
+        # vitest exits 0 when there are no test files, so this stays green until
+        # suites are added while still failing on a real test regression.
+        run: npm run test -- --reporter=default --reporter=junit --outputFile=test-results/junit.xml
+      - name: Publish test report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Frontend tests
+          path: frontend/test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: false
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: frontend/test-results/junit.xml
+          retention-days: 14
 
   # ===========================================================================
-  # 3. BUILD  (Docker images for both services)
+  # 4. BUILD — Docker images for both services. Matrix = parallel, fail-fast off
+  # so a backend failure still reports the frontend result.
   # ===========================================================================
-  build-backend:
-    name: Build backend image
+  build:
+    name: Build ${{ matrix.service }} image
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            context: ./backend
+            build-args: ""
+          - service: frontend
+            context: ./frontend
+            build-args: |
+              NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - name: Build backend Docker image
+      - name: Build ${{ matrix.service }} image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: ${{ matrix.context }}
           push: false
           load: true
-          tags: hostel-backend:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-frontend:
-    name: Build frontend image
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build frontend Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          push: false
-          load: true
-          tags: hostel-frontend:ci
-          build-args: |
-            NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ===========================================================================
-  # 5. SECURITY VALIDATION  (blocking on critical issues)
-  # ===========================================================================
-  security:
-    name: Security validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      # --- Secret scanning ---------------------------------------------------
-      - name: Scan for committed secrets (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # --- Python dependency vulnerabilities ---------------------------------
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Audit Python dependencies (pip-audit)
+          tags: hostel-${{ matrix.service }}:ci
+          build-args: ${{ matrix.build-args }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: Build summary
         run: |
-          pip install pip-audit
-          pip-audit -r backend/requirements.txt
-      # --- Node dependency vulnerabilities -----------------------------------
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Audit npm dependencies
-        working-directory: frontend
-        run: npm audit --audit-level=high
+          SIZE=$(docker image inspect hostel-${{ matrix.service }}:ci --format '{{.Size}}' \
+            | awk '{printf "%.1f MB", $1/1024/1024}')
+          {
+            echo "### 🐳 ${{ matrix.service }} image built";
+            echo "";
+            echo "| Image | Size |";
+            echo "| --- | --- |";
+            echo "| \`hostel-${{ matrix.service }}:ci\` | ${SIZE} |";
+          } >> "$GITHUB_STEP_SUMMARY"

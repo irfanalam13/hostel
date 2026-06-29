@@ -1,0 +1,13 @@
+# Code owners — automatically requested for review on matching paths.
+# Replace @irfanalam13 with your team handle(s); owners need write access.
+# See: https://docs.github.com/articles/about-code-owners
+
+# Default owner for everything.
+*                       @irfanalam13
+
+# CI/CD, deploy, and infra changes get extra scrutiny.
+/.github/               @irfanalam13
+/deploy/                @irfanalam13
+/monitoring/            @irfanalam13
+/docker-compose.yml     @irfanalam13
+/backend/config/settings.py @irfanalam13
