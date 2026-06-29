@@ -326,6 +326,7 @@ def approve_admission(admission, user, *, bed=None, join_date=None, decision_not
         admission.save()
 
         # Mock Notifications (Log & print)
-        logger.info(f"NOTIFICATION [Email/SMS] to student {student.full_name} ({student.phone}): Your admission request {admission.application_number} is APPROVED. Bed assigned: {bed.room.room_no}-{bed.bed_no if bed else 'None'}. Credentials: Username={username}, Password={student.phone}")
+        bed_label = f"{bed.room.room_no}-{bed.bed_no}" if bed else "None"
+        logger.info(f"NOTIFICATION [Email/SMS] to student {student.full_name} ({student.phone}): Your admission request {admission.application_number} is APPROVED. Bed assigned: {bed_label}. Credentials: Username={username}, Password={student.phone}")
 
         return admission

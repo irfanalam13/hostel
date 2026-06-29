@@ -12,7 +12,7 @@ PUBLIC_ADMISSIONS_URL = "/api/admissions/public-requests/"
 @pytest.fixture
 def rooms_bed(db, hostel):
     room = Room.objects.create(hostel=hostel, room_no="101", capacity=2)
-    return Bed.objects.create(room=room, bed_no="A", status="AVAILABLE")
+    return Bed.objects.create(hostel=hostel, room=room, bed_no="A", status="AVAILABLE")
 
 
 @pytest.fixture
@@ -129,7 +129,7 @@ def test_approve_admission_workflow(auth_client, warden, hostel, pending_request
     resp = client.post(f"{ADMISSIONS_URL}{pending_request.id}/approve/", payload)
     assert resp.status_code == 200
     assert resp.data["status"] == "APPROVED"
-    assert resp.data["approved_bed"] == str(rooms_bed.id)
+    assert str(resp.data["approved_bed"]) == str(rooms_bed.id)
     assert resp.data["student"] is not None
 
     # Check Student was created
@@ -195,7 +195,7 @@ def test_bulk_approve_reject(auth_client, warden, hostel, rooms_bed):
     )
 
     # Bulk Approve
-    resp = client.post(f"{ADMISSIONS_URL}bulk-approve/", {"ids": [str(req1.id), str(req2.id)]})
+    resp = client.post(f"{ADMISSIONS_URL}bulk-approve/", {"ids": [str(req1.id), str(req2.id)]}, format="json")
     assert resp.status_code == 200
     assert resp.data["approved_count"] == 2
 
