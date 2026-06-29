@@ -1,5 +1,4 @@
 from apps.common.serializers import HostelScopedSerializer
-from rest_framework import serializers
 from .models import FeePlan, StudentFeePlan, FeeLedger
 
 class FeePlanSerializer(HostelScopedSerializer):

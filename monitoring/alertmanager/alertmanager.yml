@@ -1,0 +1,36 @@
+# =============================================================================
+# Alertmanager routing. Fill in a real receiver (email/Slack/PagerDuty) and set
+# the secrets via environment in docker-compose.monitoring.yml. By default
+# alerts go to a no-op "null" receiver so the stack runs without credentials.
+# =============================================================================
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ["alertname", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: [severity="critical"]
+      receiver: critical
+      repeat_interval: 1h
+
+receivers:
+  - name: default
+    # No notifier configured yet — alerts are visible in the Alertmanager UI.
+
+  - name: critical
+    # Example Slack wiring — set SLACK_WEBHOOK_URL and uncomment.
+    # slack_configs:
+    #   - api_url: ${SLACK_WEBHOOK_URL}
+    #     channel: "#alerts"
+    #     title: "[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}"
+    #     text: "{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}"
+
+inhibit_rules:
+  # A critical alert silences a warning with the same alertname.
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: ["alertname"]

@@ -5,7 +5,6 @@ build_report() turns raw events into the ten tracked PWA metrics over a window.
 """
 from __future__ import annotations
 
-import re
 from datetime import timedelta
 
 from django.db.models import Count, Sum

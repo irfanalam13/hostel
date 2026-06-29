@@ -1,0 +1,96 @@
+# =============================================================================
+# Reverse proxy for the Hostel SaaS (PRODUCTION / STAGING).
+#
+# ${DOMAIN} is substituted from the environment by the nginx image's envsubst
+# entrypoint at container start. Only env vars that actually exist are
+# substituted, so nginx runtime tokens ($host, $scheme, $binary_remote_addr, …)
+# are preserved verbatim.
+#
+# TLS certs are mounted at /etc/nginx/certs (fullchain.pem + privkey.pem) — issue
+# them with Let's Encrypt (see deploy/certbot/) or drop in a Cloudflare Origin
+# cert. Shared hardening lives in /etc/nginx/snippets/*.conf.
+# =============================================================================
+
+upstream backend {
+    server web:8000;
+    keepalive 32;
+}
+upstream nextjs {
+    server frontend:3000;
+    keepalive 32;
+}
+
+# --- Rate limiting (defence-in-depth in front of DRF's own throttling) -------
+# Declared here in the conf.d (http) context. Keyed by client IP.
+#   api  — general API/admin traffic
+#   auth — login / token / signup / password reset (credential-stuffing guard)
+limit_req_zone  $binary_remote_addr  zone=api:10m   rate=20r/s;
+limit_req_zone  $binary_remote_addr  zone=auth:10m  rate=5r/m;
+limit_req_status 429;
+
+# --- HTTP :80 — ACME http-01 challenge + permanent HTTPS redirect ------------
+server {
+    listen 80;
+    server_name ${DOMAIN};
+
+    # Let's Encrypt webroot challenge (served from the shared certbot volume).
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    # Everything else: 301 to HTTPS (SEO-safe permanent redirect).
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# --- HTTPS :443 — the application --------------------------------------------
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${DOMAIN};
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    include /etc/nginx/snippets/ssl.conf;               # protocols, ciphers, OCSP, PFS
+    include /etc/nginx/snippets/security-headers.conf;  # edge HSTS
+
+    client_max_body_size 25m;
+
+    gzip on;
+    gzip_vary on;
+    gzip_types text/plain text/css application/json application/javascript application/xml image/svg+xml;
+    gzip_min_length 1024;
+
+    # /metrics is internal-only — scraped directly on the docker network. Never
+    # serve it to the public internet.
+    location = /metrics { return 404; }
+
+    # Auth endpoints: tightest rate limit (credential stuffing / brute force).
+    # burst=10 nodelay tolerates a legitimate retry/2FA flurry, then 429s.
+    location ~ ^/api/auth/(login|token|signup|password) {
+        limit_req zone=auth burst=10 nodelay;
+        include /etc/nginx/snippets/proxy.conf;
+        proxy_pass http://backend;
+    }
+
+    # API + admin: general rate limit.
+    location ~ ^/(api|admin)/ {
+        limit_req zone=api burst=40 nodelay;
+        include /etc/nginx/snippets/proxy.conf;
+        proxy_pass http://backend;
+    }
+
+    # Health checks + static/media (WhiteNoise): no rate limit — health is polled
+    # by monitoring, and assets are cheap and cacheable.
+    location ~ ^/(health|static|media)/ {
+        include /etc/nginx/snippets/proxy.conf;
+        proxy_pass http://backend;
+    }
+
+    # Bare root and everything else: the Next.js frontend.
+    location / {
+        include /etc/nginx/snippets/proxy.conf;
+        proxy_pass http://nextjs;
+    }
+}

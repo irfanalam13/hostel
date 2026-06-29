@@ -1,9 +1,10 @@
 import random
 import re
-import uuid
 import string
 from decimal import Decimal
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from apps.common.models import TimeStampedModel
 
@@ -109,3 +110,68 @@ class Subscription(TimeStampedModel):
     status = models.CharField(max_length=20, default="active")  # active/cancelled/expired
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
+
+
+class Testimonial(TimeStampedModel):
+    """
+    A customer review of the platform. Anyone can submit one (it lands
+    unapproved); an admin then "purifies" the pool — approving the genuine ones
+    (which count toward the public rating stats) and featuring the best few to
+    appear as cards in the landing-page testimonials section.
+    """
+    author_name = models.CharField(max_length=120)
+    author_role = models.CharField(
+        max_length=120, blank=True, default="",
+        help_text="e.g. 'Warden, City Girls' Hostel'.",
+    )
+    rating = models.PositiveSmallIntegerField(
+        default=5, validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    quote = models.TextField()
+
+    # --- Moderation / curation (the "purify" step, done from the admin) ---
+    is_approved = models.BooleanField(
+        default=False, help_text="Approved reviews count toward the public rating stats.",
+    )
+    is_featured = models.BooleanField(
+        default=False, help_text="Featured reviews appear as cards on the landing page.",
+    )
+    sort_order = models.IntegerField(default=0)
+    source = models.CharField(max_length=40, blank=True, default="web")
+
+    class Meta:
+        ordering = ["sort_order", "-created_at"]
+
+    def __str__(self):
+        return f"{self.author_name} ({self.rating}★)"
+
+
+def testimonial_stats():
+    """
+    Aggregate rating metrics over all *approved* reviews, for the landing page:
+
+      - total                 number of approved reviews
+      - average_rating        mean rating, 1 decimal (e.g. 4.6)
+      - rating_percent        average as a percentage of 5 ("overall rating")
+      - appreciation_percent  share of reviews rated 4★ or higher ("appreciate")
+    """
+    approved = Testimonial.objects.filter(is_approved=True)
+    total = approved.count()
+    if not total:
+        return {
+            "total": 0,
+            "average_rating": 0.0,
+            "rating_percent": 0,
+            "appreciation_percent": 0,
+            "positive": 0,
+        }
+    agg = approved.aggregate(avg=Avg("rating"), positive=Count("id", filter=Q(rating__gte=4)))
+    avg = round(float(agg["avg"] or 0), 1)
+    positive = agg["positive"] or 0
+    return {
+        "total": total,
+        "average_rating": avg,
+        "rating_percent": round(avg / 5 * 100),
+        "appreciation_percent": round(positive / total * 100),
+        "positive": positive,
+    }

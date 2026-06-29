@@ -1,5 +1,35 @@
 from django.contrib import admin
-from .models import Hostel, Plan, Subscription
+from .models import Hostel, Plan, Subscription, Testimonial
+
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = (
+        "author_name",
+        "author_role",
+        "rating",
+        "is_approved",
+        "is_featured",
+        "sort_order",
+        "created_at",
+    )
+    # Approve + feature ("purify") straight from the list view.
+    list_editable = ("is_approved", "is_featured", "sort_order")
+    list_filter = ("is_approved", "is_featured", "rating")
+    search_fields = ("author_name", "author_role", "quote")
+    actions = ("approve_selected", "feature_selected", "unfeature_selected")
+
+    @admin.action(description="Approve selected reviews")
+    def approve_selected(self, request, queryset):
+        queryset.update(is_approved=True)
+
+    @admin.action(description="Feature selected on landing (also approves)")
+    def feature_selected(self, request, queryset):
+        queryset.update(is_approved=True, is_featured=True)
+
+    @admin.action(description="Remove from landing (unfeature)")
+    def unfeature_selected(self, request, queryset):
+        queryset.update(is_featured=False)
 
 
 @admin.register(Plan)

@@ -1,5 +1,4 @@
 import pytest
-from django.urls import reverse
 from django.utils import timezone
 from apps.rooms.models import Room, Bed, BedAssignment
 from apps.admissions.models import AdmissionRequest, AdmissionDocument
@@ -13,7 +12,7 @@ PUBLIC_ADMISSIONS_URL = "/api/admissions/public-requests/"
 @pytest.fixture
 def rooms_bed(db, hostel):
     room = Room.objects.create(hostel=hostel, room_no="101", capacity=2)
-    return Bed.objects.create(room=room, bed_no="A", status="AVAILABLE")
+    return Bed.objects.create(hostel=hostel, room=room, bed_no="A", status="AVAILABLE")
 
 
 @pytest.fixture
@@ -110,7 +109,7 @@ def test_approve_admission_workflow(auth_client, warden, hostel, pending_request
     client = auth_client(warden, hostel)
     
     # Upload a mock document first
-    doc = AdmissionDocument.objects.create(
+    AdmissionDocument.objects.create(
         hostel=hostel,
         admission_request=pending_request,
         doc_type="citizenship_front",
@@ -130,7 +129,7 @@ def test_approve_admission_workflow(auth_client, warden, hostel, pending_request
     resp = client.post(f"{ADMISSIONS_URL}{pending_request.id}/approve/", payload)
     assert resp.status_code == 200
     assert resp.data["status"] == "APPROVED"
-    assert resp.data["approved_bed"] == str(rooms_bed.id)
+    assert str(resp.data["approved_bed"]) == str(rooms_bed.id)
     assert resp.data["student"] is not None
 
     # Check Student was created
@@ -148,7 +147,7 @@ def test_approve_admission_workflow(auth_client, warden, hostel, pending_request
     assert rooms_bed.status == "OCCUPIED"
 
     # Check User account (role RESIDENT) was created
-    username = f"std_9801234567"
+    username = "std_9801234567"
     user = User.objects.get(username=username)
     assert user.role == "RESIDENT"
     assert UserHostel.objects.filter(user=user, hostel=hostel, is_active=True).exists()
@@ -196,7 +195,7 @@ def test_bulk_approve_reject(auth_client, warden, hostel, rooms_bed):
     )
 
     # Bulk Approve
-    resp = client.post(f"{ADMISSIONS_URL}bulk-approve/", {"ids": [str(req1.id), str(req2.id)]})
+    resp = client.post(f"{ADMISSIONS_URL}bulk-approve/", {"ids": [str(req1.id), str(req2.id)]}, format="json")
     assert resp.status_code == 200
     assert resp.data["approved_count"] == 2
 

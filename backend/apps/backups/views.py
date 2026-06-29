@@ -7,7 +7,6 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.accounts.models import UserHostel
 from apps.auditlog.models import AuditEvent
 from apps.auditlog.services import record_event
 from apps.common.permissions import IsOwner

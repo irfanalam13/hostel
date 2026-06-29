@@ -1,0 +1,126 @@
+# =============================================================================
+# Production / staging compose — runs PRE-BUILT images pulled from the registry
+# (GHCR) instead of building on the host, with Nginx terminating TLS in front.
+#
+# Driven entirely by `deploy/.env` on the VPS (see .env.prod.example). The CI
+# deploy job sets BACKEND_IMAGE / FRONTEND_IMAGE to the exact pushed tags, then
+# runs deploy.sh which pulls + migrates + health-gates the rollout.
+#
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d
+# =============================================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hostel}
+      POSTGRES_USER: ${POSTGRES_USER:-hostel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hostel} -d ${POSTGRES_DB:-hostel}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  web:
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
+    restart: unless-stopped
+    env_file: .env
+    # Migrations are applied explicitly by deploy.sh BEFORE the rollout, never
+    # implicitly on boot, so ordering is deterministic across replicas.
+    environment:
+      RUN_MIGRATIONS: "0"
+      PROMETHEUS_ENABLED: ${PROMETHEUS_ENABLED:-True}
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  celery_worker:
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
+    restart: unless-stopped
+    env_file: .env
+    # Sidecars never migrate — deploy.sh owns schema changes (see web).
+    environment:
+      RUN_MIGRATIONS: "0"
+    command: ["celery", "-A", "config", "worker", "--loglevel=info"]
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "celery", "-A", "config", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  celery_beat:
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
+    restart: unless-stopped
+    env_file: .env
+    # Sidecars never migrate — deploy.sh owns schema changes (see web).
+    environment:
+      RUN_MIGRATIONS: "0"
+    command: ["celery", "-A", "config", "beat", "--loglevel=info", "--schedule", "/tmp/celerybeat-schedule", "--pidfile="]
+    depends_on:
+      redis: { condition: service_healthy }
+    healthcheck:
+      disable: true
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?set FRONTEND_IMAGE}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    depends_on:
+      web: { condition: service_started }
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      # Shared with the certbot service for the ACME http-01 webroot challenge.
+      - certbot_www:/var/www/certbot:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      web: { condition: service_healthy }
+      frontend: { condition: service_started }
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
+  # ACME http-01 challenge webroot, written by certbot, read by nginx.
+  certbot_www:

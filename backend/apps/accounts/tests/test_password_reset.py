@@ -2,10 +2,7 @@
 
 Covered (Phase 10 §1 password reset flow)."""
 import pytest
-from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 
 FORGOT = "/api/auth/password/forgot/"
 RESET = "/api/auth/password/reset/"

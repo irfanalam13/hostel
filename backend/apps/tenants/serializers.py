@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Hostel, Plan, Subscription
+from .models import Hostel, Plan, Subscription, Testimonial
 
 class PlanSerializer(serializers.ModelSerializer):
     """Full plan record for authenticated admin/catalog use."""
@@ -35,3 +35,26 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = "__all__"
+
+
+class PublicTestimonialSerializer(serializers.ModelSerializer):
+    """Display-ready, unauthenticated subset for the landing testimonials."""
+    class Meta:
+        model = Testimonial
+        fields = ["id", "author_name", "author_role", "rating", "quote", "created_at"]
+
+
+class TestimonialSubmitSerializer(serializers.ModelSerializer):
+    """Public review submission. Everything else (approval/featuring) is admin-only."""
+    class Meta:
+        model = Testimonial
+        fields = ["author_name", "author_role", "rating", "quote"]
+        extra_kwargs = {
+            "author_role": {"required": False},
+        }
+
+    def validate_quote(self, value):
+        value = (value or "").strip()
+        if len(value) < 10:
+            raise serializers.ValidationError("Please share a little more (at least 10 characters).")
+        return value

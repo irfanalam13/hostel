@@ -18,7 +18,7 @@ from apps.notifications.models import (
     NotificationStatus,
     PushSubscription,
 )
-from apps.notifications.services import create_notification, dispatch
+from apps.notifications.services import create_notification
 from apps.notifications.tasks import send_scheduled_notifications
 
 pytestmark = pytest.mark.django_db

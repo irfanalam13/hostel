@@ -48,7 +48,7 @@ export function InstallPrompt() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icons/icon-192.png" alt="" width={44} height={44} className="rounded-xl" />
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-[var(--foreground)]">Install Hostel MS</p>
+              <p className="font-semibold text-[var(--foreground)]">Install MY Hostel</p>
               {ios && !isInstallable ? (
                 <p className="text-sm text-[var(--muted)]">
                   Tap the Share icon, then <strong>Add to Home Screen</strong>.

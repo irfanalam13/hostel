@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.idempotency",
     "apps.analytics",
+    "apps.marketing",
 ]
 
 MIDDLEWARE = [
@@ -138,25 +139,33 @@ TEMPLATES = [{
 WSGI_APPLICATION = "config.wsgi.application"
 
 # ---------------------------------------------------------------------------
-# Database — Postgres via DATABASE_URL (.env), SQLite fallback for local dev
+# Database — PostgreSQL only (local development + production)
 # ---------------------------------------------------------------------------
-# DATABASE_URL is read from backend/.env. A full Postgres URL works as-is, e.g.:
-#   postgresql://USER:PASS@HOST:5432/DBNAME?sslmode=require
-# Query params (sslmode, channel_binding, …) are passed through to the driver
-# as OPTIONS, so managed providers like Neon/Supabase work without extra config.
+# This project runs on PostgreSQL in every environment; there is no SQLite
+# fallback. Configure via DATABASE_URL, e.g.:
+#   postgres://USER:PASS@HOST:5432/DBNAME?sslmode=require
+# Query params (sslmode, channel_binding, …) pass through to the driver as
+# OPTIONS, so managed providers (Neon/Supabase/Render) work without extra config.
+# In dev a local Postgres URL is assumed; production MUST set DATABASE_URL.
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default="postgres://hostel:hostel@localhost:5432/hostel" if DEBUG else "",
     )
 }
 
+# Fail fast on a missing/non-Postgres database instead of 500-ing at runtime.
+if DATABASES["default"].get("ENGINE") != "django.db.backends.postgresql":
+    raise RuntimeError(
+        "A PostgreSQL DATABASE_URL is required (postgres://USER:PASS@HOST:5432/DBNAME). "
+        "This project does not support SQLite."
+    )
+
 # Production hardening for Postgres: reuse connections across requests
 # (essential with pooled providers like Neon) and verify each pooled connection
-# is alive before use. SQLite ignores these, so guard on the engine.
-if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
-    DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=600)
-    DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+# is alive before use.
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=600)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -220,6 +229,10 @@ REST_FRAMEWORK = {
         "payment": env("THROTTLE_PAYMENT", default="120/min"),
         "backup": env("THROTTLE_BACKUP", default="10/hour"),
         "admissions": env("THROTTLE_ADMISSIONS", default="20/hour"),
+        # Public review submissions from the landing page.
+        "review": env("THROTTLE_REVIEW", default="5/hour"),
+        # Public sales/demo lead submissions from the landing page.
+        "lead": env("THROTTLE_LEAD", default="10/hour"),
     },
 }
 
@@ -493,6 +506,21 @@ LOGGING = {
 # Requires `sentry-sdk` in requirements; the import is guarded so the app boots
 # without it installed.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Prometheus metrics (observability) — optional, off by default.
+# When PROMETHEUS_ENABLED=True, django-prometheus exposes /metrics (HTTP latency,
+# request/response counts, DB query timings). The metrics endpoint is internal:
+# expose it only to the monitoring network / scraper, never to the public web
+# (the production Nginx config restricts /metrics to the private network).
+# Wrapping middleware must bracket the stack: the "Before" middleware first and
+# the "After" middleware last, so latency covers the whole request.
+# ---------------------------------------------------------------------------
+PROMETHEUS_ENABLED = env.bool("PROMETHEUS_ENABLED", default=False)
+if PROMETHEUS_ENABLED:
+    INSTALLED_APPS.append("django_prometheus")
+    MIDDLEWARE.insert(0, "django_prometheus.middleware.PrometheusBeforeMiddleware")
+    MIDDLEWARE.append("django_prometheus.middleware.PrometheusAfterMiddleware")
+
 SENTRY_DSN = env("SENTRY_DSN", default="")
 if SENTRY_DSN:
     try:
