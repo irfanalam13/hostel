@@ -1,0 +1,43 @@
+# =============================================================================
+# LOCAL-DEVELOPMENT HTTPS overlay.
+#
+# Adds an nginx reverse proxy that terminates TLS (mkcert certs) on
+# https://localhost and proxies to the existing `web` and `frontend` services.
+# Layer it ON TOP of the root compose file:
+#
+#   1. Trust + issue the dev cert once:
+#        pwsh scripts/setup-dev-https.ps1        (Windows)
+#        bash scripts/setup-dev-https.sh         (macOS / Linux)
+#   2. Point the browser bundle at the single secure origin in `.env`:
+#        NEXT_PUBLIC_API_BASE_URL=https://localhost/api
+#        CSRF_TRUSTED_ORIGINS=https://localhost,http://localhost:3000
+#   3. Bring it up (the frontend rebuilds with the https API base URL):
+#        docker compose -f docker-compose.yml \
+#          -f deploy/dev/docker-compose.https.yml up --build
+#   4. Open https://localhost   (NOT :3000 / :8000)
+#
+# The raw :3000 / :8000 ports stay published for direct/debug access, but use
+# https://localhost for anything that exercises SW / push / cookies / CSP.
+# =============================================================================
+services:
+  # Force the browser bundle to call the same secure origin it is served from,
+  # so API calls are same-origin (no CORS) and the SW caches https URLs.
+  frontend:
+    build:
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://localhost/api
+
+  nginx_dev:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./deploy/dev/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/dev/certs:/etc/nginx/certs:ro
+    ports:
+      - "443:443"
+      - "8443:80"   # 80 is often taken on dev hosts; reach the redirect on :8443
+    depends_on:
+      web:
+        condition: service_started
+      frontend:
+        condition: service_started

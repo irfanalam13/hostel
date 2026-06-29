@@ -62,7 +62,9 @@ jobs:
       ALLOWED_HOSTS: "example.com,localhost,127.0.0.1"
       CORS_ALLOWED_ORIGINS: "https://example.com"
       CSRF_TRUSTED_ORIGINS: "https://example.com"
-      DATABASE_URL: "sqlite:////tmp/deploycheck.sqlite3"
+      # check --deploy never opens a connection; a syntactically valid Postgres
+      # URL is enough (the app is Postgres-only and refuses to boot otherwise).
+      DATABASE_URL: "postgres://hostel:hostel@localhost:5432/hostel"
       REDIS_URL: "redis://localhost:6379/0"
     steps:
       - uses: actions/checkout@v4

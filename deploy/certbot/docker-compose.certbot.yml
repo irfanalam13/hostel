@@ -1,0 +1,33 @@
+# =============================================================================
+# Let's Encrypt automation overlay — layered on top of docker-compose.prod.yml.
+#
+#   docker compose -f docker-compose.prod.yml \
+#     -f certbot/docker-compose.certbot.yml --env-file .env <cmd>
+#
+# The `certbot` service is behind a compose PROFILE so a normal `up` (and the CI
+# deploy via deploy.sh) never starts it — it is invoked on demand by the
+# issuance/renewal scripts (`certbot/init-letsencrypt.sh`, `certbot/renew.sh`).
+#
+# Flow: certbot answers the ACME http-01 challenge via the webroot that nginx
+# already serves on :80 (shared `certbot_www` volume). On success a deploy-hook
+# copies the issued/renewed leaf + chain into ./nginx/certs (where nginx reads
+# them) and the caller reloads nginx — zero downtime, no container restart, and
+# certbot never needs the Docker socket.
+# =============================================================================
+services:
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ["certbot"]
+    volumes:
+      - certbot_etc:/etc/letsencrypt          # account + live/<domain> certs
+      - certbot_lib:/var/lib/letsencrypt       # certbot working state
+      - certbot_www:/var/www/certbot           # http-01 webroot (shared w/ nginx)
+      - ./nginx/certs:/certs                    # destination nginx actually reads
+      - ./certbot/deploy-hook.sh:/deploy-hook.sh:ro
+    # Args are supplied per-invocation by the scripts (certonly / renew).
+    entrypoint: ["certbot"]
+
+volumes:
+  certbot_etc:
+  certbot_lib:
+  certbot_www:

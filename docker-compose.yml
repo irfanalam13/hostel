@@ -80,6 +80,9 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    # Only `web` migrates; sidecars skip it to avoid racing on the same schema.
+    environment:
+      RUN_MIGRATIONS: "0"
     command: ["celery", "-A", "config", "worker", "--loglevel=info"]
     volumes:
       - media_data:/app/media
@@ -107,9 +110,17 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+
     # Schedule + pid files go to a writable path (/app is read-only to the
     # non-root app user). The pidfile drives the healthcheck below.
     command: ["celery", "-A", "config", "beat", "--loglevel=info", "--schedule", "/tmp/celerybeat-schedule", "--pidfile=/tmp/celerybeat.pid"]
+
+    # Only `web` migrates; sidecars skip it to avoid racing on the same schema.
+    environment:
+      RUN_MIGRATIONS: "0"
+    # Schedule/pid files go to a writable path (/app is owned by root, read-only
+    # to the non-root app user). Empty --pidfile disables the pid file.
+
     depends_on:
       redis:
         condition: service_healthy
