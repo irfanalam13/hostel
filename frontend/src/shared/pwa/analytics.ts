@@ -9,6 +9,7 @@
  * User-Agent, so we don't send them here.
  */
 import { api } from "@/shared/api/apiClient";
+import { authStore } from "@/shared/auth/auth.store";
 import { getServiceWorkerVersion } from "./register";
 
 export type AnalyticsEventType =
@@ -71,6 +72,10 @@ export function trackFeature(name: string): void {
 
 export async function flush(): Promise<void> {
   if (flushing || queue.length === 0) return;
+  // Telemetry is owner-facing and the endpoint requires auth. Skip flushing for
+  // anonymous visitors (e.g. on the public landing page) so we don't fire a
+  // doomed authenticated request that would 401 and disturb the auth state.
+  if (!authStore.getAccess()) return;
   flushing = true;
   const batch = queue;
   queue = [];

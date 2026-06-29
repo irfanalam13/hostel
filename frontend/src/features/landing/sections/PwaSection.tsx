@@ -1,10 +1,19 @@
 "use client";
 
 import React from "react";
-import { Smartphone, Download, WifiOff, Zap, Check } from "lucide-react";
+import {
+  Smartphone,
+  Tablet,
+  Monitor,
+  Download,
+  WifiOff,
+  Zap,
+  Check,
+} from "lucide-react";
 import { usePwa } from "@/shared/providers/PwaProvider";
 import { Section } from "../components/Section";
 import { Reveal } from "../components/Reveal";
+import { usePlatform, manualInstallSteps, type DeviceType } from "../hooks/usePlatform";
 
 const BENEFITS = [
   { icon: WifiOff, text: "Full offline access — keep working through outages" },
@@ -12,9 +21,20 @@ const BENEFITS = [
   { icon: Smartphone, text: "Add to home screen — no app store needed" },
 ];
 
+const DEVICES: { type: DeviceType; icon: typeof Smartphone; label: string }[] = [
+  { type: "mobile", icon: Smartphone, label: "Mobile" },
+  { type: "tablet", icon: Tablet, label: "Tablet" },
+  { type: "desktop", icon: Monitor, label: "Desktop" },
+];
+
 export function PwaSection() {
   // Single source of truth for install state, shared with the navbar button.
   const { isInstallable, isInstalled, installApp } = usePwa();
+  // Auto-detect the visitor's device/OS to tailor the install guidance.
+  const platform = usePlatform();
+
+  const ActiveIcon =
+    DEVICES.find((d) => d.type === platform.type)?.icon ?? Monitor;
 
   return (
     <Section tone="accent-soft" width="wide">
@@ -33,6 +53,14 @@ export function PwaSection() {
               everything syncs automatically when you&apos;re back online.
             </p>
 
+            {/* Auto-detected device indicator */}
+            {platform.mounted && platform.label && (
+              <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-secondary)]">
+                <ActiveIcon className="h-4 w-4 text-[var(--accent)]" aria-hidden />
+                Detected: <span className="capitalize text-[var(--foreground)]">{platform.label}</span>
+              </p>
+            )}
+
             <ul className="mt-6 space-y-3">
               {BENEFITS.map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-start gap-3 text-[var(--foreground)]">
@@ -44,6 +72,7 @@ export function PwaSection() {
               ))}
             </ul>
 
+            {/* Action area: installed → installable (native) → platform steps */}
             <div className="mt-8">
               {isInstalled ? (
                 <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-5 py-3 text-sm font-semibold text-[var(--success)]">
@@ -57,15 +86,44 @@ export function PwaSection() {
                 >
                   <Download className="h-4.5 w-4.5" aria-hidden /> Install the app
                 </button>
-              ) : (
-                <p className="text-sm text-[var(--foreground-secondary)]">
-                  Open this site in your browser&apos;s menu and choose{" "}
-                  <span className="font-semibold text-[var(--foreground)]">
-                    &ldquo;Add to Home Screen&rdquo;
-                  </span>{" "}
-                  to install.
-                </p>
-              )}
+              ) : platform.mounted ? (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+                  <p className="text-sm font-semibold text-[var(--foreground)]">
+                    Install on your {platform.type}
+                  </p>
+                  <ol className="mt-3 space-y-2">
+                    {manualInstallSteps(platform.os).map((step, i) => (
+                      <li key={step} className="flex items-start gap-3 text-sm text-[var(--foreground-secondary)]">
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--accent-soft)] text-[11px] font-bold text-[var(--accent)]">
+                          {i + 1}
+                        </span>
+                        {step}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Cross-platform availability, current device highlighted */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              {DEVICES.map(({ type, icon: Icon, label }) => {
+                const active = platform.mounted && platform.type === type;
+                return (
+                  <span
+                    key={type}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                      active
+                        ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                        : "border-[var(--border)] bg-[var(--card)] text-[var(--foreground-secondary)]"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden />
+                    {label}
+                    {active && <span className="ml-0.5 text-[10px]">• you</span>}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </Reveal>

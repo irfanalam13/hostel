@@ -155,6 +155,10 @@ export type PricingTier = {
   features: string[];
   cta: { label: string; href: string };
   featured?: boolean;
+  /** Set when a discount is live: the pre-discount price, shown struck through. */
+  originalPrice?: string;
+  /** Set when a discount is live: badge text, e.g. "Launch offer" or "20% off". */
+  discountLabel?: string;
 };
 
 export const PRICING: PricingTier[] = [
@@ -293,19 +297,19 @@ export const FAQS: Faq[] = [
 
 export const FOOTER_LINKS = {
   Product: [
-    { label: "Features", href: "#features" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "FAQ", href: "#faq" },
+    { label: "Features", href: "/#features" },
+    { label: "Pricing", href: "/#pricing" },
+    { label: "FAQ", href: "/#faq" },
     { label: "Log in", href: "/login" },
   ],
   Company: [
-    { label: "About", href: "#" },
-    { label: "Contact sales", href: "#contact" },
-    { label: "Request a demo", href: "#contact" },
+    { label: "About", href: "/about" },
+    { label: "Contact sales", href: "/#contact" },
+    { label: "Request a demo", href: "/#contact" },
   ],
   Legal: [
-    { label: "Privacy", href: "#" },
-    { label: "Terms", href: "#" },
-    { label: "Security", href: "#" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Terms", href: "/terms" },
+    { label: "Security", href: "/security" },
   ],
 } as const;

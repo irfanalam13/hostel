@@ -50,6 +50,39 @@ html.dark {
   --shadow-lg: 0 24px 64px -34px rgb(0 0 0 / 0.85);
 }
 
+/*
+ * No-flash dark fallback. Before the ThemeProvider applies the resolved theme on
+ * the client it sets `data-resolved-theme` on <html>; until then this honours the
+ * OS preference so "system" users on a dark device don't see a light flash. Must
+ * mirror the `html.dark` tokens above. CSP-safe (no inline script needed).
+ */
+@media (prefers-color-scheme: dark) {
+  html:not([data-resolved-theme]) {
+    color-scheme: dark;
+    --background: #020617;
+    --background-secondary: #0f172a;
+    --card: #111827;
+    --card-elevated: #1e293b;
+    --foreground: #f8fafc;
+    --foreground-secondary: #cbd5e1;
+    --muted: #94a3b8;
+    --disabled: #64748b;
+    --border: #334155;
+    --border-hover: #475569;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-active: #93c5fd;
+    --accent-soft: rgb(59 130 246 / 0.16);
+    --success: #22c55e;
+    --warning: #fbbf24;
+    --error: #ef4444;
+    --info: #38bdf8;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+    --shadow-md: 0 12px 32px -20px rgb(0 0 0 / 0.75);
+    --shadow-lg: 0 24px 64px -34px rgb(0 0 0 / 0.85);
+  }
+}
+
 html {
   background: var(--background);
 }

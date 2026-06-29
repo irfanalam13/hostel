@@ -11,10 +11,12 @@ import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { NAV_LINKS } from "../constants";
 import { BRAND } from "../content";
+import { usePlatform, manualInstallHint } from "../hooks/usePlatform";
 
 export function Navbar() {
   const { status } = useAuth();
   const { isInstallable, isInstalled, installApp } = usePwa();
+  const platform = usePlatform();
   const toast = useToast();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -54,10 +56,7 @@ export function Navbar() {
       await installApp();
       return;
     }
-    toast.info(
-      "Open your browser menu and choose “Add to Home Screen” / “Install app”.",
-      "Install the app",
-    );
+    toast.info(manualInstallHint(platform.os), "Install the app");
   };
 
   return (

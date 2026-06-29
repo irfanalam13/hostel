@@ -4,10 +4,10 @@ import { Check } from "lucide-react";
 import { Section } from "../components/Section";
 import { SectionHeader } from "../components/SectionHeader";
 import { Reveal } from "../components/Reveal";
-import { PRICING } from "../content";
+import { PRICING, type PricingTier } from "../content";
 import { SECTION_IDS } from "../constants";
 
-export function Pricing() {
+export function Pricing({ tiers = PRICING }: { tiers?: PricingTier[] }) {
   return (
     <Section id={SECTION_IDS.pricing} tone="muted" width="wide">
       <SectionHeader
@@ -17,7 +17,7 @@ export function Pricing() {
       />
 
       <div className="mt-14 grid items-stretch gap-6 lg:grid-cols-3">
-        {PRICING.map((tier, i) => {
+        {tiers.map((tier, i) => {
           const isAnchor = tier.cta.href.startsWith("#");
           const CtaInner = (
             <>
@@ -39,8 +39,20 @@ export function Pricing() {
                   </span>
                 )}
 
-                <h3 className="text-lg font-semibold text-[var(--foreground)]">{tier.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)]">{tier.name}</h3>
+                  {tier.discountLabel && (
+                    <span className="rounded-full bg-[color-mix(in_srgb,var(--success)_14%,transparent)] px-2.5 py-0.5 text-xs font-semibold text-[var(--success)]">
+                      {tier.discountLabel}
+                    </span>
+                  )}
+                </div>
                 <div className="mt-4 flex items-baseline gap-1.5">
+                  {tier.originalPrice && (
+                    <span className="text-lg font-medium text-[var(--muted)] line-through">
+                      {tier.originalPrice}
+                    </span>
+                  )}
                   <span className="text-4xl font-bold tracking-tight text-[var(--foreground)]">
                     {tier.price}
                   </span>

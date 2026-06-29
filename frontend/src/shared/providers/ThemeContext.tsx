@@ -16,7 +16,6 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
-  const [mounted, setMounted] = useState(false);
 
   const applyTheme = (t: Theme) => {
     const root = document.documentElement;
@@ -36,7 +35,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const initialTheme = savedTheme || "system";
     setThemeState(initialTheme);
     applyTheme(initialTheme);
-    setMounted(true);
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
@@ -67,7 +65,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
-      <div className={mounted ? "" : "invisible"}>{children}</div>
+      {children}
     </ThemeContext.Provider>
   );
 }

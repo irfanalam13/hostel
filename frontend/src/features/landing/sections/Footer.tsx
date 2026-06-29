@@ -21,21 +21,20 @@ export function Footer() {
               <h3 className="text-sm font-semibold text-[var(--foreground)]">{group}</h3>
               <ul className="mt-4 space-y-3">
                 {links.map((link) => {
-                  const isInternal = link.href.startsWith("/");
+                  // Hash links (e.g. "/#features") use a plain <a> so the browser
+                  // resolves the anchor reliably from any page. Real routes use
+                  // next/link for client-side navigation.
+                  const isRoute = link.href.startsWith("/") && !link.href.includes("#");
+                  const cls =
+                    "text-sm text-[var(--foreground-secondary)] transition hover:text-[var(--accent)]";
                   return (
                     <li key={link.label}>
-                      {isInternal ? (
-                        <Link
-                          href={link.href}
-                          className="text-sm text-[var(--foreground-secondary)] transition hover:text-[var(--accent)]"
-                        >
+                      {isRoute ? (
+                        <Link href={link.href} className={cls}>
                           {link.label}
                         </Link>
                       ) : (
-                        <a
-                          href={link.href}
-                          className="text-sm text-[var(--foreground-secondary)] transition hover:text-[var(--accent)]"
-                        >
+                        <a href={link.href} className={cls}>
                           {link.label}
                         </a>
                       )}

@@ -128,29 +128,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  // Global 401 (refresh failed) from the API client -> drop to login, once.
+  // Global 401 (refresh failed) from the API client -> drop the client session.
+  // We intentionally do NOT redirect here: public pages (landing, marketing,
+  // login/signup) must stay put even if a background call 401s. The (protected)
+  // layout is the single place that redirects to /login when it observes
+  // status become "unauthenticated", so only authenticated routes bounce.
   useEffect(() => {
     function onUnauthorized() {
       authStore.clear();
       applyUser(null);
       setStatus("unauthenticated");
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        router.replace("/login");
-      }
     }
     window.addEventListener(AUTH_UNAUTHORIZED, onUnauthorized);
     return () => window.removeEventListener(AUTH_UNAUTHORIZED, onUnauthorized);
-  }, [applyUser, router]);
+  }, [applyUser]);
 
   // Cross-tab sync: react when the session marker changes in another tab.
   useEffect(() => {
     function onStorage(e: StorageEvent) {
       if (e.key !== SESSION_KEY) return;
       if (e.newValue === null) {
-        // Logged out elsewhere.
+        // Logged out elsewhere. Update state only; the (protected) layout will
+        // redirect if the current route needs auth — public pages stay put.
         applyUser(null);
         setStatus("unauthenticated");
-        if (!window.location.pathname.startsWith("/login")) router.replace("/login");
       } else {
         // Logged in elsewhere -> pick up the new session.
         void refresh();
@@ -158,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [applyUser, refresh, router]);
+  }, [applyUser, refresh]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

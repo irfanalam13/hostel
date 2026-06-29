@@ -2,7 +2,9 @@ import random
 import re
 import uuid
 import string
+from decimal import Decimal
 from django.db import models
+from django.utils import timezone
 from apps.common.models import TimeStampedModel
 
 HOSTEL_CODE_RE = re.compile(r"^HTL-[A-Z0-9]{8}$")
@@ -15,8 +17,54 @@ class Plan(TimeStampedModel):
     max_students = models.IntegerField(default=200)
     max_rooms = models.IntegerField(default=50)
 
+    # --- Public / marketing presentation (drives the landing-page pricing) ---
+    description = models.CharField(max_length=200, blank=True, default="")
+    # A plain list of feature bullet strings, e.g. ["Up to 50 beds", ...].
+    features = models.JSONField(default=list, blank=True)
+    period = models.CharField(max_length=40, blank=True, default="per hostel / month")
+    currency = models.CharField(max_length=8, blank=True, default="Rs.")
+    cta_label = models.CharField(max_length=40, blank=True, default="Get started")
+    cta_href = models.CharField(max_length=200, blank=True, default="/signup")
+    is_featured = models.BooleanField(default=False, help_text="Highlight as 'Most popular'.")
+    is_public = models.BooleanField(default=True, help_text="Show on the public landing page.")
+    sort_order = models.IntegerField(default=0)
+
+    # --- Discount (configured from the admin panel) ---
+    discount_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        help_text="0–100. Percentage off the monthly price while the discount is active.",
+    )
+    discount_label = models.CharField(
+        max_length=60, blank=True, default="",
+        help_text="Optional badge text, e.g. 'Launch offer'. Defaults to 'N% off'.",
+    )
+    discount_active = models.BooleanField(default=False)
+    discount_until = models.DateField(
+        null=True, blank=True, help_text="Optional expiry; the discount stops applying after this date.",
+    )
+
+    class Meta:
+        ordering = ["sort_order", "price_monthly", "name"]
+
     def __str__(self):
         return self.name
+
+    @property
+    def discount_live(self) -> bool:
+        """Whether the configured discount currently applies."""
+        if not self.discount_active or (self.discount_percent or 0) <= 0:
+            return False
+        if self.discount_until and self.discount_until < timezone.localdate():
+            return False
+        return True
+
+    @property
+    def discounted_price(self) -> Decimal:
+        """Effective monthly price after any live discount."""
+        if not self.discount_live:
+            return self.price_monthly
+        factor = (Decimal("100") - Decimal(self.discount_percent)) / Decimal("100")
+        return (self.price_monthly * factor).quantize(Decimal("0.01"))
 
 
 def generate_hostel_code():

@@ -25,12 +25,12 @@ export function CtaBanner() {
               >
                 Start free <ArrowRight className="h-4.5 w-4.5" aria-hidden />
               </Link>
-              <a
-                href="#contact"
+              <Link
+                href="/#contact"
                 className="inline-flex w-full items-center justify-center rounded-xl border border-white/40 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 sm:w-auto"
               >
                 Talk to sales
-              </a>
+              </Link>
             </div>
           </div>
         </Reveal>

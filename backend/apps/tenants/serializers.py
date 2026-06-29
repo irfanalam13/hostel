@@ -2,9 +2,28 @@ from rest_framework import serializers
 from .models import Hostel, Plan, Subscription
 
 class PlanSerializer(serializers.ModelSerializer):
+    """Full plan record for authenticated admin/catalog use."""
+    discounted_price = serializers.ReadOnlyField()
+    discount_live = serializers.ReadOnlyField()
+
     class Meta:
         model = Plan
         fields = "__all__"
+
+
+class PublicPlanSerializer(serializers.ModelSerializer):
+    """Display-ready, unauthenticated subset for the marketing landing page."""
+    discounted_price = serializers.ReadOnlyField()
+    discount_live = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Plan
+        fields = [
+            "id", "name", "description", "features", "period", "currency",
+            "price_monthly", "discounted_price", "discount_percent",
+            "discount_label", "discount_live", "cta_label", "cta_href",
+            "is_featured", "sort_order", "max_students", "max_rooms",
+        ]
 
 class HostelSerializer(serializers.ModelSerializer):
     class Meta:

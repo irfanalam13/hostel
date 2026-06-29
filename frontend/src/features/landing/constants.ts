@@ -12,12 +12,15 @@ export const SECTION_IDS = {
   contact: "contact",
 } as const;
 
-/** Primary navbar links (in-page anchors resolved on the landing route). */
+/**
+ * Primary navbar links. Root-relative (`/#section`) so they resolve to the
+ * landing sections from ANY page (e.g. /about), not just the landing route.
+ */
 export const NAV_LINKS: NavLink[] = [
-  { label: "Features", href: `#${SECTION_IDS.features}` },
-  { label: "Pricing", href: `#${SECTION_IDS.pricing}` },
-  { label: "Testimonials", href: `#${SECTION_IDS.testimonials}` },
-  { label: "FAQ", href: `#${SECTION_IDS.faq}` },
+  { label: "Features", href: `/#${SECTION_IDS.features}` },
+  { label: "Pricing", href: `/#${SECTION_IDS.pricing}` },
+  { label: "Testimonials", href: `/#${SECTION_IDS.testimonials}` },
+  { label: "FAQ", href: `/#${SECTION_IDS.faq}` },
 ];
 
 /**
@@ -27,5 +30,5 @@ export const NAV_LINKS: NavLink[] = [
 export const CTA = {
   login: { label: "Log in", href: "/login", variant: "ghost" },
   signup: { label: "Get started", href: "/signup", variant: "primary" },
-  demo: { label: "Request a demo", href: `#${SECTION_IDS.contact}`, variant: "secondary" },
+  demo: { label: "Request a demo", href: `/#${SECTION_IDS.contact}`, variant: "secondary" },
 } as const satisfies Record<string, CtaLink>;

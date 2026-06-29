@@ -1,10 +1,17 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
 from apps.accounts.models import UserHostel
 from apps.common.permissions import IsOwner
 from .models import Hostel, Plan, Subscription
-from .serializers import HostelSerializer, PlanSerializer, SubscriptionSerializer
+from .serializers import (
+    HostelSerializer,
+    PlanSerializer,
+    PublicPlanSerializer,
+    SubscriptionSerializer,
+)
 
 
 def _hostels_for_user(user):
@@ -15,9 +22,25 @@ def _hostels_for_user(user):
 
 class PlanViewSet(viewsets.ReadOnlyModelViewSet):
     """Subscription plans are global, read-only catalog data — auth required."""
-    queryset = Plan.objects.all().order_by("name")
+    queryset = Plan.objects.all().order_by("sort_order", "price_monthly", "name")
     serializer_class = PlanSerializer
     permission_classes = [IsAuthenticated]
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[AllowAny],
+        authentication_classes=[],
+    )
+    def public(self, request):
+        """
+        Unauthenticated catalog for the marketing landing page: only plans
+        flagged public, with display-ready pricing + live discount applied.
+        """
+        plans = Plan.objects.filter(is_public=True).order_by(
+            "sort_order", "price_monthly", "name"
+        )
+        return Response(PublicPlanSerializer(plans, many=True).data)
 
 
 class HostelViewSet(viewsets.ModelViewSet):

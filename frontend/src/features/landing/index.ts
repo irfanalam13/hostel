@@ -8,6 +8,14 @@ export { Reveal } from "./components/Reveal";
 export { AnimatedNumber } from "./components/AnimatedNumber";
 export { Logo } from "./components/Logo";
 export { ThemeToggle } from "./components/ThemeToggle";
+export { MarketingShell } from "./components/MarketingShell";
+export { PageHeader } from "./components/PageHeader";
+export { LegalDocument } from "./components/LegalDocument";
+export type { LegalSection } from "./components/LegalDocument";
+
+// Hooks
+export { usePlatform, manualInstallSteps, manualInstallHint } from "./hooks/usePlatform";
+export type { Platform, DeviceType, OS } from "./hooks/usePlatform";
 
 // Sections
 export { Navbar } from "./sections/Navbar";
