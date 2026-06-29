@@ -107,18 +107,24 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
-    # Schedule/pid files go to a writable path (/app is owned by root, read-only
-    # to the non-root app user). Empty --pidfile disables the pid file.
-    command: ["celery", "-A", "config", "beat", "--loglevel=info", "--schedule", "/tmp/celerybeat-schedule", "--pidfile="]
+    # Schedule + pid files go to a writable path (/app is read-only to the
+    # non-root app user). The pidfile drives the healthcheck below.
+    command: ["celery", "-A", "config", "beat", "--loglevel=info", "--schedule", "/tmp/celerybeat-schedule", "--pidfile=/tmp/celerybeat.pid"]
     depends_on:
       redis:
         condition: service_healthy
       web:
         condition: service_started
-    # beat is neither an HTTP server nor a pingable worker; the inherited image
-    # HEALTHCHECK (curl :8000) does not apply. Liveness = pid 1 alive.
+    # beat is neither an HTTP server nor a pingable worker, so the inherited image
+    # HEALTHCHECK (curl :8000) does not apply. Liveness = the process named in the
+    # pidfile is still alive (os.kill(pid, 0) raises if it isn't). A real check is
+    # required so `docker compose up --wait` doesn't fail on a missing healthcheck.
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "python -c \"import os; os.kill(int(open('/tmp/celerybeat.pid').read()), 0)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # ---------------------------------------------------------------------------
   # frontend — Next.js (standalone server)
