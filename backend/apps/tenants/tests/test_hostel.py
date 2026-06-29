@@ -14,7 +14,7 @@ def test_code_autogenerates_and_is_unique(db):
     h2 = Hostel.objects.create(name="B")
     assert h1.code and h2.code
     assert h1.code != h2.code
-    assert h1.code.startswith("H-")
+    assert h1.code.startswith("HTL-")
 
 
 def test_explicit_code_preserved(db):

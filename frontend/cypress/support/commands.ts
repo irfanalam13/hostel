@@ -21,7 +21,6 @@ const TEST_USER = {
 };
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Cypress {
     interface Chainable {
       mockApi(opts?: { unauthenticated?: boolean }): Chainable<void>;

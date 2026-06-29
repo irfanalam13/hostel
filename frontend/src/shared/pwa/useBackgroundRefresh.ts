@@ -20,7 +20,12 @@ export function useBackgroundRefresh(
 ): void {
   const { enabled = true } = options;
   const cbRef = useRef(callback);
-  cbRef.current = callback;
+  // Keep the ref pointing at the latest callback. Done in an effect (not during
+  // render) so we never mutate a ref while rendering; the subscription below only
+  // reads cbRef.current from async background-task events, which fire post-commit.
+  useEffect(() => {
+    cbRef.current = callback;
+  });
 
   useEffect(() => {
     if (!enabled) return;
