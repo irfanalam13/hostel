@@ -30,7 +30,7 @@ WORKDIR /app
 # Dependency layer is cached independently of source so code edits don't reinstall.
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --upgrade pip && \
+    pip install --upgrade 'pip==25.0.1' && \
     pip install -r requirements.txt
 
 # -----------------------------------------------------------------------------
