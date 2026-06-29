@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/features/landing/components/PageHeader";
 import { LegalDocument } from "@/features/landing/components/LegalDocument";
-import { PRIVACY_SECTIONS, LAST_UPDATED } from "@/features/landing/legal";
+import { getLegalDocument } from "@/features/landing/site";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -9,16 +9,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const doc = await getLegalDocument("privacy");
   return (
     <>
-      <PageHeader
-        eyebrow="Legal"
-        title="Privacy Policy"
-        description="How we collect, use, and protect your information."
-        meta={LAST_UPDATED}
-      />
-      <LegalDocument sections={PRIVACY_SECTIONS} />
+      <PageHeader eyebrow={doc.eyebrow} title={doc.title} description={doc.description} meta={doc.last_updated} />
+      <LegalDocument sections={doc.sections} />
     </>
   );
 }

@@ -1,5 +1,4 @@
 import pytest
-from django.urls import reverse
 from django.utils import timezone
 from apps.rooms.models import Room, Bed, BedAssignment
 from apps.admissions.models import AdmissionRequest, AdmissionDocument
@@ -110,7 +109,7 @@ def test_approve_admission_workflow(auth_client, warden, hostel, pending_request
     client = auth_client(warden, hostel)
     
     # Upload a mock document first
-    doc = AdmissionDocument.objects.create(
+    AdmissionDocument.objects.create(
         hostel=hostel,
         admission_request=pending_request,
         doc_type="citizenship_front",
@@ -148,7 +147,7 @@ def test_approve_admission_workflow(auth_client, warden, hostel, pending_request
     assert rooms_bed.status == "OCCUPIED"
 
     # Check User account (role RESIDENT) was created
-    username = f"std_9801234567"
+    username = "std_9801234567"
     user = User.objects.get(username=username)
     assert user.role == "RESIDENT"
     assert UserHostel.objects.filter(user=user, hostel=hostel, is_active=True).exists()

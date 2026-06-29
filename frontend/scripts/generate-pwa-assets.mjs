@@ -75,7 +75,7 @@ function screenshotSvg(w, h) {
     <rect width="${w}" height="${h}" fill="${PAPER}"/>
     <rect x="0" y="0" width="${w}" height="${Math.round(h * 0.12)}" fill="${ACCENT}"/>
     <text x="${Math.round(w * 0.05)}" y="${Math.round(h * 0.08)}" font-family="Segoe UI, Arial, sans-serif"
-          font-size="${Math.round(h * 0.045)}" font-weight="700" fill="#fff">Hostel Management System</text>
+          font-size="${Math.round(h * 0.045)}" font-weight="700" fill="#fff">MY Hostel</text>
     <g fill="#fff" stroke="#e2e8f0">
       ${[0, 1, 2].map((i) => {
         const cw = Math.round((w - 80) / 3);

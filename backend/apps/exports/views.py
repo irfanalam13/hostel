@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from apps.billing.models import Invoice, LedgerEntry
 from apps.common.permissions import HasHostelContext, IsOwnerOrManager
 from apps.residents.models import Resident
-from apps.rooms.models import Bed, Room
+from apps.rooms.models import Room
 from apps.fees.models import FeeLedger
 from apps.payments.models import Payment as StudentPayment
 from apps.attendance.models import Attendance

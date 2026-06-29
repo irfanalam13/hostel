@@ -52,10 +52,16 @@ urlpatterns = [
     path("api/audit/", include("apps.auditlog.urls")),
     path("api/backups/", include("apps.backups.urls")),
     path("api/exports/", include("apps.exports.urls")),
+    path("api/marketing/", include("apps.marketing.urls")),
 
     # 🛟 Admin disaster-recovery API (admin-only)
     path("api/admin/", include("apps.backups.admin_urls")),
 ]
+
+# 📊 Prometheus metrics at /metrics (only when PROMETHEUS_ENABLED=True).
+# Restrict exposure at the proxy layer — these are for the internal scraper.
+if getattr(settings, "PROMETHEUS_ENABLED", False):
+    urlpatterns += [path("", include("django_prometheus.urls"))]
 
 # Media
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

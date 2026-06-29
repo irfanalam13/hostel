@@ -1,0 +1,72 @@
+# =============================================================================
+# Prometheus scrape configuration for the Hostel SaaS stack.
+# Scrapes the Django app (/metrics), host + container metrics, Postgres/Redis
+# exporters, and black-box HTTP probes of the public health endpoints.
+# Targets use docker-compose service names; the monitoring stack joins the
+# application network (see docker-compose.monitoring.yml).
+# =============================================================================
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: hostel-saas
+
+# Alert rules + Alertmanager wiring.
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Django application metrics (django-prometheus, PROMETHEUS_ENABLED=True).
+  - job_name: django
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["web:8000"]
+
+  # Host metrics (CPU, memory, disk, network).
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Per-container metrics (CPU/mem/io per service).
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # PostgreSQL exporter.
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # Redis exporter.
+  - job_name: redis
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+
+  # Black-box uptime probes against the app's own health endpoints.
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://web:8000/health/
+          - http://web:8000/health/database/
+          - http://web:8000/health/cache/
+          - http://web:8000/health/celery/
+          - http://frontend:3000/
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

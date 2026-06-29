@@ -161,7 +161,6 @@ class AdmissionRequestSerializer(HostelScopedSerializer):
         # If parents' contact is outside student's permanent district:
         # We assume local guardian is required if local_guardian_name is provided or if parents live outside.
         # Let's enforce that if local_guardian_name is provided, it must have name, phone, and address.
-        district = attrs.get("district", "").strip()
         local_guardian_name = attrs.get("local_guardian_name", "").strip()
         
         # If local guardian is provided, validate phone and address

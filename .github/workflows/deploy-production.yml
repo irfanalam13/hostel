@@ -1,0 +1,136 @@
+name: Deploy — Production
+
+# Roadmap Prompt 07 — production deployment, triggered by a semver tag (v*) or
+# manual dispatch. Gated behind the GitHub "production" Environment, which
+# enforces MANUAL APPROVAL and (via repo settings) restricts deploys to release
+# tags. The rollout itself (deploy.sh) takes a pre-deploy DB backup, reviews the
+# migration plan, applies migrations, performs a health-gated swap, and AUTO-
+# ROLLS BACK to the previous images on any failure. A GitHub Deployment record
+# provides deployment history.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (tag/sha) to deploy.
+        required: true
+        default: ""
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-images.yml
+    with:
+      # Tag images with the release tag name (e.g. v1.2.3), or the dispatched ref.
+      tag: ${{ github.ref_type == 'tag' && github.ref_name || inputs.ref }}
+      api_base_url: ${{ vars.PROD_API_BASE_URL }}
+    secrets: inherit
+
+  deploy:
+    name: Deploy to production VPS
+    needs: build
+    runs-on: ubuntu-latest
+    # The "production" environment requires a manual approval (configure required
+    # reviewers + tag deployment-branch policy in Settings → Environments).
+    environment:
+      name: production
+      url: ${{ vars.PROD_URL }}
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record deployment (in_progress)
+        uses: actions/github-script@v7
+        id: deployment
+        with:
+          script: |
+            const dep = await github.rest.repos.createDeployment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              ref: context.sha, environment: 'production',
+              auto_merge: false, required_contexts: [], production_environment: true,
+            });
+            return dep.data.id;
+
+      - name: Copy deploy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          source: "deploy"
+          target: ${{ secrets.PROD_PATH }}
+          overwrite: true
+
+      # deploy.sh backs up the DB, reviews + applies migrations, swaps with a
+      # health gate, and auto-rolls-back on failure (exiting non-zero).
+      - name: Run health-gated rollout (backup + migrate + swap)
+        id: rollout
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          command_timeout: 20m
+          envs: GHCR_USER,GHCR_TOKEN
+          script: |
+            set -e
+            cd "${{ secrets.PROD_PATH }}/deploy"
+            chmod +x deploy.sh rollback.sh
+            ./deploy.sh "${{ needs.build.outputs.backend_image }}" "${{ needs.build.outputs.frontend_image }}"
+        env:
+          GHCR_USER: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Post-deploy health verification
+        run: |
+          set -euo pipefail
+          base="${{ vars.PROD_URL }}"
+          for path in /health/ /health/database/ /health/cache/ /health/celery/; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "${base}${path}")
+            test "$code" = "200" || { echo "::error::health ${path} -> ${code}"; exit 1; }
+            echo "✓ ${path} 200"
+          done
+
+      # Defensive: if verification failed after the swap, force a rollback.
+      - name: Rollback on failed verification
+        if: failure() && steps.rollout.outcome == 'success'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          script: |
+            cd "${{ secrets.PROD_PATH }}/deploy" && chmod +x rollback.sh && ./rollback.sh
+
+      - name: Finalize deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner, repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state, environment_url: '${{ vars.PROD_URL }}',
+              description: `Production deploy ${state}`,
+            });
+
+      - name: Notify (Slack, optional)
+        if: always() && vars.SLACK_WEBHOOK_CONFIGURED == 'true'
+        run: |
+          status="${{ job.status }}"
+          curl -fsS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚀 Production deploy *${status}* — ${{ github.ref_name }} (${GITHUB_SHA::7})\"}" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}" || true

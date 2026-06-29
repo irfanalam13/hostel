@@ -3,7 +3,6 @@
 These drive the real HTTP stack (auth + tenant resolution + permissions +
 serializers + services), not isolated units.
 """
-from decimal import Decimal
 
 import pytest
 

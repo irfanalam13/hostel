@@ -7,3 +7,24 @@ requires-python = ">=3.13"
 dependencies = [
     "django>=6.0.2",
 ]
+
+# ---------------------------------------------------------------------------
+# Ruff — single source of truth for backend linting (replaces flake8 + black).
+# The CI `Lint (backend)` job runs `ruff check` and BLOCKS the merge on failure.
+# The rule set is pinned explicitly (not left to ruff's evolving defaults) so a
+# ruff upgrade can never silently change what the gate enforces.
+#
+# Scope is deliberately correctness, not style: pyflakes (F) catches unused
+# imports/vars and undefined names; pycodestyle errors (E4/E7/E9) catch real
+# syntax/indentation problems. Whitespace/line-length style rules are left out
+# so the gate stays meaningful without forcing a repo-wide reformat. To adopt
+# `ruff format` later, do it in a single dedicated commit (~223 files) — see the
+# CI/CD notes — not mixed into feature work.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

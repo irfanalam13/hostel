@@ -1,0 +1,286 @@
+name: Security
+
+# Roadmap Prompt 04 — enterprise security scanning. Secret detection, SAST,
+# dependency CVEs, container image scanning, SBOM, license compliance, and
+# (on PRs) dependency review. CRITICAL findings fail the run and therefore
+# block the merge / deploy; lower-severity findings surface in the Security tab.
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Re-scan weekly so newly disclosed CVEs in already-merged deps are caught.
+    - cron: "27 4 * * 1"
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
+  NODE_VERSION: "22"
+
+jobs:
+  # ===========================================================================
+  # Secret detection — gitleaks over full history.
+  # ===========================================================================
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ===========================================================================
+  # SAST — CodeQL for Python and JS/TS. Results upload to the Security tab.
+  # ===========================================================================
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ===========================================================================
+  # SAST — bandit for Python. Blocks only on high-severity / high-confidence
+  # findings to stay high-signal; the full report is uploaded as an artifact.
+  # ===========================================================================
+  bandit:
+    name: SAST (bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-backend
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          install: "false"
+      - name: Install bandit
+        run: pip install bandit
+      - name: Bandit full report (advisory)
+        working-directory: backend
+        continue-on-error: true
+        run: bandit -r apps config -f txt -o bandit-report.txt || true
+      - name: Bandit gate (high severity + high confidence)
+        working-directory: backend
+        run: bandit -r apps config --severity-level high --confidence-level high
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-report
+          path: backend/bandit-report.txt
+          retention-days: 14
+
+  # ===========================================================================
+  # Dependency CVEs — Python (pip-audit) and Node (npm audit).
+  # Both fail on a vulnerability at/above their threshold.
+  # ===========================================================================
+  python-deps:
+    name: Python deps (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-backend
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          install: "false"
+      - name: pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt --desc
+
+  node-deps:
+    name: Node deps (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-frontend
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: npm audit (high+)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+  # ===========================================================================
+  # Dependency review — PR-only. Blocks PRs that introduce a high-severity
+  # vulnerable dependency or a disallowed license.
+  # ===========================================================================
+  dependency-review:
+    name: Dependency review (PR)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+
+  # ===========================================================================
+  # Filesystem scan — Trivy over the repo for vulnerable deps + IaC misconfig +
+  # secrets. CRITICAL fails the build; results upload to the Security tab.
+  # ===========================================================================
+  trivy-fs:
+    name: Trivy (filesystem)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan (report + SARIF)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+      - name: Fail on CRITICAL
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  # ===========================================================================
+  # Image scan + SBOM — build each image, scan for CVEs (CRITICAL blocks),
+  # and emit a CycloneDX SBOM artifact per image.
+  # ===========================================================================
+  trivy-image:
+    name: Trivy image + SBOM (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            context: ./backend
+            build-args: ""
+          - service: frontend
+            context: ./frontend
+            build-args: |
+              NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build ${{ matrix.service }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: false
+          load: true
+          tags: hostel-${{ matrix.service }}:scan
+          build-args: ${{ matrix.build-args }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+      - name: Trivy image scan (SARIF)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: hostel-${{ matrix.service }}:scan
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.service }}.sarif
+          category: trivy-image-${{ matrix.service }}
+      - name: Generate CycloneDX SBOM
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: hostel-${{ matrix.service }}:scan
+          format: cyclonedx
+          output: sbom-${{ matrix.service }}.cdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.service }}
+          path: sbom-${{ matrix.service }}.cdx.json
+          retention-days: 90
+      - name: Fail on CRITICAL image vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: hostel-${{ matrix.service }}:scan
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  # ===========================================================================
+  # License compliance — inventory Python + Node licenses. Advisory report
+  # (uploaded as an artifact); the hard copyleft gate is the PR dependency
+  # review above, which fails on GPL/AGPL.
+  # ===========================================================================
+  license-compliance:
+    name: License compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-backend
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          install-dev: "false"
+      - name: Python license inventory
+        working-directory: backend
+        run: |
+          pip install pip-licenses
+          pip-licenses --format=markdown --with-urls --order=license > ../python-licenses.md
+      - uses: ./.github/actions/setup-frontend
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Node license inventory
+        working-directory: frontend
+        run: npx --yes license-checker --production --summary > ../node-licenses.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: license-inventory
+          path: |
+            python-licenses.md
+            node-licenses.txt
+          retention-days: 90
