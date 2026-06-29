@@ -6,6 +6,7 @@ import { useToast } from "@/shared/ui/toast/ToastProvider";
 import { Section } from "../components/Section";
 import { SectionHeader } from "../components/SectionHeader";
 import { Reveal } from "../components/Reveal";
+import { submitLead } from "../site";
 import { SECTION_IDS } from "../constants";
 
 type Fields = { name: string; email: string; org: string; message: string };
@@ -47,18 +48,21 @@ export function Contact() {
     if (Object.keys(found).length > 0) return;
 
     setSubmitting(true);
-    try {
-      // Integration point: wire to your backend lead/demo endpoint when ready,
-      // e.g. `await api.post("/leads/", values)`. Kept as a no-op so the landing
-      // page never duplicates backend logic or posts to a missing route.
-      await new Promise((r) => setTimeout(r, 600));
+    const result = await submitLead({
+      name: values.name.trim(),
+      email: values.email.trim(),
+      organization: values.org.trim(),
+      message: values.message.trim(),
+      kind: "demo",
+    });
+    setSubmitting(false);
+
+    if (result.ok) {
       setDone(true);
-      toast.success("Thanks! We'll be in touch shortly.", "Request received");
+      toast.success(result.message, "Request received");
       setValues({ name: "", email: "", org: "", message: "" });
-    } catch {
-      toast.error("Something went wrong. Please try again.", "Submission failed");
-    } finally {
-      setSubmitting(false);
+    } else {
+      toast.error(result.message, "Submission failed");
     }
   };
 

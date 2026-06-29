@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LandingPage } from "@/features/landing/LandingPage";
-import { landingJsonLd, SITE_URL } from "@/features/landing/seo";
+import { buildLandingJsonLd, SITE_URL } from "@/features/landing/seo";
+import { getFaqs } from "@/features/landing/site";
 import { BRAND, HERO } from "@/features/landing/content";
 
 export const metadata: Metadata = {
@@ -30,13 +31,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Same fetch LandingPage uses for the FAQ section — deduped by Next within
+  // this render — so the FAQ structured data tracks the live content.
+  const faqs = await getFaqs();
   return (
     <>
       <script
         type="application/ld+json"
-        // Structured data for rich results; content is static and trusted.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(landingJsonLd) }}
+        // Structured data for rich results; content is trusted (our own backend).
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildLandingJsonLd(faqs)) }}
       />
       <LandingPage />
     </>

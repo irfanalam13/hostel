@@ -6,7 +6,7 @@
 
 from django.core.management.base import BaseCommand
 
-from apps.backups.models import BackupPeriod, BackupSnapshot
+from apps.backups.models import BackupSnapshot
 from apps.backups.retention import MANAGED_PERIODS, apply_retention, default_policy, storage_usage
 from apps.tenants.models import Hostel
 

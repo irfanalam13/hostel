@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthed } from "@/shared/lib/auth";
+import { useMemo, useState } from "react";
 import { Topbar } from "@/shared/ui/Topbar";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
@@ -14,15 +12,10 @@ import { ymToday } from "@/shared/lib/dates";
 import { computeDues } from "@/shared/lib/finance";
 
 export default function VacatePage() {
-  const router = useRouter();
   const toast = useToast();
   const confirm = useConfirm();
   const [tick, setTick] = useState(0);
   const [month, setMonth] = useState(ymToday());
-
-  useEffect(() => {
-    if (!isAuthed()) router.replace("/login");
-  }, [router]);
 
   const state = useMemo(() => loadState(), [tick]);
   const active = state.students.filter(s => s.status === "active");

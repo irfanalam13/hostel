@@ -1,16 +1,19 @@
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.accounts.models import UserHostel
 from apps.common.permissions import IsOwner
-from .models import Hostel, Plan, Subscription
+from .models import Hostel, Plan, Subscription, Testimonial, testimonial_stats
 from .serializers import (
     HostelSerializer,
     PlanSerializer,
     PublicPlanSerializer,
+    PublicTestimonialSerializer,
     SubscriptionSerializer,
+    TestimonialSubmitSerializer,
 )
 
 
@@ -41,6 +44,49 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet):
             "sort_order", "price_monthly", "name"
         )
         return Response(PublicPlanSerializer(plans, many=True).data)
+
+
+class TestimonialViewSet(viewsets.GenericViewSet):
+    """
+    Public reviews for the landing page.
+
+      GET  /api/tenants/testimonials/   -> featured reviews + aggregate stats
+      POST /api/tenants/testimonials/   -> submit a review (lands unapproved)
+
+    Fully public: no authentication, so anonymous landing visitors can read and
+    submit. Submissions are throttled and start unapproved/unfeatured — an admin
+    curates them before anything shows.
+    """
+    queryset = Testimonial.objects.all()
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get_throttles(self):
+        if self.action == "create":
+            self.throttle_scope = "review"
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
+
+    def list(self, request):
+        featured = Testimonial.objects.filter(is_approved=True, is_featured=True).order_by(
+            "sort_order", "-created_at"
+        )
+        return Response(
+            {
+                "testimonials": PublicTestimonialSerializer(featured, many=True).data,
+                "stats": testimonial_stats(),
+            }
+        )
+
+    def create(self, request):
+        serializer = TestimonialSubmitSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # Force moderation defaults regardless of what the client sends.
+        serializer.save(is_approved=False, is_featured=False, source="web")
+        return Response(
+            {"detail": "Thanks for your review! It will appear once approved."},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class HostelViewSet(viewsets.ModelViewSet):

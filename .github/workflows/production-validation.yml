@@ -1,0 +1,212 @@
+name: Production Validation
+
+# Catches "works locally, breaks in production" BEFORE anything ships.
+# Covers roadmap Prompt 02 (production-config validation) and Prompt 05 (Docker
+# validation) in one place because both need the real, production-shaped stack:
+#   - Dockerfiles lint clean (hadolint)
+#   - docker-compose.yml is valid and renders with a production-shaped env
+#   - Django passes deployment security checks with DEBUG=False
+#   - the whole stack (Postgres, Redis, Gunicorn, Celery worker/beat, Next.js)
+#     boots, becomes healthy, and serves every health endpoint
+# Any failure stops the workflow immediately and dumps container logs.
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: prodval-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  # ===========================================================================
+  # Prompt 05 — Dockerfile linting. hadolint enforces best practices
+  # (pinned bases, no apt cache, USER set, etc.) on both images in parallel.
+  # ===========================================================================
+  dockerfile-lint:
+    name: Lint ${{ matrix.image }} Dockerfile
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: hadolint (${{ matrix.image }})
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.image }}/Dockerfile
+          # DL3008 (pin apt versions) is intentionally relaxed — base images are
+          # already pinned and Debian point releases are trusted here.
+          ignore: DL3008
+          failure-threshold: warning
+
+  # ===========================================================================
+  # Prompt 02 — static deployment checks. No containers needed: load Django
+  # with a real production environment (DEBUG=False) and assert the security
+  # checks pass. The settings module itself raises if SECRET_KEY / ALLOWED_HOSTS
+  # / CORS are misconfigured, so a bad prod config fails fast right here.
+  # ===========================================================================
+  django-deploy-checks:
+    name: Django deployment checks (DEBUG=False)
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: "False"
+      ALLOWED_HOSTS: "example.com,localhost,127.0.0.1"
+      CORS_ALLOWED_ORIGINS: "https://example.com"
+      CSRF_TRUSTED_ORIGINS: "https://example.com"
+      DATABASE_URL: "sqlite:////tmp/deploycheck.sqlite3"
+      REDIS_URL: "redis://localhost:6379/0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-backend
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          install-dev: "false"
+      - name: Generate a strong SECRET_KEY for the check
+        run: |
+          echo "DJANGO_SECRET_KEY=$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')" >> "$GITHUB_ENV"
+        working-directory: backend
+      # Scoped to the `security` tag so the gate blocks on real deployment
+      # security issues (DEBUG, ALLOWED_HOSTS, secure cookies, HSTS, SSL redirect,
+      # secret key) and not on unrelated drf-spectacular schema warnings.
+      - name: manage.py check --deploy (security, fail on WARNING)
+        working-directory: backend
+        run: python manage.py check --deploy --tag security --fail-level WARNING
+      - name: Assert production hardening is wired up
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings
+        run: python ../.github/scripts/assert_prod_settings.py
+
+  # ===========================================================================
+  # Prompts 02 + 05 — full stack boot. Builds and starts every service with a
+  # production-shaped .env, waits for health, and asserts each dependency
+  # (Postgres, Redis, Gunicorn, Celery, health endpoints, volumes, networking).
+  # ===========================================================================
+  stack-up:
+    name: Stack boot + health (docker compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- Production-shaped environment ------------------------------------
+      # DEBUG=False everywhere, a freshly generated SECRET_KEY, explicit hosts /
+      # CORS / CSRF (settings.py refuses to boot without them in prod), and the
+      # compose service hostnames for Postgres/Redis. SECURE_SSL_REDIRECT is the
+      # ONE relaxation: there is no TLS terminator in front of the stack here, so
+      # leaving it on would 301 every plaintext health probe. The https-on path
+      # is covered by the django-deploy-checks job above.
+      - name: Write production-shaped .env
+        run: |
+          cat > .env <<EOF
+          DEBUG=False
+          DJANGO_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')
+          ALLOWED_HOSTS=localhost,127.0.0.1,web
+          CORS_ALLOWED_ORIGINS=http://localhost:3000
+          CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:8000
+          SECURE_SSL_REDIRECT=False
+          POSTGRES_DB=hostel
+          POSTGRES_USER=hostel
+          POSTGRES_PASSWORD=hostel
+          DATABASE_URL=postgres://hostel:hostel@postgres:5432/hostel
+          REDIS_URL=redis://redis:6379/0
+          CELERY_BROKER_URL=redis://redis:6379/0
+          CELERY_RESULT_BACKEND=redis://redis:6379/0
+          WEB_PORT=8000
+          FRONTEND_PORT=3000
+          NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+          EOF
+          echo "Wrote .env ($(wc -l < .env) lines)"
+
+      # ---- Prompt 05: docker-compose.yml is syntactically valid ------------
+      - name: Validate docker-compose config
+        run: docker compose config --quiet
+
+      # ---- Build + start the whole stack, waiting for healthchecks ---------
+      # `--wait` fails the step if any service exits or stays unhealthy, so a
+      # broken migration / bad Gunicorn boot / dead Celery worker stops us here.
+      - name: Build and start stack
+        run: docker compose up -d --build --wait --wait-timeout 600
+
+      # ---- Prompt 02/05: assert every dependency end to end ----------------
+      - name: Verify health endpoints (liveness, DB, cache, Celery)
+        run: |
+          set -euo pipefail
+          check() {
+            local path="$1" name="$2"
+            local code
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8000${path}")
+            if [ "$code" != "200" ]; then
+              echo "::error::${name} health check failed (${path} -> HTTP ${code})"
+              return 1
+            fi
+            echo "✓ ${name} healthy (${path} -> 200)"
+          }
+          check /health/          "Liveness (Gunicorn)"
+          check /health/database/ "PostgreSQL"
+          check /health/cache/    "Redis cache"
+          check /health/celery/   "Celery worker"
+
+      - name: Verify Postgres connection (pg_isready)
+        run: docker compose exec -T postgres pg_isready -U hostel -d hostel
+
+      - name: Verify Redis connection (PING)
+        run: |
+          set -euo pipefail
+          test "$(docker compose exec -T redis redis-cli ping | tr -d '\r')" = "PONG"
+          echo "✓ Redis responded PONG"
+
+      - name: Verify Celery worker responds (inspect ping)
+        run: docker compose exec -T celery_worker celery -A config inspect ping
+
+      - name: Verify collectstatic produced assets
+        run: |
+          set -euo pipefail
+          COUNT=$(docker compose exec -T web sh -c 'ls -1 /app/staticfiles | wc -l' | tr -d '\r')
+          test "$COUNT" -gt 0
+          echo "✓ ${COUNT} entries in /app/staticfiles"
+
+      - name: Verify named volumes exist (data durability)
+        run: |
+          set -euo pipefail
+          for v in postgres_data redis_data media_data; do
+            docker volume ls --format '{{.Name}}' | grep -q "_${v}\$" \
+              || { echo "::error::missing volume ${v}"; exit 1; }
+            echo "✓ volume ${v} present"
+          done
+
+      - name: Verify frontend is serving
+        run: |
+          set -euo pipefail
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/)
+          test "$code" = "200" || { echo "::error::frontend returned ${code}"; exit 1; }
+          echo "✓ frontend serving (200)"
+
+      - name: Stack validation summary
+        if: success()
+        run: |
+          {
+            echo "### ✅ Production stack validated";
+            echo "";
+            echo "All services booted with DEBUG=False and passed health checks:";
+            echo "- Gunicorn (web) · PostgreSQL · Redis · Celery worker/beat · Next.js frontend";
+            echo "- Health endpoints, named volumes, and collected static assets verified";
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ---- Diagnostics on failure, then always tear down -------------------
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose down -v --remove-orphans

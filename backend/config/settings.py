@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.idempotency",
     "apps.analytics",
+    "apps.marketing",
 ]
 
 MIDDLEWARE = [
@@ -220,6 +221,10 @@ REST_FRAMEWORK = {
         "payment": env("THROTTLE_PAYMENT", default="120/min"),
         "backup": env("THROTTLE_BACKUP", default="10/hour"),
         "admissions": env("THROTTLE_ADMISSIONS", default="20/hour"),
+        # Public review submissions from the landing page.
+        "review": env("THROTTLE_REVIEW", default="5/hour"),
+        # Public sales/demo lead submissions from the landing page.
+        "lead": env("THROTTLE_LEAD", default="10/hour"),
     },
 }
 
@@ -493,6 +498,21 @@ LOGGING = {
 # Requires `sentry-sdk` in requirements; the import is guarded so the app boots
 # without it installed.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Prometheus metrics (observability) — optional, off by default.
+# When PROMETHEUS_ENABLED=True, django-prometheus exposes /metrics (HTTP latency,
+# request/response counts, DB query timings). The metrics endpoint is internal:
+# expose it only to the monitoring network / scraper, never to the public web
+# (the production Nginx config restricts /metrics to the private network).
+# Wrapping middleware must bracket the stack: the "Before" middleware first and
+# the "After" middleware last, so latency covers the whole request.
+# ---------------------------------------------------------------------------
+PROMETHEUS_ENABLED = env.bool("PROMETHEUS_ENABLED", default=False)
+if PROMETHEUS_ENABLED:
+    INSTALLED_APPS.append("django_prometheus")
+    MIDDLEWARE.insert(0, "django_prometheus.middleware.PrometheusBeforeMiddleware")
+    MIDDLEWARE.append("django_prometheus.middleware.PrometheusAfterMiddleware")
+
 SENTRY_DSN = env("SENTRY_DSN", default="")
 if SENTRY_DSN:
     try:

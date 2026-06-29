@@ -2,7 +2,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Providers } from "./providers";
 
-const APP_NAME = "Hostel Management System";
+const APP_NAME = "MY Hostel";
 const APP_DESC =
   "Manage residents, rooms, billing, payments and occupancy for your hostel — online and offline.";
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Hostel MS",
+    title: "MY Hostel",
   },
   formatDetection: { telephone: false },
   icons: {

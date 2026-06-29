@@ -465,9 +465,9 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { title: "Hostel MS", body: event.data ? event.data.text() : "" };
+    payload = { title: "My Hostel", body: event.data ? event.data.text() : "" };
   }
-  const title = payload.title || "Hostel Management System";
+  const title = payload.title || "My Hostel";
   const options = {
     body: payload.body || "",
     icon: payload.icon || "/icons/icon-192.png",

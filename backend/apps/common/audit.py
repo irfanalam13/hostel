@@ -1,6 +1,4 @@
-import json
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.timezone import now
 
 from .models import TimeStampedModel
 from django.db import models

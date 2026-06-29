@@ -16,7 +16,7 @@ _PAGE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hostel Management API</title>
+<title>My Hostel API</title>
 <style>
   :root {{ color-scheme: light dark; }}
   * {{ box-sizing: border-box; }}
@@ -52,7 +52,7 @@ _PAGE = """<!doctype html>
 <body>
   <div class="wrap">
     <span class="badge"><span class="dot"></span> Backend is running</span>
-    <h1>Hostel Management API</h1>
+    <h1>My Hostel API</h1>
     <p class="sub">Django {django_version} · {debug_label} · {now}</p>
 
     <div class="grid">

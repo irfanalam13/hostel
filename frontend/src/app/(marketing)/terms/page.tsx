@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/features/landing/components/PageHeader";
 import { LegalDocument } from "@/features/landing/components/LegalDocument";
-import { TERMS_SECTIONS, LAST_UPDATED } from "@/features/landing/legal";
+import { getLegalDocument } from "@/features/landing/site";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -9,16 +9,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/terms" },
 };
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const doc = await getLegalDocument("terms");
   return (
     <>
-      <PageHeader
-        eyebrow="Legal"
-        title="Terms of Service"
-        description="The terms that govern your use of the platform."
-        meta={LAST_UPDATED}
-      />
-      <LegalDocument sections={TERMS_SECTIONS} />
+      <PageHeader eyebrow={doc.eyebrow} title={doc.title} description={doc.description} meta={doc.last_updated} />
+      <LegalDocument sections={doc.sections} />
     </>
   );
 }

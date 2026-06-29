@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from apps.common.permissions import HasHostelContext, IsOwnerOrManager
 from apps.common.utils import month_key
 from apps.fees.models import FeeLedger
-from apps.payments.models import Payment
 
 class MonthlyDueReportView(APIView):
     permission_classes = [HasHostelContext, IsOwnerOrManager]

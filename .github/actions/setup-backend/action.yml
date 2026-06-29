@@ -1,0 +1,46 @@
+# =============================================================================
+# Composite action — set up the Django backend toolchain.
+# Centralises Python setup + pip caching + dependency install so every backend
+# job (lint, test, validate, security) stays in lockstep instead of duplicating
+# the same five steps. Caller must `actions/checkout` first.
+# =============================================================================
+name: Setup backend
+description: Install Python, restore the pip cache, and install backend dependencies.
+
+inputs:
+  python-version:
+    description: Python version to install.
+    required: false
+    default: "3.13"
+  install-dev:
+    description: Also install requirements-dev.txt (test/lint tooling).
+    required: false
+    default: "true"
+  install:
+    description: Install dependencies at all. Set "false" for jobs that only need the interpreter.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: |
+          backend/requirements.txt
+          backend/requirements-dev.txt
+
+    - name: Install dependencies
+      if: inputs.install == 'true'
+      shell: bash
+      working-directory: backend
+      run: |
+        python -m pip install --upgrade pip
+        if [ "${{ inputs.install-dev }}" = "true" ]; then
+          pip install -r requirements.txt -r requirements-dev.txt
+        else
+          pip install -r requirements.txt
+        fi
