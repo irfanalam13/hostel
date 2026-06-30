@@ -75,7 +75,7 @@ export async function installApiMock(target: Page | BrowserContext, opts: MockOp
 
   await target.route(/https?:\/\/[^/]+\/(api\/)?.*/, async (route) => {
     const request = route.request();
-    const url = new URL(request.url);
+    const url = new URL(request.url());
     const path = url.pathname.replace(/^\/api/, "");
     const method = request.method();
 
