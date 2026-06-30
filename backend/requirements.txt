@@ -13,6 +13,7 @@ celery
 redis
 pywebpush
 drf-spectacular
+drf-spectacular-sidecar
 django-cors-headers
 django-environ
 django-axes

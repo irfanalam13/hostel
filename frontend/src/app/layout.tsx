@@ -2,6 +2,16 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Providers } from "./providers";
 
+// Strict CSP requires a fresh per-request nonce (see src/middleware.ts). Next can
+// only stamp that nonce onto its <script> tags while rendering a request — it
+// cannot inject it into statically prerendered HTML built ahead of time. Without
+// this, the landing/marketing pages are prerendered with un-nonced scripts and
+// `'strict-dynamic'` blocks every one of them. Forcing dynamic rendering on the
+// root layout opts the whole app into request-time rendering so the nonce always
+// matches. (SSR still emits full HTML, so SEO is unaffected; we only forgo
+// static full-route caching — acceptable for this self-hosted deployment.)
+export const dynamic = "force-dynamic";
+
 const APP_NAME = "MY Hostel";
 const APP_DESC =
   "Manage residents, rooms, billing, payments and occupancy for your hostel — online and offline.";
