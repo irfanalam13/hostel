@@ -1,6 +1,6 @@
 name: Security
 
-# Roadmap Prompt 04 — enterprise security scanning. Secret detection, SAST,
+# Roadmap Prompt 04 â€” enterprise security scanning. Secret detection, SAST,
 # dependency CVEs, container image scanning, SBOM, license compliance, and
 # (on PRs) dependency review. CRITICAL findings fail the run and therefore
 # block the merge / deploy; lower-severity findings surface in the Security tab.
@@ -26,7 +26,7 @@ env:
 
 jobs:
   # ===========================================================================
-  # Secret detection — gitleaks over full history.
+  # Secret detection â€” gitleaks over full history.
   # ===========================================================================
   secret-scan:
     name: Secret scan (gitleaks)
@@ -40,7 +40,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ===========================================================================
-  # SAST — CodeQL for Python and JS/TS. Results upload to the Security tab.
+  # SAST â€” CodeQL for Python and JS/TS. Results upload to the Security tab.
   # ===========================================================================
   codeql:
     name: CodeQL (${{ matrix.language }})
@@ -67,7 +67,7 @@ jobs:
           category: "/language:${{ matrix.language }}"
 
   # ===========================================================================
-  # SAST — bandit for Python. Blocks only on high-severity / high-confidence
+  # SAST â€” bandit for Python. Blocks only on high-severity / high-confidence
   # findings to stay high-signal; the full report is uploaded as an artifact.
   # ===========================================================================
   bandit:
@@ -96,7 +96,7 @@ jobs:
           retention-days: 14
 
   # ===========================================================================
-  # Dependency CVEs — Python (pip-audit) and Node (npm audit).
+  # Dependency CVEs â€” Python (pip-audit) and Node (npm audit).
   # Both fail on a vulnerability at/above their threshold.
   # ===========================================================================
   python-deps:
@@ -126,7 +126,7 @@ jobs:
         run: npm audit --audit-level=high
 
   # ===========================================================================
-  # Dependency review — PR-only. Blocks PRs that introduce a high-severity
+  # Dependency review â€” PR-only. Blocks PRs that introduce a high-severity
   # vulnerable dependency or a disallowed license.
   # ===========================================================================
   dependency-review:
@@ -145,7 +145,7 @@ jobs:
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
 
   # ===========================================================================
-  # Filesystem scan — Trivy over the repo for vulnerable deps + IaC misconfig +
+  # Filesystem scan â€” Trivy over the repo for vulnerable deps + IaC misconfig +
   # secrets. CRITICAL fails the build; results upload to the Security tab.
   # ===========================================================================
   trivy-fs:
@@ -182,7 +182,7 @@ jobs:
           exit-code: "1"
 
   # ===========================================================================
-  # Image scan + SBOM — build each image, scan for CVEs (CRITICAL blocks),
+  # Image scan + SBOM â€” build each image, scan for CVEs (CRITICAL blocks),
   # and emit a CycloneDX SBOM artifact per image.
   # ===========================================================================
   trivy-image:
@@ -252,7 +252,7 @@ jobs:
           exit-code: "1"
 
   # ===========================================================================
-  # License compliance — inventory Python + Node licenses. Advisory report
+  # License compliance â€” inventory Python + Node licenses. Advisory report
   # (uploaded as an artifact); the hard copyleft gate is the PR dependency
   # review above, which fails on GPL/AGPL.
   # ===========================================================================
