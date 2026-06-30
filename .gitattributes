@@ -1,0 +1,5 @@
+# Shell scripts must use LF endings so they run inside Linux containers.
+# Without this, core.autocrlf=true checks them out with CRLF on Windows and the
+# container fails with "exec /app/entrypoint.sh: no such file or directory".
+*.sh text eol=lf
+backend/entrypoint.sh text eol=lf

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "drf_spectacular",
+    "drf_spectacular_sidecar",  # self-hosts Swagger UI / ReDoc assets (no CDN)
     "corsheaders",
     "axes",
 
@@ -333,6 +334,12 @@ FRONTEND_URL = env("FRONTEND_URL", default="https://hostel-ten-hazel.vercel.app/
 SPECTACULAR_SETTINGS = {
     "TITLE": "Hostel SaaS API",
     "VERSION": "1.0.0",
+    # Serve Swagger UI / ReDoc assets from our own /static/ (via the sidecar)
+    # instead of a third-party CDN, so the strict CSP can stay self-origin and
+    # the docs work offline / in locked-down deployments.
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
 }
 
 # ---------------------------------------------------------------------------
