@@ -38,12 +38,30 @@ function makeNonce(): string {
   return btoa(bin);
 }
 
-function buildCsp(nonce: string, opts: { trustedTypes: boolean }): string {
+// Trusted-Types directives, shared between the enforced policy (when
+// CSP_TT_ENFORCE=1) and the report-only soak policy.
+//   `default` covers the policy we install; `nextjs`/`react`/`dompurify` are the
+//   named policies those libraries create. `'allow-duplicates'` avoids throwing
+//   when a policy name is registered more than once across chunks.
+const TRUSTED_TYPES_DIRECTIVES = [
+  "require-trusted-types-for 'script'",
+  "trusted-types default nextjs nextjs#bundler react dompurify 'allow-duplicates'",
+];
+
+// Reporting sinks. `report-uri` is deprecated but kept for Firefox/Safari, which
+// don't yet honour the Reporting API `report-to`; conforming browsers use
+// `report-to` and ignore `report-uri` without warning.
+const REPORT_DIRECTIVES = ["report-uri /api/security/csp-report", "report-to csp-endpoint"];
+
+// The enforced document CSP.
+function buildCsp(nonce: string, opts: { trustedTypes: boolean; https: boolean }): string {
   const api = apiOrigin();
   // `'strict-dynamic'` makes browsers ignore host allowlists for scripts and
-  // trust only the nonce + scripts it loads. `https: http:` + `'unsafe-inline'`
-  // are compatibility fallbacks that conforming browsers ignore when a nonce is
-  // present. Dev additionally needs eval for React Refresh.
+  // trust only the nonce + scripts it loads. `https:` + `'unsafe-inline'` are
+  // compatibility fallbacks that conforming (CSP3) browsers ignore when a nonce
+  // is present — this is the OWASP "strict CSP" pattern, and the console note
+  // about `'unsafe-inline'` being ignored is expected, not a misconfiguration.
+  // Dev additionally needs eval for React Refresh.
   const script = [
     `'nonce-${nonce}'`,
     "'strict-dynamic'",
@@ -70,32 +88,41 @@ function buildCsp(nonce: string, opts: { trustedTypes: boolean }): string {
     "form-action 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
-    "report-uri /api/security/csp-report",
-    "report-to csp-endpoint",
+    ...REPORT_DIRECTIVES,
   ];
 
-  if (opts.trustedTypes) {
-    // `default` covers the policy we install; `nextjs`/`react`/`dompurify` are
-    // the named policies those libraries create. `'allow-duplicates'` avoids
-    // throwing when a policy name is registered more than once across chunks.
-    directives.push("require-trusted-types-for 'script'");
-    directives.push("trusted-types default nextjs nextjs#bundler react dompurify 'allow-duplicates'");
-  }
+  if (opts.trustedTypes) directives.push(...TRUSTED_TYPES_DIRECTIVES);
 
-  if (!isDev) directives.push("upgrade-insecure-requests");
+  // `upgrade-insecure-requests` must only be sent when the page is actually
+  // served over HTTPS. Gating on NODE_ENV is wrong: a production build served
+  // over plain HTTP (e.g. DEBUG=False locally, or behind a non-TLS proxy) would
+  // then tell the browser to upgrade http://<api>:8000 fetches to https://,
+  // which the API doesn't speak — silently breaking every API call. So we key
+  // off the real request scheme instead.
+  if (opts.https) directives.push("upgrade-insecure-requests");
 
   return directives.join("; ");
 }
 
-// Permissions-Policy: explicitly deny every feature the app doesn't use.
+// Minimal report-only policy used purely to soak Trusted-Types violations before
+// flipping CSP_TT_ENFORCE=1. It intentionally does NOT mirror the enforced
+// policy: the enforced policy already reports its own script/style/etc.
+// violations, so cloning it here would double-report every violation. It also
+// omits `upgrade-insecure-requests` (ignored + warned in report-only mode).
+function buildTrustedTypesReportOnlyCsp(): string {
+  return [...TRUSTED_TYPES_DIRECTIVES, ...REPORT_DIRECTIVES].join("; ");
+}
+
+// Permissions-Policy: explicitly deny every powerful feature the app doesn't
+// use. Only modern, browser-recognised directives are listed — deprecated /
+// unrecognised ones (ambient-light-sensor, battery, document-domain,
+// interest-cohort) are intentionally omitted because they only produce
+// "Unrecognized feature" console warnings without adding protection.
 const PERMISSIONS_POLICY = [
   "accelerometer=()",
-  "ambient-light-sensor=()",
   "autoplay=()",
-  "battery=()",
   "camera=()",
   "display-capture=()",
-  "document-domain=()",
   "encrypted-media=()",
   "fullscreen=(self)",
   "geolocation=()",
@@ -113,18 +140,23 @@ const PERMISSIONS_POLICY = [
   "usb=()",
   "xr-spatial-tracking=()",
   "browsing-topics=()",
-  "interest-cohort=()",
 ].join(", ");
 
 export function middleware(request: NextRequest) {
   const nonce = makeNonce();
   const enforceTT = process.env.CSP_TT_ENFORCE === "1";
+  // True only when the document is genuinely served over TLS. Behind a reverse
+  // proxy the edge sees http internally, so trust the forwarded scheme too.
+  const https =
+    request.headers.get("x-forwarded-proto") === "https" ||
+    request.nextUrl.protocol === "https:";
 
   // Enforced CSP (no Trusted Types unless explicitly flipped on).
-  const csp = buildCsp(nonce, { trustedTypes: enforceTT });
-  // Report-only CSP always carries Trusted Types so we collect violations even
-  // before enforcing — the safe rollout path.
-  const cspReportOnly = buildCsp(nonce, { trustedTypes: true });
+  const csp = buildCsp(nonce, { trustedTypes: enforceTT, https });
+  // Report-only CSP carries ONLY the Trusted-Types directives so we soak those
+  // violations before enforcing — the safe rollout path — without duplicating
+  // the enforced policy's reports.
+  const cspReportOnly = buildTrustedTypesReportOnlyCsp();
 
   // Forward the nonce + CSP on the *request* so Next.js applies the nonce to its
   // injected scripts and Server Components can read it via headers().

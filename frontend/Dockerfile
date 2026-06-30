@@ -11,7 +11,19 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# Test-only tooling (the Cypress app binary, Playwright browsers) is never used
+# to build or run the production image, yet Cypress's postinstall pulls a
+# several-hundred-MB binary from download.cypress.io — which dominates, and on a
+# slow link times out, `npm ci`. Skip those binary fetches (the npm packages
+# still install, just without their runtime binaries) and make npm tolerant of a
+# slow/flaky registry connection.
+ENV CYPRESS_INSTALL_BINARY=0 \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+RUN npm ci --no-audit --no-fund \
+      --fetch-retries=5 \
+      --fetch-retry-mintimeout=20000 \
+      --fetch-retry-maxtimeout=120000 \
+      --fetch-timeout=600000
 
 # -----------------------------------------------------------------------------
 # Stage 2 — builder: compile the production build (standalone output)
