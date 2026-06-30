@@ -11,6 +11,7 @@ from .views import (
     MeView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
+    SignupOTPRequestView,
     SignupView,
     UserHostelViewSet,
     UserViewSet,
@@ -24,6 +25,7 @@ router.register(r"user-hostels", UserHostelViewSet, basename="user_hostels")
 urlpatterns = [
     # 🔐 Auth endpoints (cookie-based JWT)
     path("csrf/", CSRFView.as_view(), name="csrf"),
+    path("signup/request-otp/", SignupOTPRequestView.as_view(), name="signup_request_otp"),
     path("signup/", SignupView.as_view(), name="signup"),
     path("login/", CookieTokenObtainPairView.as_view(), name="login"),
     path("token/", CookieTokenObtainPairView.as_view(), name="token_obtain_pair"),

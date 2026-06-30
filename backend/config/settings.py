@@ -226,6 +226,8 @@ REST_FRAMEWORK = {
         "auth": env("THROTTLE_AUTH", default="5/min"),
         # Tighter, dedicated buckets for sensitive endpoints (ScopedRateThrottle).
         "signup": env("THROTTLE_SIGNUP", default="3/hour"),
+        # Email-verification code requests during signup (resends allowed).
+        "signup_otp": env("THROTTLE_SIGNUP_OTP", default="6/hour"),
         "password_reset": env("THROTTLE_PASSWORD_RESET", default="5/hour"),
         "payment": env("THROTTLE_PAYMENT", default="120/min"),
         "backup": env("THROTTLE_BACKUP", default="10/hour"),

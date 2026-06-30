@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Security middleware — Phase 10 hardening.
+ * Security proxy — Phase 10 hardening.
+ *
+ * (Formerly src/middleware.ts — Next.js 16 renamed the "middleware" file
+ * convention to "proxy". Same Edge-runtime entry point, new name.)
  *
  * Issues a *strict, per-request* security header set on every document response:
  *
@@ -142,7 +145,7 @@ const PERMISSIONS_POLICY = [
   "browsing-topics=()",
 ].join(", ");
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const nonce = makeNonce();
   const enforceTT = process.env.CSP_TT_ENFORCE === "1";
   // True only when the document is genuinely served over TLS. Behind a reverse

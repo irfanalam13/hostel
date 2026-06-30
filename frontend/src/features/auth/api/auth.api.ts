@@ -2,7 +2,9 @@ import { apiFetch } from "@/shared/api/apiClient";
 
 export type SignupPayload = {
   username: string;
-  email?: string;
+  email: string;
+  /** 6-digit code emailed by requestSignupOtp() — required to create the account. */
+  otp: string;
   password: string;
   password2: string;
   hostel_name: string;
@@ -30,6 +32,16 @@ export type SignupResponse = {
 };
 
 export const authApi = {
+  /** Step 1: email a 6-digit verification code to the given address. */
+  requestSignupOtp(payload: { email: string }) {
+    return apiFetch<{ detail: string }>("/auth/signup/request-otp/", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /** Step 2: create the account, supplying the verified OTP. */
   signup(payload: SignupPayload) {
     return apiFetch<SignupResponse>("/auth/signup/", {
       method: "POST",
