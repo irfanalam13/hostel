@@ -16,12 +16,26 @@
 import { test, expect, waitForServiceWorker } from "./support/fixtures";
 import type { Worker } from "@playwright/test";
 
+// These specs exercise the real ServiceWorkerRegistration.showNotification() API.
+// The default headless binary Playwright uses for "chromium" (chrome-headless-shell)
+// does not support SW notifications on all platforms — showNotification() throws
+// "No notification permission…" even after grantPermissions(). The full Chromium
+// build in new-headless mode (channel: "chromium") supports it, so run this file
+// there. Everything else stays on the faster headless-shell default.
+test.use({ channel: "chromium" });
+
 async function getSW(context: import("@playwright/test").BrowserContext): Promise<Worker> {
   return context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
 }
 
 test.describe("Push notifications @chromium-only", () => {
-  test.beforeEach(async ({ mockApi }) => {
+  test.beforeEach(async ({ mockApi, context, baseURL }) => {
+    // The blanket `permissions: ["notifications"]` in playwright.config.ts is not
+    // reliably honoured for the *service worker's* origin on every platform (the
+    // SW's registration.showNotification() throws "No notification permission").
+    // Grant it explicitly for this origin so the push handler can raise a
+    // notification exactly as it would with a real, user-granted permission.
+    if (baseURL) await context.grantPermissions(["notifications"], { origin: baseURL });
     await mockApi();
   });
 
