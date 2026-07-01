@@ -37,7 +37,9 @@ class PasswordResetOTP(TimeStampedModel):
 
 
 class SignupOTP(TimeStampedModel):
-    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="signup_otps")
+    # Keyed by email, not a user FK: signup verification happens BEFORE any
+    # account exists, so we prove ownership of the email address first.
+    email = models.EmailField(db_index=True)
     otp = models.CharField(max_length=6)
     is_used = models.BooleanField(default=False)
 

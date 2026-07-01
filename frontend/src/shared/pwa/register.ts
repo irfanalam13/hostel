@@ -37,8 +37,17 @@ export function isStandalone(): boolean {
 export function registerServiceWorker(cb: RegisterCallbacks = {}): void {
   if (!isPwaSupported()) return;
 
-  // Reload exactly once when the new worker takes control.
+  // Reload exactly once when a *new* worker takes over from an existing one
+  // (a genuine update). The very first SW to claim a previously-uncontrolled
+  // page is NOT an update — the assets it now serves are the ones already
+  // loaded — so reloading there just causes a needless flash on first visit
+  // (and races anything inspecting the page right after control is gained).
+  let hadController = navigator.serviceWorker.controller !== null;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) {
+      hadController = true; // first claim on a fresh page — no reload needed
+      return;
+    }
     if (reloading) return;
     reloading = true;
     window.location.reload();

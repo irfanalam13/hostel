@@ -40,13 +40,26 @@ function envelope(data: Json, message = "OK") {
   return { success: true, message, data, meta: {} };
 }
 
+// The SPA fetches a cross-origin API (localhost:3100 → localhost:8000) with
+// `credentials: "include"`. A credentialed request REJECTS a wildcard
+// `Access-Control-Allow-Origin: *` — the header must echo the exact request
+// origin and be paired with `Access-Control-Allow-Credentials: true`. Without
+// this every API fetch (and the login POST) is blocked by the browser's CORS
+// layer before our handler's body is ever read.
+function corsHeaders(route: Route): Record<string, string> {
+  const origin = route.request().headers()["origin"] || "*";
+  return {
+    "access-control-allow-origin": origin,
+    "access-control-allow-credentials": "true",
+    vary: "Origin",
+  };
+}
+
 function json(route: Route, status: number, body: unknown) {
   return route.fulfill({
     status,
     contentType: "application/json",
-    // CORS isn't exercised in-browser here (same fetch credentials path), but
-    // include permissive headers so nothing trips on a preflight.
-    headers: { "access-control-allow-origin": "*" },
+    headers: corsHeaders(route),
     body: JSON.stringify(body),
   });
 }
@@ -75,7 +88,7 @@ export async function installApiMock(target: Page | BrowserContext, opts: MockOp
 
   await target.route(/https?:\/\/[^/]+\/(api\/)?.*/, async (route) => {
     const request = route.request();
-    const url = new URL(request.url);
+    const url = new URL(request.url());
     const path = url.pathname.replace(/^\/api/, "");
     const method = request.method();
 
@@ -89,7 +102,23 @@ export async function installApiMock(target: Page | BrowserContext, opts: MockOp
       if (path.includes(needle)) return void (await handler(route));
     }
 
-    if (method === "OPTIONS") return json(route, 204, {});
+    if (method === "OPTIONS") {
+      // CORS preflight: echo the requested method/headers so the credentialed
+      // request that follows is allowed through.
+      const reqHeaders = request.headers();
+      return route.fulfill({
+        status: 204,
+        headers: {
+          ...corsHeaders(route),
+          "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+          "access-control-allow-headers":
+            reqHeaders["access-control-request-headers"] ||
+            "Content-Type,X-CSRFToken,X-Hostel-Code,Authorization",
+          "access-control-max-age": "600",
+        },
+        body: "",
+      });
+    }
 
     // --- Auth handshake (raw, un-enveloped) --------------------------------
     if (path === "/auth/csrf/") return json(route, 200, { csrftoken: "test-csrf-token" });
@@ -102,6 +131,7 @@ export async function installApiMock(target: Page | BrowserContext, opts: MockOp
         status: 200,
         contentType: "application/json",
         headers: {
+          ...corsHeaders(route),
           // Mimic the httpOnly cookie set the backend issues on login.
           "set-cookie": "session_dummy=1; Path=/; SameSite=Lax",
         },

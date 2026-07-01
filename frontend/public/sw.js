@@ -17,7 +17,7 @@
  * so credentials, tokens and private API responses are never stored.
  * ========================================================================== */
 
-const VERSION = "v3.3.0";
+const VERSION = "v3.4.0";
 const PREFIX = "hms";
 const PRECACHE = `${PREFIX}-precache-${VERSION}`;
 const RUNTIME = `${PREFIX}-runtime-${VERSION}`;
@@ -75,12 +75,45 @@ self.addEventListener("install", (event) => {
           }
         }),
       );
+      // The offline fallback is a client component: its HTML alone can't hydrate
+      // without its JS/CSS. Since it's never visited online, its hashed build
+      // chunks would never be cached at runtime — so discover them from the
+      // precached HTML and cache them now. Otherwise the fallback loads its
+      // shell but crashes on a failed chunk fetch when actually offline.
+      await precacheDocumentAssets(OFFLINE_URL);
       log("installed", VERSION);
       // Do NOT auto-skipWaiting: the page asks via postMessage so the user
       // controls when the update applies.
     })(),
   );
 });
+
+// Fetch a document and cache the first-party build assets (/_next/*) it links,
+// into the RUNTIME cache where the fetch handler looks them up (cacheFirst /
+// staleWhileRevalidate both key off RUNTIME for /_next/static and styles/scripts).
+async function precacheDocumentAssets(pageUrl) {
+  try {
+    const res = await fetch(new Request(pageUrl, { cache: "reload" }));
+    if (!res || !res.ok) return;
+    const html = await res.text();
+    const urls = new Set();
+    const re = /(?:src|href)="(\/_next\/[^"]+)"/g;
+    let m;
+    while ((m = re.exec(html))) urls.add(m[1]);
+    const cache = await caches.open(RUNTIME);
+    await Promise.all(
+      [...urls].map(async (u) => {
+        try {
+          await cache.add(new Request(u, { cache: "reload" }));
+        } catch (err) {
+          log("asset precache miss", u, err);
+        }
+      }),
+    );
+  } catch (err) {
+    log("precacheDocumentAssets failed", pageUrl, err);
+  }
+}
 
 /* ------------------------------- activate ------------------------------- */
 self.addEventListener("activate", (event) => {
@@ -192,11 +225,14 @@ async function handleNavigation(event) {
     // navigation preload gives us a head start on the network request
     const preload = await event.preloadResponse;
     const network = preload || (await fetch(request));
-    // HARDENING: never persist a navigation the server marked private/no-store,
-    // and only cache first-party ("basic") responses — so an authenticated page
-    // the backend doesn't want stored never lands in the cache.
-    const cc = (network && network.headers.get("Cache-Control")) || "";
-    const cacheable = network && network.ok && network.type === "basic" && !/no-store|private/i.test(cc);
+    // Cache the app-shell HTML of first-party ("basic") navigations for offline
+    // resilience — even though Next marks every document `no-store` (a side
+    // effect of the per-request CSP nonce, not a per-page privacy signal). This
+    // is safe here because pages carry NO server-rendered user data: every
+    // screen fetches its data client-side from the cross-origin API, and that
+    // API is never intercepted or cached by this SW (see the fetch handler's
+    // same-origin guard). So only inert layout shells land in the cache.
+    const cacheable = network && network.ok && network.type === "basic";
     if (cacheable) {
       cache.put(request, network.clone());
       trimCache(PAGES, PAGE_CACHE_LIMIT);

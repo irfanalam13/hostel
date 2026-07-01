@@ -311,6 +311,12 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
 
+  // Email verification (step 1): a 6-digit OTP the user must enter to sign up.
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpMsg, setOtpMsg] = useState("");
+
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -338,15 +344,34 @@ export default function SignupPage() {
     return /^[+\d][\d]{6,14}$/.test(p);
   }, [hostelPhone]);
 
-  const canSubmit = useMemo(() => {
-    if (loading) return false;
-    if (!hostelName.trim()) return false;
-    if (!usernameOk) return false;
-    if (!password) return false;
-    if (password !== password2) return false;
-    if (!phoneOk) return false;
-    return true;
-  }, [loading, hostelName, usernameOk, password, password2, phoneOk]);
+  const emailOk = useMemo(() => {
+    const e = email.trim();
+    // Simple, permissive email shape; the backend does the authoritative check.
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }, [email]);
+
+  async function onSendOtp() {
+    setErr("");
+    setOtpMsg("");
+    if (!emailOk) {
+      setErr("Enter a valid email first — the verification code is sent there.");
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      await apiFetch("/auth/signup/request-otp/", {
+        method: "POST",
+        auth: false,
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      setOtpSent(true);
+      setOtpMsg(`Verification code sent to ${email.trim()}. Check your inbox (and spam).`);
+    } catch (e: any) {
+      setErr(e?.message || "Could not send the verification code. Try again.");
+    } finally {
+      setSendingOtp(false);
+    }
+  }
 
   async function onSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -356,23 +381,27 @@ export default function SignupPage() {
     setCreatedHostelCode(null);
     setSignupDone(false);
 
+    const cleanEmail = email.trim();
     const payload: any = {
       hostel_name: hostelName.trim(),
       hostel_phone: hostelPhone.trim() || "",
       hostel_address: hostelAddress.trim() || "",
       owner_name: ownerName.trim() || "",
       username: username.trim(),
+      email: cleanEmail,
+      otp: otp.trim(),
       password,
       password2,
     };
 
-    const cleanEmail = email.trim();
-    if (cleanEmail) payload.email = cleanEmail;
-
-    // Frontend validation
+    // Frontend validation — surfaced inline so a disabled button never hides "why".
     if (!payload.hostel_name) return setErr("Hostel name is required.");
     if (!payload.username) return setErr("Username is required.");
     if (!usernameOk) return setErr("Username must be 3+ chars and only a-z, 0-9, dot, underscore.");
+    if (!cleanEmail) return setErr("Email is required.");
+    if (!emailOk) return setErr("Enter a valid email address.");
+    if (!otp.trim()) return setErr("Enter the verification code we emailed you. Click \"Send code\" first.");
+    if (otp.trim().length !== 6) return setErr("The verification code is 6 digits.");
     if (!phoneOk) return setErr("Phone looks invalid. Use digits only (optionally +).");
     if (!password) return setErr("Password is required.");
     if (password.length < 8) return setErr("Password should be at least 8 characters.");
@@ -423,6 +452,9 @@ export default function SignupPage() {
     setOwnerName("");
     setUsername("");
     setEmail("");
+    setOtp("");
+    setOtpSent(false);
+    setOtpMsg("");
     setPassword("");
     setPassword2("");
     setErr("");
@@ -531,21 +563,59 @@ export default function SignupPage() {
             </div>
           )}
 
-          <Input
-            id="email"
-            name="email"
-            label="Email (optional)"
-            type="email"
-            value={email}
-            onChange={(e) => {
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Input
+                id="email"
+                name="email"
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.length <= 30) {
+                    setEmail(value);
+                    // A changed email invalidates a code sent to the old one.
+                    if (otpSent) {
+                      setOtpSent(false);
+                      setOtp("");
+                      setOtpMsg("");
+                    }
+                  }
+                }}
+                required
+                autoComplete="email"
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={onSendOtp}
+              disabled={!emailOk || sendingOtp}
+            >
+              {sendingOtp ? "Sending..." : otpSent ? "Resend" : "Send code"}
+            </Button>
+          </div>
+          {email.trim().length > 0 && !emailOk && (
+            <div className="text-xs text-red-600">Enter a valid email address.</div>
+          )}
+          {otpMsg && <div className="text-xs text-green-700">{otpMsg}</div>}
 
-            const value = e.target.value;
-            if (value.length <= 30){
-              setEmail(e.target.value)
-              }
+          <Input
+            id="otp"
+            name="otp"
+            label="Email Verification Code (6 digits)"
+            inputMode="numeric"
+            value={otp}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, "");
+              if (value.length <= 6) setOtp(value);
             }}
-            autoComplete="email"
+            required
+            autoComplete="one-time-code"
           />
+          <div className="text-xs text-gray-500">
+            We email a 6-digit code to verify your address before creating the account.
+          </div>
 
           <div className="flex gap-2 items-end">
             <div className="flex-1">
@@ -604,7 +674,7 @@ export default function SignupPage() {
         {err && <div className="mt-3 text-sm text-red-600">{err}</div>}
 
         <div className="mt-5 flex gap-2">
-          <Button type="submit" className="w-full" disabled={!canSubmit}>
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Creating..." : "Sign up"}
           </Button>
           <Button type="button" onClick={resetForm} disabled={loading}>

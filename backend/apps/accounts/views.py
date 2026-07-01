@@ -17,11 +17,12 @@ from apps.auditlog.services import record_event
 from apps.common.permissions import IsOwner
 
 from .cookies import clear_auth_cookies, set_auth_cookies
-from .models import User, UserHostel, PasswordResetOTP
+from .models import User, UserHostel, PasswordResetOTP, SignupOTP
 from .serializers import (
     MeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    SignupOTPRequestSerializer,
     SignupSerializer,
     UserCreateSerializer,
     UserHostelSerializer,
@@ -213,6 +214,53 @@ class CSRFView(APIView):
         # via document.cookie, so it reads the value here and echoes it back in
         # the X-CSRFToken header. The cookie itself is still sent automatically.
         return Response({"detail": "CSRF cookie set.", "csrftoken": token})
+
+
+# ---------------------------------------------------------------------------
+# Signup email verification — step 1: email an OTP the SPA confirms on signup
+# ---------------------------------------------------------------------------
+class SignupOTPRequestView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_scope = "signup_otp"
+
+    def post(self, request):
+        serializer = SignupOTPRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+
+        import random
+        otp_code = f"{random.randint(100000, 999999)}"
+        # Only the newest code for this email stays live.
+        SignupOTP.objects.filter(email__iexact=email, is_used=False).update(is_used=True)
+        SignupOTP.objects.create(email=email, otp=otp_code)
+
+        # Unlike password-reset, the user NEEDS this code to proceed, so we do
+        # NOT fail silently: a delivery failure is surfaced as 502 so the SPA can
+        # tell the user (and so SMTP/sender misconfig is visible, not hidden).
+        try:
+            send_mail(
+                subject="Verify your email to create your Hostel account",
+                message=(
+                    "Welcome to Hostel!\n\n"
+                    f"Your email verification code (OTP) is: {otp_code}\n\n"
+                    "Enter this code on the signup page to create your account. "
+                    "It is valid for 15 minutes.\n\n"
+                    "If you did not request this, you can safely ignore this email."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception:
+            return Response(
+                {"detail": "Could not send the verification email. Please try again later."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        record_event(request, action=AuditEvent.Action.CREATE,
+                     message="Signup verification OTP requested", meta={"email": email})
+        return Response({"detail": "A verification code has been sent to your email."})
 
 
 # ---------------------------------------------------------------------------
