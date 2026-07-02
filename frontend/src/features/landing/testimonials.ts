@@ -52,6 +52,10 @@ export async function getTestimonials(): Promise<TestimonialsData> {
   try {
     const res = await fetch(`${apiBase()}/tenants/testimonials/`, {
       next: { revalidate: 300 },
+      // Hard-cap the wait: a cold/asleep backend (e.g. Render free tier) must
+      // not hang the server render past the platform's function timeout — fail
+      // fast and fall back to static copy instead of shipping a blank page.
+      signal: AbortSignal.timeout(3500),
     });
     if (!res.ok) return { items: TESTIMONIALS, stats: null };
 

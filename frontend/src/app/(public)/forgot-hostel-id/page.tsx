@@ -5,8 +5,10 @@ import { useState } from "react";
 import { authApi } from "@/features/auth/api/auth.api";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
+import { useToast } from "@/shared/ui/toast/ToastProvider";
 
 export default function ForgotHostelIDPage() {
+  const toast = useToast();
   const [identifier, setIdentifier] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,8 +20,11 @@ export default function ForgotHostelIDPage() {
     try {
       const res = await authApi.forgotHostelID({ email_or_username: identifier });
       setMessage(res.detail);
+      toast.success(res.detail, "Check your email");
     } catch (err: any) {
-      setMessage(err?.message || "Failed to request Hostel ID.");
+      const msg = err?.message || "Failed to request Hostel ID.";
+      setMessage(msg);
+      toast.error(msg, "Request failed");
     } finally {
       setLoading(false);
     }

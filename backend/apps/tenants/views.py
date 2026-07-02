@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -15,6 +17,9 @@ from .serializers import (
     SubscriptionSerializer,
     TestimonialSubmitSerializer,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def _hostels_for_user(user):
@@ -68,15 +73,21 @@ class TestimonialViewSet(viewsets.GenericViewSet):
         return super().get_throttles()
 
     def list(self, request):
-        featured = Testimonial.objects.filter(is_approved=True, is_featured=True).order_by(
-            "sort_order", "-created_at"
-        )
-        return Response(
-            {
+        try:
+            featured = Testimonial.objects.filter(is_approved=True, is_featured=True).order_by(
+                "sort_order", "-created_at"
+            )
+            data = {
                 "testimonials": PublicTestimonialSerializer(featured, many=True).data,
                 "stats": testimonial_stats(),
             }
-        )
+        except Exception:
+            # This is a public landing-page endpoint: a transient DB issue or a
+            # not-yet-applied migration must degrade to "no featured reviews"
+            # (the frontend then shows its static copy) rather than 500 the page.
+            logger.exception("testimonials list failed; serving empty payload")
+            data = {"testimonials": [], "stats": None}
+        return Response(data)
 
     def create(self, request):
         serializer = TestimonialSubmitSerializer(data=request.data)

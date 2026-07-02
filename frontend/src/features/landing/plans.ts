@@ -67,6 +67,9 @@ export async function getPricingTiers(): Promise<PricingTier[]> {
       // Re-fetch at most every 5 minutes so admin price/discount changes appear
       // without a redeploy, while keeping the page effectively static.
       next: { revalidate: 300 },
+      // Fail fast if the backend is cold/asleep so a slow API can't hang the
+      // server render — fall back to static PRICING instead of a blank page.
+      signal: AbortSignal.timeout(3500),
     });
     if (!res.ok) return PRICING;
 

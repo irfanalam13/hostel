@@ -2,6 +2,7 @@ import { authStore } from "@/shared/auth/auth.store";
 import { hostelStore } from "@/shared/lib/hostel";
 import { emitUnauthorized } from "@/shared/auth/events";
 import { enqueueRequest } from "@/shared/pwa/outbox";
+import { captureApiError } from "@/shared/lib/monitoring";
 
 export const API_BASE = (
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:8000/api"
@@ -156,7 +157,7 @@ function isEnvelope(
   );
 }
 
-async function throwApiError(res: Response): Promise<never> {
+async function throwApiError(res: Response, ctx?: { method?: string; url?: string }): Promise<never> {
   let data: unknown = null;
   let msg = `Request failed (${res.status})`;
 
@@ -181,6 +182,10 @@ async function throwApiError(res: Response): Promise<never> {
       msg = (await res.text()) || msg;
     } catch {}
   }
+
+  // Developer tracing: one structured record per backend failure (console in
+  // dev, Sentry in prod). User-facing messaging still happens at the caller.
+  captureApiError({ method: ctx?.method, url: ctx?.url, status: res.status, detail: msg, data });
 
   const err = new Error(msg) as Error & { status?: number; data?: unknown };
   err.status = res.status;
@@ -255,7 +260,7 @@ export async function apiFetch<T = unknown>(
     }
   }
 
-  if (!res.ok) await throwApiError(res);
+  if (!res.ok) await throwApiError(res, { method: options.method || "GET", url });
   if (res.status === 204) return undefined as T;
 
   const ct = res.headers.get("content-type") || "";
