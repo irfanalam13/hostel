@@ -157,7 +157,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan (report + SARIF)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -172,7 +172,7 @@ jobs:
           sarif_file: trivy-fs.sarif
           category: trivy-fs
       - name: Fail on CRITICAL
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -215,7 +215,7 @@ jobs:
           build-args: ${{ matrix.build-args }}
           cache-from: type=gha,scope=${{ matrix.service }}
       - name: Trivy image scan (SARIF)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           image-ref: hostel-${{ matrix.service }}:scan
@@ -230,7 +230,7 @@ jobs:
           sarif_file: trivy-${{ matrix.service }}.sarif
           category: trivy-image-${{ matrix.service }}
       - name: Generate CycloneDX SBOM
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           image-ref: hostel-${{ matrix.service }}:scan
@@ -242,7 +242,7 @@ jobs:
           path: sbom-${{ matrix.service }}.cdx.json
           retention-days: 90
       - name: Fail on CRITICAL image vulnerabilities
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           image-ref: hostel-${{ matrix.service }}:scan

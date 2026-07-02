@@ -150,6 +150,13 @@ jobs:
       DATABASE_URL: postgres://hostel:hostel@localhost:5432/hostel
       REDIS_URL: redis://localhost:6379/0
       CELERY_BROKER_URL: redis://localhost:6379/0
+      # A load test intentionally hammers one endpoint far past the production
+      # brute-force protections, so relax them here (as settings_test does for
+      # unit tests). Without this the login throttle (auth: 5/min) and axes
+      # lockout return 429 after the 5th request and the smoke run "fails".
+      THROTTLE_AUTH: "100000/min"
+      THROTTLE_ANON: "100000/min"
+      AXES_ENABLED: "False"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -223,7 +230,7 @@ jobs:
           npm run start:test &
           for i in $(seq 1 30); do curl -sf http://localhost:3100/login && break || sleep 1; done
       - name: ZAP baseline scan
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: http://localhost:3100
           rules_file_name: tests/security/zap-baseline.conf

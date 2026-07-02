@@ -1,9 +1,11 @@
 /**
  * Lighthouse CI — performance, accessibility, best-practices, SEO and PWA budgets.
  *
- * Audits the public surfaces that don't need an authenticated session (the login
- * and offline pages), which is enough to catch perf/a11y/PWA regressions in the
- * app shell, manifest and service worker. Run with: `npm run lhci`.
+ * Audits the login page — the public surface that doesn't need an authenticated
+ * session — which catches perf/a11y/best-practices/SEO regressions in the app
+ * shell. (The /offline fallback is deliberately NOT audited: it's served by the
+ * service worker and never fires a clean navigation under a standalone Lighthouse
+ * run, so every category comes back as NaN.) Run with: `npm run lhci`.
  *
  * Assertions are tuned to be meaningful but not flaky on CI hardware — bump the
  * minScore thresholds as the app is optimised.
@@ -17,13 +19,18 @@ module.exports = {
       startServerCommand: `npm run start -- --port ${PORT}`,
       startServerReadyPattern: "Ready in|started server on|Local:",
       startServerReadyTimeout: 120000,
-      url: [`${BASE}/login`, `${BASE}/offline`],
-      numberOfRuns: 3,
+      url: [`${BASE}/login`],
+      // One run keeps the job well under its CI timeout; the app's background
+      // heartbeat/sync keeps the network busy, so multiple runs each waiting out
+      // the load-quiet window pushed the job past 20 min.
+      numberOfRuns: 1,
       settings: {
         preset: "desktop",
         // The API lives off-origin and is unreachable here; don't let blocked
         // requests tank the best-practices score.
         skipAudits: ["uses-http2", "canonical"],
+        // Hard cap so a page whose network never goes idle can't hang the run.
+        maxWaitForLoad: 30000,
       },
     },
     assert: {
