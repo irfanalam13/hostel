@@ -14,6 +14,11 @@ export const options = {
   thresholds,
 };
 
+// The read endpoints below legitimately 404 on deploys where a module isn't
+// enabled (the per-request check tolerates it). Treat 404 as an expected status
+// too, so those reads don't inflate http_req_failed and trip its threshold.
+http.setResponseCallback(http.expectedStatuses(200, 404));
+
 export function setup() {
   // Nothing global; each VU logs in itself so cookie jars stay per-VU.
   return {};
