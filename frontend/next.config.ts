@@ -30,14 +30,17 @@ const nextConfig: NextConfig = {
     // Strip console.* from production bundles (keep error/warn for observability).
     removeConsole: isDev ? false : { exclude: ["error", "warn"] },
   },
+  // experimental: {
+  //   // Rewrite barrel imports (`import { X } from "lucide-react"`) to per-module
+  //   // deep imports so only the icons/charts actually used are bundled. Big win
+  //   // for the icon set and recharts on the initial JS payload.
+  //   optimizePackageImports: ["lucide-react", "recharts"],
+  //   // Subresource Integrity: Next stamps integrity="sha384-…" on its <script>
+  //   // tags so a tampered/MITM'd build chunk is rejected by the browser.
+  //   sri: { algorithm: "sha384" },
+  // },
   experimental: {
-    // Rewrite barrel imports (`import { X } from "lucide-react"`) to per-module
-    // deep imports so only the icons/charts actually used are bundled. Big win
-    // for the icon set and recharts on the initial JS payload.
     optimizePackageImports: ["lucide-react", "recharts"],
-    // Subresource Integrity: Next stamps integrity="sha384-…" on its <script>
-    // tags so a tampered/MITM'd build chunk is rejected by the browser.
-    sri: { algorithm: "sha384" },
   },
   async headers() {
     return [
