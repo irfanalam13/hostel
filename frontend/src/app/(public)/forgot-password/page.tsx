@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import { authApi } from "@/features/auth/api/auth.api";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
+import { useToast } from "@/shared/ui/toast/ToastProvider";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
+  const toast = useToast();
   const [identifier, setIdentifier] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,12 +23,15 @@ export default function ForgotPasswordPage() {
       const payload = identifier.includes("@") ? { email: identifier } : { username: identifier };
       const res = await authApi.forgotPassword(payload);
       setMessage(res.detail);
+      toast.success(res.detail, "Check your email");
       // Redirect after 2 seconds so they can read the success message
       setTimeout(() => {
         router.push(`/reset-password?email_or_username=${encodeURIComponent(identifier)}`);
       }, 2000);
     } catch (err: any) {
-      setMessage(err?.message || "Failed to request password reset.");
+      const msg = err?.message || "Failed to request password reset.";
+      setMessage(msg);
+      toast.error(msg, "Request failed");
     } finally {
       setLoading(false);
     }

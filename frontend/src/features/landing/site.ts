@@ -28,7 +28,12 @@ function unwrap<T>(json: unknown): T {
 
 async function getJson<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${apiBase()}${path}`, { next: { revalidate: 300 } });
+    const res = await fetch(`${apiBase()}${path}`, {
+      next: { revalidate: 300 },
+      // Fail fast if the backend is cold/asleep so a slow API can't hang the
+      // server render — the caller falls back to static copy.
+      signal: AbortSignal.timeout(3500),
+    });
     if (!res.ok) return null;
     return unwrap<T>(await res.json());
   } catch {

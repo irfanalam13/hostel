@@ -257,6 +257,7 @@ import { Button } from "@/shared/ui/Button";
 import { apiFetch } from "@/shared/api/apiClient";
 import { authStore } from "@/shared/auth/auth.store";
 import { hostelStore } from "@/shared/lib/hostel";
+import { useToast } from "@/shared/ui/toast/ToastProvider";
 
 type SignupResponse = {
   user?: { role?: string };
@@ -302,6 +303,7 @@ function strengthLabel(score: number) {
 
 export default function SignupPage() {
   const router = useRouter();
+  const toast = useToast();
 
   const [hostelName, setHostelName] = useState("");
   const [hostelPhone, setHostelPhone] = useState("");
@@ -365,9 +367,13 @@ export default function SignupPage() {
         body: JSON.stringify({ email: email.trim() }),
       });
       setOtpSent(true);
-      setOtpMsg(`Verification code sent to ${email.trim()}. Check your inbox (and spam).`);
+      const sentMsg = `Verification code sent to ${email.trim()}. Check your inbox (and spam).`;
+      setOtpMsg(sentMsg);
+      toast.success(sentMsg, "Check your email");
     } catch (e: any) {
-      setErr(e?.message || "Could not send the verification code. Try again.");
+      const msg = e?.message || "Could not send the verification code. Try again.";
+      setErr(msg);
+      toast.error(msg, "Couldn't send code");
     } finally {
       setSendingOtp(false);
     }
@@ -428,9 +434,15 @@ export default function SignupPage() {
 
       // Editable UX: stay on page and show success box
       setSignupDone(true);
+      toast.success(
+        hostelCode ? `Your Hostel ID is ${hostelCode}. Keep it safe — you'll need it to log in.` : "Your account is ready.",
+        "Account created",
+      );
     } catch (e: any) {
       // apiFetch throws Error(message). If backend returned structure, show it:
-      setErr(e?.message || "Signup failed");
+      const msg = e?.message || "Signup failed";
+      setErr(msg);
+      toast.error(msg, "Signup failed");
     } finally {
       setLoading(false);
     }

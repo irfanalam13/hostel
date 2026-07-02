@@ -66,3 +66,38 @@ export function captureError(error: unknown, extra?: CaptureExtra) {
 export function captureMessage(message: string, extra?: CaptureExtra) {
   captureError(new Error(message), { handled: true, ...extra });
 }
+
+type ApiErrorContext = {
+  method?: string;
+  url?: string;
+  status?: number;
+  /** The backend's error detail/message, already extracted by the API client. */
+  detail?: string;
+  /** Raw error body (field errors etc.), for debugging. */
+  data?: unknown;
+};
+
+/**
+ * Trace a backend API failure for developers. Every failed `apiFetch` funnels
+ * through here, so a single structured record — method, endpoint, HTTP status
+ * and the backend's own detail — is available in the browser console (dev) and
+ * forwarded to Sentry (prod), without each component having to log it.
+ */
+export function captureApiError(ctx: ApiErrorContext) {
+  try {
+    const { method = "GET", url = "", status = 0, detail = "", data } = ctx;
+    const label = `${method.toUpperCase()} ${url} → ${status}`;
+    const sentry = getSentry();
+    if (sentry) {
+      sentry.captureException(new Error(`API ${label}: ${detail}`), {
+        user: userContext,
+        extra: { api_error: true, method, url, status, detail, data },
+      });
+      return;
+    }
+    // Dev/no-SDK: a single grouped, greppable record devs can trace from.
+    console.error(`[api-error] ${label}`, { detail, data });
+  } catch {
+    // Swallow — tracing must never crash the request path.
+  }
+}
