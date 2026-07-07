@@ -15,7 +15,9 @@ describe("secure storage guardrails (Phase 10)", () => {
 
   it("refuses to store a JWT-shaped value", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NSJ9.s5d8fJ2kQ9aBcD1eFgHiJkLmNoPqRsTuVwXyZ012345";
+    // Synthetic, non-sensitive JWT used only to prove `storage` rejects
+    // token-shaped values. Not a real credential. gitleaks:allow
+    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NSJ9.s5d8fJ2kQ9aBcD1eFgHiJkLmNoPqRsTuVwXyZ012345"; // gitleaks:allow
     storage.set("whatever", jwt);
     expect(storage.get("whatever")).toBeNull();
   });
