@@ -97,6 +97,11 @@ jobs:
     name: Stack boot + health (docker compose)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # This job validates the PRODUCTION stack. Pin the base compose file so the
+    # dev-only docker-compose.override.yml is never auto-merged here (it swaps in
+    # runserver/npm-dev and bind-mounts source, which is not what we validate).
+    env:
+      COMPOSE_FILE: docker-compose.yml
     steps:
       - uses: actions/checkout@v4
 
