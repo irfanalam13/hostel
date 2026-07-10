@@ -10,16 +10,31 @@
 #   docker compose -f docker-compose.yml up --build   production-style, no reload
 #
 # Redis is unchanged (still a Docker service). PostgreSQL runs on the HOST
-# machine — containers reach it via host.docker.internal (see docker-compose.yml).
+# machine in dev — the backend containers reach it via host.docker.internal,
+# and the base file's containerized `postgres` service is profiled out below so
+# it does not start. (The base stack keeps its own Postgres container.)
 # =============================================================================
 
+# Point the app at the host's PostgreSQL and make host.docker.internal resolve
+# on plain Linux engines. DATABASE_URL here overrides the base service DSN.
+x-host-db-hosts: &host-db-hosts
+  - "host.docker.internal:host-gateway"
+
 services:
+  # The base file's Postgres container is not used in dev (host Postgres is).
+  # Assigning a profile keeps it from starting unless explicitly requested with
+  # `docker compose --profile container-db up`.
+  postgres:
+    profiles: ["container-db"]
+
   # Django dev server: built-in autoreload on any .py change.
   web:
+    extra_hosts: *host-db-hosts
     environment:
       # Dev-only: verbose errors + regenerate migrations from models at boot.
       DEBUG: "True"
       MAKE_MIGRATIONS: "1"
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
     # Live source over the baked image code (venv lives in /opt/venv, untouched).
     volumes:
       - ./backend:/app
@@ -37,8 +52,10 @@ services:
     # Dev-only: run as root so the boot-time `pip install watchdog` can write
     # into the root-owned /opt/venv (the non-root app user can't).
     user: root
+    extra_hosts: *host-db-hosts
     environment:
       DEBUG: "True"
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
     volumes:
       - ./backend:/app
       - media_data:/app/media
@@ -58,8 +75,10 @@ services:
     # Dev-only: run as root so the boot-time `pip install watchdog` can write
     # into the root-owned /opt/venv (the non-root app user can't).
     user: root
+    extra_hosts: *host-db-hosts
     environment:
       DEBUG: "True"
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
     volumes:
       - ./backend:/app
     # Run the bind-mounted entrypoint via `sh` (see the web service note).

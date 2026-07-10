@@ -12,18 +12,33 @@
 # the database credentials can never drift apart. This `environment:` value
 # overrides any DATABASE_URL that might leak in via env_file.
 #
-# PostgreSQL is NOT run in Docker — the stack connects to the PostgreSQL server
-# installed on the host machine via `host.docker.internal` (Docker Desktop
-# resolves it to the host automatically; the extra_hosts entries below make it
-# work on plain Linux engines too).
+# The base stack runs PostgreSQL as a container (the `postgres` service below),
+# so `docker compose -f docker-compose.yml up` is a self-contained, production-
+# shaped stack. Local dev instead talks to a PostgreSQL server on the host; that
+# swap lives in docker-compose.override.yml and does not touch this base file.
 x-postgres-dsn: &postgres-dsn
-  DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@${POSTGRES_HOST:-host.docker.internal}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
-
-x-host-db-access: &host-db-access
-  extra_hosts:
-    - "host.docker.internal:host-gateway"
+  DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
 
 services:
+  # ---------------------------------------------------------------------------
+  # postgres — primary datastore
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hostel}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-irfanalam}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-hostel}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # ---------------------------------------------------------------------------
   # Redis — Celery broker / result backend / cache
   # ---------------------------------------------------------------------------
@@ -49,7 +64,6 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
-    <<: *host-db-access
     environment:
       <<: *postgres-dsn
       RUN_MIGRATIONS: "1"
@@ -58,6 +72,11 @@ services:
     ports:
       - "${WEB_PORT:-8000}:8000"
     depends_on:
+      postgres:
+        condition: service_healthy
+        # Dev profiles the container Postgres out (host Postgres is used instead),
+        # so this dependency must be optional or the dev project won't validate.
+        required: false
       redis:
         condition: service_healthy
     healthcheck:
@@ -76,7 +95,6 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
-    <<: *host-db-access
     # Only `web` migrates; sidecars skip it to avoid racing on the same schema.
     environment:
       <<: *postgres-dsn
@@ -106,7 +124,6 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
-    <<: *host-db-access
 
     # Only `web` migrates; sidecars skip it to avoid racing on the same schema.
     environment:
@@ -204,5 +221,6 @@ services:
         condition: service_started
 
 volumes:
+  postgres_data:
   redis_data:
   media_data:
