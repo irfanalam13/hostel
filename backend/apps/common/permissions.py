@@ -1,14 +1,46 @@
+from django.conf import settings
 from rest_framework.permissions import BasePermission
 
-STAFF_ROLES = {"ADMIN", "OWNER", "MANAGER", "ACCOUNTANT", "WARDEN", "STAFF"}
+# Roles with staff-level (write) access on legacy role-gated endpoints.
+# READ_ONLY / STUDENT / PARENT / RESIDENT are deliberately absent — they get
+# read access where a view allows it and everything finer goes through the
+# permission registry in apps.common.rbac.
+STAFF_ROLES = {"ADMIN", "OWNER", "MANAGER", "RECEPTIONIST", "ACCOUNTANT", "WARDEN", "STAFF"}
+
+# Membership is checked on every authenticated request (authentication AND
+# permission layer), so it is cached: per-request memo first, then Redis with a
+# short TTL. UserHostel save/delete invalidates the Redis entry (wired in
+# apps.accounts.apps), so revocation takes effect immediately on the ORM path
+# and within the TTL worst-case otherwise.
+_MEMBERSHIP_KEY = "membership:v1:{user_id}:{hostel_id}"
 
 
-def user_is_hostel_member(user, hostel):
+def _membership_ttl() -> int:
+    return int(getattr(settings, "MEMBERSHIP_CACHE_TTL", 60))
+
+
+def membership_cache_key(user_id, hostel_id) -> str:
+    return _MEMBERSHIP_KEY.format(user_id=user_id, hostel_id=hostel_id)
+
+
+def invalidate_membership_cache(user_id, hostel_id) -> None:
+    from django.core.cache import cache
+
+    try:
+        cache.delete(membership_cache_key(user_id, hostel_id))
+    except Exception:
+        pass  # cache down — TTL bounds staleness
+
+
+def user_is_hostel_member(user, hostel, request=None):
     """True if the authenticated user is actively linked to the hostel.
 
     Superusers bypass the check. This is the core multi-tenant guard: the
     resolved hostel comes from a client-supplied header, so we must verify the
     caller actually belongs to it before exposing any data.
+
+    Pass ``request`` when available: the result is memoized on the request so
+    the authentication class and permission classes share one lookup.
     """
     if hostel is None:
         return False
@@ -16,10 +48,41 @@ def user_is_hostel_member(user, hostel):
         return False
     if user.is_superuser:
         return True
-    # Imported lazily to avoid a circular import (accounts -> common.models).
-    from apps.accounts.models import UserHostel
 
-    return UserHostel.objects.filter(user=user, hostel=hostel, is_active=True).exists()
+    # Per-request memo (authentication + permissions both call this).
+    base = getattr(request, "_request", request) if request is not None else None
+    memo_key = (user.pk, hostel.pk)
+    if base is not None:
+        memo = getattr(base, "_membership_memo", None)
+        if memo is not None and memo_key in memo:
+            return memo[memo_key]
+
+    from django.core.cache import cache
+
+    cache_key = membership_cache_key(user.pk, hostel.pk)
+    result = None
+    try:
+        hit = cache.get(cache_key)
+    except Exception:  # cache down — serve from the DB, don't 500 the request
+        hit = None
+    if hit is not None:
+        result = bool(hit)
+
+    if result is None:
+        # Imported lazily to avoid a circular import (accounts -> common.models).
+        from apps.accounts.models import UserHostel
+
+        result = UserHostel.objects.filter(user=user, hostel=hostel, is_active=True).exists()
+        try:
+            cache.set(cache_key, 1 if result else 0, _membership_ttl())
+        except Exception:
+            pass
+
+    if base is not None:
+        if getattr(base, "_membership_memo", None) is None:
+            base._membership_memo = {}
+        base._membership_memo[memo_key] = result
+    return result
 
 
 class HasHostelContext(BasePermission):
@@ -37,7 +100,7 @@ class HasHostelContext(BasePermission):
             return False
         user = getattr(request, "user", None)
         if user and user.is_authenticated:
-            return user_is_hostel_member(user, hostel)
+            return user_is_hostel_member(user, hostel, request=request)
         return True
 
 
@@ -110,7 +173,8 @@ class IsHostelResolved(BasePermission):
     """
     Ensure the request has an active hostel context AND that the authenticated
     user is a member of it (multi-tenant SaaS isolation). The hostel itself is
-    set by HostelResolveMiddleware from the X-Hostel-Code header.
+    set by apps.tenants.middleware.TenantResolutionMiddleware (workspace
+    subdomain, X-WORKSPACE, or legacy X-Hostel-Code header).
     """
     message = "Hostel is not selected/resolved, or you are not a member of it."
 
@@ -120,5 +184,5 @@ class IsHostelResolved(BasePermission):
             return False
         user = getattr(request, "user", None)
         if user and user.is_authenticated:
-            return user_is_hostel_member(user, hostel)
+            return user_is_hostel_member(user, hostel, request=request)
         return False

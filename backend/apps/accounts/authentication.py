@@ -9,8 +9,8 @@ from django.conf import settings
 from django.middleware.csrf import CsrfViewMiddleware
 from rest_framework import exceptions
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from apps.accounts.models import UserHostel
-from apps.tenants.models import Hostel
+from apps.common.permissions import user_is_hostel_member
+from apps.tenants.cache import get_tenant_by_id
 
 
 class _CSRFCheck(CsrfViewMiddleware):
@@ -41,15 +41,37 @@ class CookieJWTAuthentication(JWTAuthentication):
         if not hostel_code or not hostel_id:
             raise exceptions.AuthenticationFailed("Token is missing hostel context.")
 
-        hostel = Hostel.objects.filter(id=hostel_id, code=hostel_code, is_active=True).first()
-        if not hostel:
+        # Password-change detection: tokens embed a fingerprint of the password
+        # hash at issue time (pwv). A password change rotates it, so every
+        # previously issued token dies here immediately — no waiting for
+        # expiry. Tokens minted before this claim existed pass (legacy).
+        token_pwv = validated_token.get("pwv")
+        if token_pwv is not None and token_pwv != user.password_version:
+            raise exceptions.AuthenticationFailed(
+                "Session invalidated by a password change. Please sign in again."
+            )
+
+        # Resolved through the tenant Redis cache (same one the tenant
+        # middleware uses) instead of a per-request Hostel query.
+        hostel = get_tenant_by_id(hostel_id)
+        if not hostel or hostel.code != hostel_code or not hostel.is_active:
             raise exceptions.AuthenticationFailed("Invalid token hostel context.")
 
-        # Superusers bypass the membership guard so platform admins can reach any
-        # tenant — mirroring apps.common.permissions.user_is_hostel_member.
-        if not user.is_superuser and not UserHostel.objects.filter(
-            user=user, hostel=hostel, is_active=True
-        ).exists():
+        # Cross-tenant token binding: when the tenant middleware resolved a
+        # workspace for this request (subdomain / X-Workspace / header), the
+        # token must belong to THAT workspace. A token minted on
+        # everest.myhostel.com is unusable against himalayan.myhostel.com even
+        # for a user who happens to be a member of both.
+        resolved = getattr(request, "tenant", None)
+        if resolved is not None and str(resolved.pk) != str(hostel.pk):
+            raise exceptions.AuthenticationFailed(
+                "This session belongs to a different workspace."
+            )
+
+        # Membership guard (superusers bypass inside the helper). Cached in
+        # Redis and memoized on the request so the permission classes reuse
+        # this same lookup instead of re-querying.
+        if not user_is_hostel_member(user, hostel, request=request):
             raise exceptions.AuthenticationFailed("Invalid token hostel membership.")
 
         request.hostel = hostel

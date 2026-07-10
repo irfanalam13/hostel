@@ -73,9 +73,10 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(Hostel)
 class HostelAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "code", "is_active")
-    search_fields = ("name", "code")
-    list_filter = ("is_active",)
+    list_display = ("id", "name", "slug", "code", "status", "is_active", "is_deleted")
+    search_fields = ("name", "code", "slug")
+    list_filter = ("is_active", "status", "is_deleted")
+    readonly_fields = ("slug", "code")
     
     
     
