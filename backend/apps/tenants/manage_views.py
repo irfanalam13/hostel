@@ -25,7 +25,6 @@ from apps.common.permissions import IsOwner, STAFF_ROLES
 from apps.common.rbac import RequirePermission
 
 from . import services, workspace_settings
-from .models import Hostel
 from .serializers import WorkspaceSerializer
 
 logger = logging.getLogger(__name__)
@@ -57,12 +56,12 @@ class WorkspaceOverviewView(APIView):
         role_of = lambda link: getattr(link.user, "role", "")  # noqa: E731
 
         member_count = links.count()
-        staff_count = sum(1 for l in links if role_of(l) in STAFF_ROLES)
-        student_count = sum(1 for l in links if role_of(l) in {"STUDENT", "RESIDENT"})
-        parent_count = sum(1 for l in links if role_of(l) == "PARENT")
+        staff_count = sum(1 for link in links if role_of(link) in STAFF_ROLES)
+        student_count = sum(1 for link in links if role_of(link) in {"STUDENT", "RESIDENT"})
+        parent_count = sum(1 for link in links if role_of(link) == "PARENT")
         month_ago = timezone.now() - timezone.timedelta(days=30)
         active_users = sum(
-            1 for l in links if l.user.last_login and l.user.last_login >= month_ago
+            1 for link in links if link.user.last_login and link.user.last_login >= month_ago
         )
         last_login = links.aggregate(latest=Max("user__last_login"))["latest"]
 

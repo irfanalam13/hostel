@@ -5,7 +5,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
-from apps.accounts.models import User, UserHostel
+from apps.accounts.models import UserHostel
 from apps.auditlog.models import AuditEvent
 from apps.tenants import services
 from apps.tenants.models import Hostel, WorkspaceStatus

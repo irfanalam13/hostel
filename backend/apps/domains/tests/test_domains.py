@@ -217,7 +217,8 @@ def test_primary_switch(fake_dns, fake_ssl, hostel):
     # Activating the second (make_primary default) moved primary over.
     assert second.is_primary and not first.is_primary
     services.set_primary_domain(first)
-    first.refresh_from_db(); second.refresh_from_db()
+    first.refresh_from_db()
+    second.refresh_from_db()
     assert first.is_primary and not second.is_primary
     assert services.public_url_for(hostel) == "https://one.everest.com"
 
@@ -285,7 +286,7 @@ def test_domain_api_permissions_and_isolation(auth_client, make_user, fake_dns,
     staff = make_user(role="STAFF", hostel=hostel)
     assert auth_client(staff, hostel).get(DOMAINS).status_code == 403
 
-    owner_a = make_user(role="OWNER", hostel=hostel)
+    make_user(role="OWNER", hostel=hostel)
     record = services.add_domain(hostel, "hostel.everest.com")
     owner_b = make_user(role="OWNER", hostel=other_hostel)
     # B cannot see or verify A's domain.

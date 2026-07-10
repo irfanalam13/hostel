@@ -13,6 +13,12 @@ import uuid
 
 from django.conf import settings as _settings
 from django.test import Client
+from rest_framework_simplejwt.tokens import AccessToken
+
+from apps.accounts.models import User, UserHostel
+from apps.accounts.tokens import issue_tokens
+from apps.domains.models import CustomDomain
+from apps.tenants import services as tsvc
 
 # The Django test Client defaults to Host: testserver. In the dev container
 # ALLOWED_HOSTS is explicit (only .localhost is auto-added), so allow it here
@@ -21,13 +27,6 @@ for _h in ("testserver", "everest.localhost", "himalayan.localhost",
            "sunrise.localhost", "metro.localhost"):
     if _h not in _settings.ALLOWED_HOSTS:
         _settings.ALLOWED_HOSTS.append(_h)
-from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-
-from apps.accounts.models import User, UserHostel
-from apps.accounts.tokens import issue_tokens
-from apps.domains import services as dsvc
-from apps.domains.models import CustomDomain
-from apps.tenants import services as tsvc
 
 # --------------------------------------------------------------------------- #
 RESULTS = []
@@ -115,7 +114,8 @@ def setup():
             username=f"qa_{slug}_owner_{run_id}", email=f"{slug}.owner.{run_id}@example.com",
             role="OWNER",
         )
-        owner.set_password(PASSWORD); owner.save()
+        owner.set_password(PASSWORD)
+        owner.save()
         CREATED_USERS.append(owner)
         h = tsvc.provision_workspace(owner=owner, hostel_name=name, workspace_username=slug)
         CREATED_HOSTELS.append(h)
@@ -128,7 +128,8 @@ def setup():
                 username=f"qa_{slug}_{role.lower()}_{run_id}",
                 email=f"{slug}.{role.lower()}.{run_id}@example.com", role=role,
             )
-            u.set_password(PASSWORD); u.save()
+            u.set_password(PASSWORD)
+            u.save()
             UserHostel.objects.create(user=u, hostel=h, is_active=True)
             CREATED_USERS.append(u)
             users[(slug, role)] = u
@@ -256,7 +257,8 @@ def test_prompt02():
     _, access = issue_tokens(u, hostels["everest"])
     api = Client()
     before = api.get("/api/auth/me/", **bearer(str(access), ws("everest"))).status_code
-    u.set_password("Changed!2026"); u.save()
+    u.set_password("Changed!2026")
+    u.save()
     after = api.get("/api/auth/me/", **bearer(str(access), ws("everest"))).status_code
     check("02 password change invalidates old tokens", before == 200 and after == 401)
 
@@ -544,8 +546,10 @@ def test_prompt05():
     # Simulate verified + activate (real DNS unavailable in QA)
     rec = CustomDomain.objects.get(id=did)
     from django.utils import timezone as tz
-    rec.verification_method = "txt"; rec.verified_at = tz.now()
-    rec.status = CustomDomain.Status.VERIFIED; rec.save()
+    rec.verification_method = "txt"
+    rec.verified_at = tz.now()
+    rec.status = CustomDomain.Status.VERIFIED
+    rec.save()
     r = api.post(f"/api/domains/{did}/activate/", {"make_primary": True},
                  content_type="application/json", **auth)
     check("05 activate verified domain", r.status_code == 200 and data(r)["is_primary"])

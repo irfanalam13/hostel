@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 
-from apps.tenants.models import Hostel, HOSTEL_CODE_RE
+from apps.tenants.models import HOSTEL_CODE_RE
 from apps.auditlog.models import AuditEvent
 
 

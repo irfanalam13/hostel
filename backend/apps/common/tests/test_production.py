@@ -36,7 +36,6 @@ def test_storage_probe_roundtrip(db, tmp_path, settings):
 
 def test_storage_probe_failure_is_generic(db):
     """Storage errors must never leak endpoints/credentials in the response."""
-    from django.core.files.storage import Storage
 
     with mock.patch(
         "django.core.files.storage.default_storage.save",
@@ -102,7 +101,6 @@ def test_storage_backend_is_env_switchable():
 def test_throttling_uses_shared_cache_config():
     """DRF throttle state must live in the shared cache in production (the
     default cache backend is Redis outside tests) — no per-process limits."""
-    rates = settings.REST_FRAMEWORK.get("DEFAULT_THROTTLE_RATES", {})
     # settings_test empties rates; the production settings module defines them.
     from config import settings as base_settings  # noqa: F401
 

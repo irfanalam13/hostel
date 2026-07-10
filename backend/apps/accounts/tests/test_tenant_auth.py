@@ -10,13 +10,12 @@ Covers:
   * session verify + permission endpoints
   * public workspace branding for login pages
 """
-from datetime import timedelta
 
 import pytest
 from django.core import mail
 from django.test import override_settings
 
-from apps.accounts.models import PasswordResetOTP, User
+from apps.accounts.models import PasswordResetOTP
 from apps.accounts.tokens import issue_tokens
 
 LOGIN = "/api/auth/login/"

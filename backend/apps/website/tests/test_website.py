@@ -5,7 +5,7 @@ import io
 import pytest
 
 from apps.website import services
-from apps.website.models import WebsiteInquiry, WebsiteSection
+from apps.website.models import WebsiteInquiry
 from apps.website.sections import DEFAULT_SECTION_ORDER
 
 pytestmark = pytest.mark.django_db
