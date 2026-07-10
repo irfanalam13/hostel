@@ -71,16 +71,19 @@ export default defineConfig({
     },
   ],
 
-  // Build once, then `next start` on an isolated port. In live mode we assume a
-  // server is already running and just reuse it.
+  // Build both zones once, then start them together (client on PORT proxying
+  // the admin zone on PORT+1 — see scripts/start-zones.mjs). In live mode we
+  // assume servers are already running and just reuse them.
   webServer: isLive
     ? undefined
     : {
-        command: `npm run build && npm run start -- --port ${PORT}`,
+        command: `npm run build && node scripts/start-zones.mjs`,
         url: BASE_URL,
-        timeout: 240_000,
+        timeout: 480_000,
         reuseExistingServer: !isCI,
         env: {
+          ZONE_CLIENT_PORT: String(PORT),
+          ZONE_ADMIN_PORT: String(PORT + 1),
           // Point the app at the origin we intercept in mock-api.ts.
           NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api",
           NEXT_PUBLIC_VAPID_PUBLIC_KEY:

@@ -4,7 +4,7 @@
  * Demonstrates the component-testing harness and locks in the loading/disabled
  * behaviour that Audit H5 added (no double-submits, in-flight feedback).
  */
-import { Button } from "@/shared/ui/Button";
+import { Button } from "@hostel/ui";
 
 describe("<Button />", () => {
   it("renders its label and handles clicks", () => {

@@ -1,0 +1,27 @@
+{
+  "name": "@hostel/admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build --webpack",
+    "start": "next start -p 3001",
+    "start:test": "next start --port 3101"
+  },
+  "dependencies": {
+    "@hostel/api": "*",
+    "@hostel/auth": "*",
+    "@hostel/config": "*",
+    "@hostel/hooks": "*",
+    "@hostel/permissions": "*",
+    "@hostel/pwa": "*",
+    "@hostel/types": "*",
+    "@hostel/ui": "*",
+    "@hostel/utils": "*",
+    "lucide-react": "^1.21.0",
+    "next": "16.2.9",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "recharts": "^3.9.0"
+  }
+}

@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hostel SaaS — Frontend Monorepo
 
-## Getting Started
+Two Next.js applications composed as multi-zones on one origin, plus shared
+workspace packages. Full details: [ARCHITECTURE.md](./ARCHITECTURE.md) ·
+migration report: [Documentation/MIGRATION-ADMIN-SPLIT.md](./Documentation/MIGRATION-ADMIN-SPLIT.md).
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+apps/client      public marketing site   → http://localhost:3000
+apps/admin       admin workspace + PWA   → http://localhost:3001
+packages/*       @hostel/ui · api · auth · pwa · permissions · hooks · utils · types · config
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The client zone proxies every non-marketing path to the admin zone, so
+`localhost:3000` serves the entire product; `localhost:3001` gives direct
+(full-HMR) access to the admin app while developing it.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands (run from this directory)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install            # one install for the whole workspace
+npm run dev:admin      # admin app dev server (:3001)
+npm run dev:client     # client app dev server (:3000, proxies admin)
+npm run build          # production build of both apps
+npm run typecheck      # tsc for both apps (packages checked transitively)
+npm run lint           # eslint across the workspace
+npm test               # vitest (admin / client / packages projects)
+npm run e2e            # Playwright — builds & starts both zones itself
+npm run lhci           # Lighthouse CI (expects apps already built)
+npm run cy:ci          # Cypress against both zones (expects built apps)
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Docker development (from the repo root): `docker compose up -d --build` —
+services `frontend` (client zone) and `admin`.

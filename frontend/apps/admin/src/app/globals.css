@@ -1,0 +1,6 @@
+@import "tailwindcss";
+/* Tailwind v4 auto-detects sources from the app root only — pull in workspace
+   packages so classes used inside @hostel/* components are generated too. */
+@source "../../../../packages";
+/* Shared design tokens + base styles (theme variables, dark mode, scrollbars). */
+@import "../../../../packages/ui/src/styles/tokens.css";
