@@ -11,7 +11,8 @@ class TenantQuerySetMixin:
         serializer.save(hostel=self.request.hostel)
 
 class RoomViewSet(TenantQuerySetMixin, ModelViewSet):
-    queryset = Room.objects.all().order_by("number")
+    # RoomSerializer nests beds; prefetch avoids one beds query per room.
+    queryset = Room.objects.prefetch_related("beds").all().order_by("number")
     serializer_class = RoomSerializer
     permission_classes = [IsHostelResolved, IsStaff]
     search_fields = ["number", "floor"]

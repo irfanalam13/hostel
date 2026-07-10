@@ -39,7 +39,9 @@ class RoomViewSet(HostelScopedViewSet):
     ordering_fields = ["room_no", "created_at", "rent", "capacity"]
 
 class BedViewSet(HostelScopedViewSet):
-    queryset = Bed.objects.select_related("room").all().order_by("room__room_no","bed_no")
+    # room__block / room__floor_ref are rendered by the nested RoomSerializer,
+    # so join them here or every bed in a list costs two extra queries.
+    queryset = Bed.objects.select_related("room", "room__block", "room__floor_ref").all().order_by("room__room_no","bed_no")
     serializer_class = BedSerializer
     search_fields = ["bed_no","room__room_no"]
     filterset_fields = ["status", "room"]

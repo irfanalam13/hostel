@@ -11,9 +11,12 @@ Two endpoints:
 "Online" is derived from ``UserPresence.last_seen`` within ``ONLINE_WINDOW``, so
 no background job is required.
 """
+import threading
+import time
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import connections
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
@@ -58,9 +61,35 @@ class HeartbeatView(APIView):
         return Response({"ok": True})
 
 
-def _health() -> dict:
-    """Cheap readiness summary for the status panel (db + cache + celery)."""
-    # Database
+# ---------------------------------------------------------------------------
+# API health summary for the status panel.
+#
+# The naive version pinged Celery workers *synchronously* on every request
+# (``control.ping`` is a broadcast over the broker that blocks for its full
+# timeout — ~1s — whenever it is called). That made ``/system-status/`` a ~1s
+# endpoint even though its DB work is <25ms (Phase 10: the frontend must never
+# wait for Celery).
+#
+# Fix: stale-while-revalidate. The request always returns the last cached
+# snapshot instantly; when the snapshot ages past ``_HEALTH_FRESH_TTL`` a
+# refresh runs in a daemon thread so no user request ever blocks on a probe.
+# ---------------------------------------------------------------------------
+_HEALTH_CACHE_KEY = "dashboard:system_health"
+# How long a snapshot is considered fresh before a background refresh is kicked.
+_HEALTH_FRESH_TTL = getattr(settings, "SYSTEM_HEALTH_TTL", 15)
+# Keep the last-known snapshot in cache well past freshness so a probe failure
+# or restart still serves something instead of blocking.
+_HEALTH_HARD_TTL = 300
+# Bounded probe timeouts — the probe runs off the request path, but a hung
+# dependency must still not pin a worker thread forever.
+_PROBE_TIMEOUT = getattr(settings, "SYSTEM_HEALTH_PROBE_TIMEOUT", 0.5)
+
+_health_refresh_lock = threading.Lock()
+_health_refreshing = False
+
+
+def _probe_health() -> dict:
+    """Actively probe db + cache + celery. Runs OFF the request hot path."""
     db_ok = True
     try:
         with connections["default"].cursor() as cur:
@@ -69,25 +98,23 @@ def _health() -> dict:
     except Exception:  # noqa: BLE001
         db_ok = False
 
-    # Redis cache / broker
     cache_ok = True
     try:
         import redis
 
         redis.Redis.from_url(
             getattr(settings, "REDIS_URL", "") or getattr(settings, "CELERY_BROKER_URL", ""),
-            socket_connect_timeout=1,
-            socket_timeout=1,
+            socket_connect_timeout=_PROBE_TIMEOUT,
+            socket_timeout=_PROBE_TIMEOUT,
         ).ping()
     except Exception:  # noqa: BLE001
         cache_ok = False
 
-    # Celery workers
     celery_ok = False
     try:
         from config.celery import app as celery_app
 
-        replies = celery_app.control.ping(timeout=1.0)
+        replies = celery_app.control.ping(timeout=_PROBE_TIMEOUT)
         celery_ok = bool(replies)
     except Exception:  # noqa: BLE001
         celery_ok = False
@@ -98,7 +125,59 @@ def _health() -> dict:
         "database": db_ok,
         "cache": cache_ok,
         "celery": celery_ok,
+        "checked_at": time.time(),
     }
+
+
+def _refresh_health_async() -> None:
+    """Kick a single background refresh of the health snapshot (no-op if one is
+    already running in this process)."""
+    global _health_refreshing
+    with _health_refresh_lock:
+        if _health_refreshing:
+            return
+        _health_refreshing = True
+
+    def _run():
+        global _health_refreshing
+        try:
+            snap = _probe_health()
+            cache.set(_HEALTH_CACHE_KEY, snap, _HEALTH_HARD_TTL)
+        finally:
+            with _health_refresh_lock:
+                _health_refreshing = False
+
+    threading.Thread(target=_run, daemon=True, name="system-health-refresh").start()
+
+
+def _health() -> dict:
+    """Return the cached health snapshot instantly; refresh in the background
+    when it is missing or stale. NO request ever blocks on a Celery/Redis probe:
+
+    * cache miss (cold process / expired) → return an optimistic "checking"
+      snapshot and kick a background refresh; the next request gets real data
+      (a few ms of probe run off the request path);
+    * fresh → return it as-is;
+    * stale → return it and kick a background refresh.
+    """
+    snapshot = cache.get(_HEALTH_CACHE_KEY)
+    if snapshot is None:
+        # Seed a placeholder so concurrent requests don't each kick a refresh,
+        # then trigger the single background probe.
+        placeholder = {
+            "status": "checking",
+            "database": None,
+            "cache": None,
+            "celery": None,
+            "checked_at": time.time(),
+        }
+        cache.set(_HEALTH_CACHE_KEY, placeholder, _HEALTH_HARD_TTL)
+        _refresh_health_async()
+        return placeholder
+
+    if time.time() - snapshot.get("checked_at", 0) > _HEALTH_FRESH_TTL:
+        _refresh_health_async()
+    return snapshot
 
 
 class SystemStatusView(APIView):

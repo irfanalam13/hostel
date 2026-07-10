@@ -21,7 +21,8 @@ class HostelScopedViewSet(viewsets.ModelViewSet):
         serializer.save(hostel=self.request.hostel)
 
 class StudentViewSet(HostelScopedViewSet):
-    queryset = Student.objects.all().order_by("full_name")
+    # StudentSerializer nests documents; prefetch avoids one query per student.
+    queryset = Student.objects.prefetch_related("documents").all().order_by("full_name")
     serializer_class = StudentSerializer
     search_fields = ["full_name","phone","guardian_phone"]
     filterset_fields = ["status"]
