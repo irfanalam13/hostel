@@ -43,6 +43,15 @@ REST_FRAMEWORK = {**REST_FRAMEWORK}  # noqa: F405
 REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = ()
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {}
 
+# --- Cache: in-memory (no Redis in CI); tenant-cache tests still exercise the
+# cache-aside logic against locmem ------------------------------------------
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "tests",
+    }
+}
+
 # --- Email captured in memory ----------------------------------------------
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 

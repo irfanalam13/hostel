@@ -40,3 +40,10 @@ logs/
 Thumbs.db
 .idea/
 .vscode/
+
+# --- Local tooling / scratch ------------------------------------------------
+.mcp.json
+/backups/
+frontend/_capture_tmp.mjs
+frontend/_students_shot.png
+frontend/e2e/_debug_students.spec.ts

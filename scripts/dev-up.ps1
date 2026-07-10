@@ -53,7 +53,8 @@ $frontendPort = if ($env:FRONTEND_PORT) { $env:FRONTEND_PORT } else { "3000" }
 $webPort      = if ($env:WEB_PORT)      { $env:WEB_PORT }      else { "8000" }
 
 Write-Host ""
-Write-Host "Frontend: http://localhost:$frontendPort" -ForegroundColor Green
+Write-Host "Frontend (client zone): http://localhost:$frontendPort" -ForegroundColor Green
+Write-Host "Admin zone (direct):    http://localhost:3001" -ForegroundColor Green
 Write-Host "Backend:  http://localhost:$webPort" -ForegroundColor Green
 
 if (-not $NoLogs) {

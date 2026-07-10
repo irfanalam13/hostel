@@ -8,33 +8,22 @@
 # All configuration comes from the root `.env` file (copy `.env.example`).
 # =============================================================================
 
-# DATABASE_URL is assembled from the POSTGRES_* vars (the same ones that
-# configure the postgres container) so the app credentials and the database
-# credentials can never drift apart. This `environment:` value overrides any
-# DATABASE_URL that might leak in via env_file.
+# DATABASE_URL is assembled from the POSTGRES_* vars so the app credentials and
+# the database credentials can never drift apart. This `environment:` value
+# overrides any DATABASE_URL that might leak in via env_file.
+#
+# PostgreSQL is NOT run in Docker — the stack connects to the PostgreSQL server
+# installed on the host machine via `host.docker.internal` (Docker Desktop
+# resolves it to the host automatically; the extra_hosts entries below make it
+# work on plain Linux engines too).
 x-postgres-dsn: &postgres-dsn
-  DATABASE_URL: postgres://${POSTGRES_USER:-hostel}:${POSTGRES_PASSWORD:-hostel}@postgres:5432/${POSTGRES_DB:-hostel}
+  DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@${POSTGRES_HOST:-host.docker.internal}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
+
+x-host-db-access: &host-db-access
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
 
 services:
-  # ---------------------------------------------------------------------------
-  # PostgreSQL — primary datastore
-  # ---------------------------------------------------------------------------
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-hostel}
-      POSTGRES_USER: ${POSTGRES_USER:-hostel}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hostel}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hostel} -d ${POSTGRES_DB:-hostel}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   # ---------------------------------------------------------------------------
   # Redis — Celery broker / result backend / cache
   # ---------------------------------------------------------------------------
@@ -60,6 +49,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    <<: *host-db-access
     environment:
       <<: *postgres-dsn
       RUN_MIGRATIONS: "1"
@@ -68,8 +58,6 @@ services:
     ports:
       - "${WEB_PORT:-8000}:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -88,6 +76,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    <<: *host-db-access
     # Only `web` migrates; sidecars skip it to avoid racing on the same schema.
     environment:
       <<: *postgres-dsn
@@ -96,8 +85,6 @@ services:
     volumes:
       - media_data:/app/media
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       web:
@@ -119,6 +106,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    <<: *host-db-access
 
     # Only `web` migrates; sidecars skip it to avoid racing on the same schema.
     environment:
@@ -156,29 +144,65 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # frontend — Next.js (standalone server)
+  # frontend — CLIENT zone (marketing site, Next.js standalone server).
+  # Owns the public origin; fallback-rewrites all non-marketing paths to the
+  # admin zone below, so browsing http://localhost:3000 serves the whole app.
   # ---------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: apps/client/Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
-        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+        NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${NEXT_PUBLIC_TENANT_BASE_DOMAIN:-localhost}
+        # Baked into the standalone routes manifest at build time (see Dockerfile).
+        ADMIN_ZONE_URL: http://admin:3000
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      # Read at runtime by src/middleware.ts to build the CSP connect-src.
+      # Read at runtime by src/proxy.ts to build the CSP connect-src.
       # Must match the build arg above; without it the middleware falls back to
       # localhost and the deployed CSP would block the real API origin.
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
+      # Read at runtime by the shared edge proxy for workspace-subdomain routing.
+      NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${NEXT_PUBLIC_TENANT_BASE_DOMAIN:-localhost}
+      # Server-side (SSR) API fetches must use the service-internal URL — the
+      # browser-facing localhost URL points at the wrong container from here.
+      API_INTERNAL_URL: http://web:8000/api
+      # Where the client zone proxies non-marketing paths (service-internal).
+      ADMIN_ZONE_URL: http://admin:3000
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      admin:
+        condition: service_started
+      web:
+        condition: service_started
+
+  # ---------------------------------------------------------------------------
+  # admin — ADMIN zone (authenticated workspace + PWA, Next.js standalone).
+  # Reached through the client zone in normal use; the host port is exposed for
+  # direct access/debugging.
+  # ---------------------------------------------------------------------------
+  admin:
+    build:
+      context: ./frontend
+      dockerfile: apps/admin/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+        NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${NEXT_PUBLIC_TENANT_BASE_DOMAIN:-localhost}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
+      NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${NEXT_PUBLIC_TENANT_BASE_DOMAIN:-localhost}
+    ports:
+      - "${ADMIN_PORT:-3001}:3000"
     depends_on:
       web:
         condition: service_started
 
 volumes:
-  postgres_data:
   redis_data:
   media_data:

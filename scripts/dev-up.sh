@@ -55,7 +55,8 @@ docker "${up_args[@]}"
 docker compose "${compose_files[@]}" ps
 
 echo
-echo "Frontend: http://localhost:${FRONTEND_PORT:-3000}"
+echo "Frontend (client zone): http://localhost:${FRONTEND_PORT:-3000}"
+echo "Admin zone (direct):    http://localhost:${ADMIN_PORT:-3001}"
 echo "Backend:  http://localhost:${WEB_PORT:-8000}"
 
 if [ "$NO_LOGS" -eq 0 ]; then

@@ -78,8 +78,19 @@ jobs:
       - run: npm ci
       - name: Build
         run: npm run build
-      - name: Run Cypress E2E (starts server)
-        run: npm run cy:ci
+      # Multi-zone: the client (3100) fallback-rewrites non-marketing paths to
+      # the admin app (3101), so both prod servers must be up before Cypress.
+      - name: Start zones (client 3100 → admin 3101)
+        env:
+          ADMIN_ZONE_URL: http://localhost:3101
+        run: |
+          node scripts/start-zones.mjs &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3101/login > /dev/null \
+              && curl -sf http://localhost:3100/ > /dev/null && break || sleep 1
+          done
+      - name: Run Cypress E2E
+        run: npm run cy:run
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -225,10 +236,17 @@ jobs:
       - run: npm ci
       - name: Build
         run: npm run build
-      - name: Start frontend
+      # Both zones must be up: /login on 3100 is proxied by the client to the
+      # admin app on 3101, so ZAP crawling the client exercises both.
+      - name: Start zones (client 3100 → admin 3101)
+        env:
+          ADMIN_ZONE_URL: http://localhost:3101
         run: |
-          npm run start:test &
-          for i in $(seq 1 30); do curl -sf http://localhost:3100/login && break || sleep 1; done
+          node scripts/start-zones.mjs &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3101/login > /dev/null \
+              && curl -sf http://localhost:3100/login > /dev/null && break || sleep 1
+          done
       - name: ZAP baseline scan
         uses: zaproxy/action-baseline@v0.15.0
         with:

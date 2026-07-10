@@ -42,6 +42,9 @@ services:
     image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
     restart: unless-stopped
     env_file: .env
+    # Resource caps so one runaway service can't starve the host (tunable).
+    mem_limit: ${WEB_MEM_LIMIT:-768m}
+    cpus: ${WEB_CPUS:-1.5}
     # Migrations are applied explicitly by deploy.sh BEFORE the rollout, never
     # implicitly on boot, so ordering is deterministic across replicas.
     environment:
@@ -63,6 +66,8 @@ services:
     image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
     restart: unless-stopped
     env_file: .env
+    mem_limit: ${WORKER_MEM_LIMIT:-512m}
+    cpus: ${WORKER_CPUS:-1.0}
     # Sidecars never migrate — deploy.sh owns schema changes (see web).
     environment:
       RUN_MIGRATIONS: "0"
@@ -92,13 +97,61 @@ services:
     healthcheck:
       disable: true
 
+  # CLIENT zone (marketing). Owns "/" and fallback-rewrites every other path
+  # to the admin zone, so nginx keeps a single Next.js upstream.
   frontend:
-    image: ${FRONTEND_IMAGE:?set FRONTEND_IMAGE}
+    image: ${CLIENT_IMAGE:?set CLIENT_IMAGE}
     restart: unless-stopped
+    mem_limit: ${FRONTEND_MEM_LIMIT:-512m}
+    cpus: ${FRONTEND_CPUS:-1.0}
     environment:
       NODE_ENV: production
+      ADMIN_ZONE_URL: http://admin:3000
+      # Workspace-subdomain + custom-domain routing (Prompts 01/05): read at
+      # runtime by the edge proxy (x-workspace / x-tenant-host stamping).
+      NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${DOMAIN:?set DOMAIN}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?set NEXT_PUBLIC_API_BASE_URL}
+      # SSR fetches (public hostel websites) use the service-internal URL.
+      API_INTERNAL_URL: http://web:8000/api
+    depends_on:
+      admin: { condition: service_started }
+      web: { condition: service_started }
+
+  # ADMIN zone (authenticated workspace + PWA). Internal only — reached through
+  # the client zone's rewrites.
+  admin:
+    image: ${ADMIN_IMAGE:?set ADMIN_IMAGE}
+    restart: unless-stopped
+    mem_limit: ${ADMIN_MEM_LIMIT:-512m}
+    cpus: ${ADMIN_CPUS:-1.0}
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${DOMAIN:?set DOMAIN}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?set NEXT_PUBLIC_API_BASE_URL}
     depends_on:
       web: { condition: service_started }
+
+  # Optional S3-compatible object storage for media (STORAGE_BACKEND=s3).
+  # Enable with:  docker compose --profile storage ...  Or use AWS S3 / R2 and
+  # skip this service entirely (settings read S3_ENDPOINT_URL).
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    profiles: ["storage"]
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-hostel-media}
+      # Interpolated even when the profile is off, so it defaults; MUST be
+      # overridden in deploy/.env before enabling the storage profile.
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-change-me-minio-secret}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   nginx:
     image: nginx:1.27-alpine
@@ -122,5 +175,6 @@ volumes:
   postgres_data:
   redis_data:
   media_data:
+  minio_data:
   # ACME http-01 challenge webroot, written by certbot, read by nginx.
   certbot_www:

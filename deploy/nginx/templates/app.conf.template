@@ -29,9 +29,11 @@ limit_req_zone  $binary_remote_addr  zone=auth:10m  rate=5r/m;
 limit_req_status 429;
 
 # --- HTTP :80 — ACME http-01 challenge + permanent HTTPS redirect ------------
+# default_server: also answers tenant custom domains (Prompt 05) so their ACME
+# challenges and HTTPS redirects work without per-domain server blocks.
 server {
-    listen 80;
-    server_name ${DOMAIN};
+    listen 80 default_server;
+    server_name ${DOMAIN} *.${DOMAIN};
 
     # Let's Encrypt webroot challenge (served from the shared certbot volume).
     location /.well-known/acme-challenge/ {
@@ -44,10 +46,21 @@ server {
 }
 
 # --- HTTPS :443 — the application --------------------------------------------
+# Multi-tenant routing (Prompts 01+05):
+#   ${DOMAIN}          the platform root (marketing + API)
+#   *.${DOMAIN}        every workspace subdomain — resolves automatically, no
+#                      per-tenant config (requires a WILDCARD certificate:
+#                      *.${DOMAIN} — Let's Encrypt dns-01, see deploy/certbot/)
+#   default_server     tenant custom domains (hostel.everest.com) land here
+#                      too; issue their certs with deploy/certbot per domain
+#                      and add them to this cert bundle (or run Caddy/Traefik
+#                      with on-demand TLS — see docker-compose.traefik.yml).
+# The app itself decides tenancy from the Host header (tenant middleware), so
+# the edge needs no per-workspace configuration.
 server {
-    listen 443 ssl;
+    listen 443 ssl default_server;
     http2 on;
-    server_name ${DOMAIN};
+    server_name ${DOMAIN} *.${DOMAIN};
 
     ssl_certificate     /etc/nginx/certs/fullchain.pem;
     ssl_certificate_key /etc/nginx/certs/privkey.pem;

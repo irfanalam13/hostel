@@ -99,6 +99,17 @@ class PaymentFactory(factory.django.DjangoModelFactory):
 # ---------------------------------------------------------------------------
 # Core fixtures
 # ---------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    """Tenant lookups are cached (apps.tenants.cache); the DB rolls back
+    between tests but LocMemCache does not — clear it so no test sees a
+    cached tenant from a previous test."""
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+
+
 @pytest.fixture
 def hostel(db):
     return HostelFactory()

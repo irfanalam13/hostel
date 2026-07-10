@@ -144,7 +144,7 @@ conflicting header. **This is deliberate — do not re-add app headers at nginx.
 | Header | Set by | Where | Purpose |
 |---|---|---|---|
 | `Strict-Transport-Security` (HSTS) | **nginx (edge)** | `deploy/nginx/snippets/security-headers.conf` | Force HTTPS for 2y incl. subdomains + preload. Edge owns it because Next.js *documents* don't set it. Set `SECURE_HSTS_SECONDS=0` so Django doesn't double it. |
-| `Content-Security-Policy` (nonce + `strict-dynamic`) | **Next.js** | `frontend/src/middleware.ts` | Per-request nonce CSP; blocks inline/XSS script. Also Report-Only with Trusted Types. |
+| `Content-Security-Policy` (nonce + `strict-dynamic`) | **Next.js** | `frontend/packages/config/src/securityProxy.ts (each app: frontend/apps/*/src/proxy.ts)` | Per-request nonce CSP; blocks inline/XSS script. Also Report-Only with Trusted Types. |
 | `Content-Security-Policy` (API/admin) | **Django** | `apps.common.middleware.SecurityHeadersMiddleware` | CSP for non-Next responses. |
 | `Trusted-Types` / `require-trusted-types-for` | Next.js | `middleware.ts` | DOM-XSS sink guard (Report-Only → enforce via `CSP_TT_ENFORCE=1`). |
 | `X-Frame-Options: DENY` | Next.js + Django | `middleware.ts`, settings `X_FRAME_OPTIONS` | Clickjacking. (CSP `frame-ancestors 'none'` is the modern equivalent.) |
@@ -225,7 +225,7 @@ checklist:
    Because the page is served over TLS, the browser **must** use `wss://`
    (`ws://` from an HTTPS page is mixed content and blocked). The CSP already
    permits it in dev (`connect-src … ws: wss:`); for prod add your `wss://${DOMAIN}`
-   origin to `connect-src` in `frontend/src/middleware.ts`.
+   origin to `connect-src` in `frontend/packages/config/src/securityProxy.ts (each app: frontend/apps/*/src/proxy.ts)`.
 3. **Frontend**: derive the socket URL from the page origin so it's automatically
    `wss` in prod / `ws` in dev:
    `const url = location.origin.replace(/^http/, "ws") + "/ws/..."`.

@@ -24,7 +24,7 @@ deploy/
 4. Put TLS certs at `nginx/certs/fullchain.pem` and `privkey.pem` (e.g. certbot:
    `certbot certonly --standalone -d app.yourdomain.com`, then symlink/copy).
 5. First deploy can be run manually:
-   `GHCR_USER=… GHCR_TOKEN=… ./deploy.sh ghcr.io/owner/hostel-backend:vX ghcr.io/owner/hostel-frontend:vX`
+   `GHCR_USER=… GHCR_TOKEN=… ./deploy.sh ghcr.io/owner/hostel-backend:vX ghcr.io/owner/hostel-client:vX ghcr.io/owner/hostel-admin:vX`
 
 ## CI/CD secrets & variables
 
