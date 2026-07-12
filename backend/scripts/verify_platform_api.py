@@ -107,7 +107,7 @@ try:
     r = client2.get("/api/platform/plans/", **H)
     check("non-super 403", r.status_code == 403)
 
-except Exception as exc:  # pragma: no cover
+except Exception:  # pragma: no cover
     import traceback
     traceback.print_exc()
     results.append(("EXCEPTION", False))

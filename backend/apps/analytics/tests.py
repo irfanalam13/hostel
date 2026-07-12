@@ -126,13 +126,18 @@ def test_report_endpoint_staff_only(auth_client, resident_user, hostel):
     assert auth_client(resident_user, hostel).get(REPORT).status_code == 403
 
 
-def test_report_endpoint_ok_for_owner(auth_client, make_user, hostel):
-    owner = make_user(role="OWNER", hostel=hostel)
-    _seed(hostel, owner)
-    resp = auth_client(owner, hostel).get(REPORT, {"days": 7})
+def test_report_endpoint_ok_for_superuser(auth_client, superuser, warden, hostel):
+    # PWA telemetry is a platform-operator surface: only super admins may read it.
+    _seed(hostel, warden)
+    resp = auth_client(superuser, hostel).get(REPORT, {"days": 7})
     assert resp.status_code == 200
     assert resp.data["window_days"] == 7
     assert resp.data["install"]["rate"] == 0.5
+
+
+def test_report_endpoint_forbidden_for_owner(auth_client, owner, hostel):
+    # Tenant owners are walled off from platform telemetry (super admin only).
+    assert auth_client(owner, hostel).get(REPORT).status_code == 403
 
 
 def test_report_tenant_isolated(hostel, other_hostel, warden, make_user):
