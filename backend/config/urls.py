@@ -57,6 +57,13 @@ urlpatterns = [
     path("api/marketing/", include("apps.marketing.urls")),
     path("api/website/", include("apps.website.urls")),
     path("api/domains/", include("apps.domains.urls")),
+    path("api/subscriptions/", include("apps.subscriptions.urls")),
+    path("api/platform/", include("apps.subscriptions.platform_urls")),
+    # 🛡️ Super-Admin security operations (dashboard, rules, kill switch)
+    path("api/platform/security/", include("apps.security.urls")),
+    path("api/staff/", include("apps.staff.urls")),
+    path("api/finance/", include("apps.finance.urls")),
+    path("api/accounting/", include("apps.accounting.urls")),
 
     # 🛟 Admin disaster-recovery API (admin-only)
     path("api/admin/", include("apps.backups.admin_urls")),

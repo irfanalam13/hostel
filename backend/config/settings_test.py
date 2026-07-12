@@ -38,6 +38,11 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 AXES_ENABLED = False
 AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
 
+# Edge security foundation off by default; its own tests re-enable it with
+# override_settings + the deterministic in-memory limiter backend.
+SECURITY_ENABLED = False
+SECURITY_ENVIRONMENT = "testing"
+
 # Disable DRF throttling globally; throttle-specific tests override this.
 REST_FRAMEWORK = {**REST_FRAMEWORK}  # noqa: F405
 REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = ()

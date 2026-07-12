@@ -89,7 +89,7 @@ MODULES = [
     "residents", "billing", "payments", "rooms", "beds", "attendance",
     "admissions", "complaints", "notices", "reports", "exports", "operations",
     "backups", "notifications", "analytics", "accounts", "workspace",
-    "website",
+    "website", "staff", "finance", "accounting",
 ]
 CRUD = ["view", "create", "edit", "delete"]
 
@@ -103,6 +103,19 @@ FEATURE_PERMISSIONS = [
     "accounts.invite",        # create staff users
     "notices.publish",
     "website.publish",
+    "staff.invite",           # create/invite staff accounts
+    "staff.manage_roles",     # build & edit custom RBAC roles
+    "staff.manage_departments",  # departments & designations
+    "staff.reset_password",   # reset/force-reset a staff password
+    "finance.collect",        # record/collect payments
+    "finance.approve",        # verify payments, approve expenses/refunds/scholarships
+    "finance.refund",         # request & process refunds
+    "finance.export",         # export finance datasets
+    "accounting.post",        # post journals to the ledger
+    "accounting.approve",     # approve journals/budgets
+    "accounting.reconcile",   # bank reconciliation
+    "accounting.close",       # close periods / fiscal years
+    "accounting.export",      # export accounting statements
 ]
 
 
@@ -122,6 +135,8 @@ DEFAULT_ROLE_PERMISSIONS = {
         "attendance.*", "admissions.*", "complaints.*", "notices.*",
         "reports.*", "exports.*", "operations.*", "notifications.*",
         "analytics.view", "accounts.view", "accounts.invite", "website.*",
+        "staff.view", "staff.create", "staff.edit", "staff.invite",
+        "finance.*", "accounting.*",
     ],
     ROLE_RECEPTIONIST: [
         "residents.view", "residents.create", "residents.edit",
@@ -129,13 +144,14 @@ DEFAULT_ROLE_PERMISSIONS = {
         "complaints.view", "complaints.create", "notices.view",
     ],
     ROLE_ACCOUNTANT: [
-        "billing.*", "payments.*", "reports.*", "exports.*",
+        "billing.*", "payments.*", "reports.*", "exports.*", "finance.*",
+        "accounting.*",
         "residents.view", "rooms.view", "notices.view", "analytics.view",
     ],
     ROLE_WARDEN: [
         "residents.*", "rooms.*", "beds.*", "attendance.*", "complaints.*",
         "notices.*", "operations.*", "admissions.view", "reports.view",
-        "billing.view", "payments.view",
+        "billing.view", "payments.view", "finance.view",
     ],
     ROLE_STAFF: [
         "residents.view", "rooms.view", "beds.view", "attendance.view",
@@ -179,6 +195,29 @@ def _expand(grants) -> frozenset:
         elif grant in catalog:
             result.add(grant)
     return frozenset(result)
+
+
+def expand_grants(grants) -> frozenset:
+    """Public wrapper around grant expansion for other apps that store their own
+    ``module.action`` grant lists (e.g. custom staff roles in ``apps.staff``)."""
+    return _expand(grants)
+
+
+def _custom_role_permissions(user, hostel) -> frozenset:
+    """Additive permissions from a user's assigned custom staff role.
+
+    Resolved via ``apps.staff`` when that app is installed/migrated; any
+    failure (app absent, table missing, no profile) yields an empty set so the
+    core role-based permissions always stand on their own.
+    """
+    try:
+        from apps.staff.rbac import extra_permissions_for_user
+    except Exception:
+        return frozenset()
+    try:
+        return extra_permissions_for_user(user, hostel)
+    except Exception:
+        return frozenset()
 
 
 def invalidate_permissions_cache(hostel_id, role=None) -> None:
@@ -235,6 +274,12 @@ def user_permissions(user, hostel, request=None) -> frozenset:
             return memo[memo_key]
 
     perms = role_permissions(getattr(user, "role", ""), hostel)
+    # Union any grants from the user's assigned custom staff role. This is
+    # purely additive — a custom role can widen access but never removes what
+    # the base workspace role already grants.
+    extra = _custom_role_permissions(user, hostel)
+    if extra:
+        perms = frozenset(perms | extra)
     if base is not None:
         if getattr(base, "_perms_memo", None) is None:
             base._perms_memo = {}

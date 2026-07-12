@@ -1,5 +1,18 @@
 from django.contrib import admin
+from apps.subscriptions.models import PlanFeature, PlanLimit
 from .models import Hostel, Plan, Subscription, Testimonial
+
+
+class PlanFeatureInline(admin.TabularInline):
+    model = PlanFeature
+    extra = 0
+    autocomplete_fields = ["feature"]
+
+
+class PlanLimitInline(admin.TabularInline):
+    model = PlanLimit
+    extra = 0
+    autocomplete_fields = ["limit"]
 
 
 @admin.register(Testimonial)
@@ -54,12 +67,17 @@ class PlanAdmin(admin.ModelAdmin):
         "is_featured",
         "sort_order",
     )
-    list_filter = ("is_public", "is_featured", "discount_active")
-    search_fields = ("name",)
+    list_filter = ("visibility", "is_active", "is_archived", "is_public", "is_featured", "discount_active")
+    search_fields = ("name", "slug")
+    readonly_fields = ("slug",)
+    inlines = [PlanFeatureInline, PlanLimitInline]
     fieldsets = (
-        (None, {"fields": ("name", "description", "price_monthly", "currency", "period")}),
-        ("Limits", {"fields": ("max_students", "max_rooms")}),
-        ("Landing page", {"fields": ("features", "cta_label", "cta_href", "is_featured", "is_public", "sort_order")}),
+        (None, {"fields": ("name", "slug", "description", "notes", "version")}),
+        ("Pricing", {"fields": ("price_monthly", "price_yearly", "price_lifetime", "currency", "period", "billing_interval", "tax_percent")}),
+        ("Trial & billing", {"fields": ("trial_days", "grace_period_days")}),
+        ("Legacy limits (superseded by Plan limits below)", {"fields": ("max_students", "max_rooms")}),
+        ("Presentation", {"fields": ("badge", "theme_color", "visibility", "is_recommended", "is_active", "is_archived", "is_featured", "is_public", "sort_order")}),
+        ("Landing page", {"fields": ("features", "cta_label", "cta_href")}),
         ("Discount", {"fields": ("discount_active", "discount_percent", "discount_label", "discount_until")}),
     )
 

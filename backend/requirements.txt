@@ -26,4 +26,6 @@ django-storages[boto3]
 sentry-sdk
 # Prometheus metrics at /metrics. Wired in only when PROMETHEUS_ENABLED=True.
 django-prometheus
+# Edge-security foundation (apps.security): YAML policy layer (SECURITY_CONFIG_FILE)
+PyYAML
 drf_spectacular_sidecar

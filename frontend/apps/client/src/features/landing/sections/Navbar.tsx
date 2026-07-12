@@ -7,6 +7,7 @@ import { useAuth } from "@hostel/auth";
 import { usePwa } from "@hostel/pwa";
 import { useToast } from "@hostel/ui";
 import { Container } from "../components/Container";
+import { CtaLink } from "../components/CtaLink";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { NAV_LINKS } from "../constants";
@@ -102,26 +103,26 @@ export function Navbar() {
           )}
 
           {authed ? (
-            <Link
+            <CtaLink
               href="/dashboard"
               className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
             >
               Go to dashboard <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
+            </CtaLink>
           ) : (
             <>
-              <Link
+              <CtaLink
                 href="/login"
                 className="rounded-xl px-3 py-2 text-sm font-medium text-[var(--foreground-secondary)] transition hover:text-[var(--foreground)]"
               >
                 Log in
-              </Link>
-              <Link
+              </CtaLink>
+              <CtaLink
                 href="/signup"
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
               >
                 Get started <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
+              </CtaLink>
             </>
           )}
         </div>
@@ -168,29 +169,29 @@ export function Navbar() {
                 </button>
               )}
               {authed ? (
-                <Link
+                <CtaLink
                   href="/dashboard"
                   onClick={() => setOpen(false)}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white"
                 >
                   Go to dashboard <ArrowRight className="h-4 w-4" aria-hidden />
-                </Link>
+                </CtaLink>
               ) : (
                 <>
-                  <Link
+                  <CtaLink
                     href="/login"
                     onClick={() => setOpen(false)}
                     className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-semibold text-[var(--foreground)]"
                   >
                     Log in
-                  </Link>
-                  <Link
+                  </CtaLink>
+                  <CtaLink
                     href="/signup"
                     onClick={() => setOpen(false)}
                     className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white"
                   >
                     Get started <ArrowRight className="h-4 w-4" aria-hidden />
-                  </Link>
+                  </CtaLink>
                 </>
               )}
             </div>

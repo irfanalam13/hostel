@@ -6,7 +6,7 @@ Two endpoints:
                                           installed-state and SW/app versions
                                           stay current. Any hostel member.
 * ``GET  /api/dashboard/system-status/``  tenant-wide status aggregates for the
-                                          dashboard. Owner/manager only.
+                                          dashboard. Super admin only.
 
 "Online" is derived from ``UserPresence.last_seen`` within ``ONLINE_WINDOW``, so
 no background job is required.
@@ -24,7 +24,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import UserHostel
-from apps.common.permissions import HasHostelContext, IsOwnerOrManager
+from apps.common.permissions import HasHostelContext, IsSuperUser
 from apps.notifications.models import (
     DeliveryStatus,
     Notification,
@@ -181,9 +181,13 @@ def _health() -> dict:
 
 
 class SystemStatusView(APIView):
-    """Tenant-wide system + PWA status for the dashboard."""
+    """Tenant-wide system + PWA status for the dashboard (super admin only).
 
-    permission_classes = [HasHostelContext, IsOwnerOrManager]
+    Infrastructure health (db/cache/celery), push-subscriber counts and sync-job
+    backlogs are platform-operator signals, not hostel business, so this is
+    restricted to super admins and surfaced only on the platform dashboard."""
+
+    permission_classes = [HasHostelContext, IsSuperUser]
 
     def get(self, request):
         hostel = request.hostel

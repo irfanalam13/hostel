@@ -20,11 +20,52 @@ HOSTEL_CODE_RE = re.compile(r"^HTL-[A-Z0-9]{8}$")
 
 
 
+class PlanVisibility(models.TextChoices):
+    PUBLIC = "public", "Public"       # listed on the landing page
+    PRIVATE = "private", "Private"    # assignable, but not publicly listed
+    HIDDEN = "hidden", "Hidden"       # neither listed nor assignable in UI
+
+
+class BillingInterval(models.TextChoices):
+    MONTHLY = "monthly", "Monthly"
+    QUARTERLY = "quarterly", "Quarterly"
+    HALF_YEARLY = "half_yearly", "Half yearly"
+    YEARLY = "yearly", "Yearly"
+    LIFETIME = "lifetime", "Lifetime"
+
+
 class Plan(TimeStampedModel):
     name = models.CharField(max_length=50)
+    # Stable machine identifier for a plan. Unlike ``name`` it should not change
+    # once tenants reference it; auto-derived from name on first save.
+    slug = models.SlugField(max_length=60, unique=True, null=True, blank=True, db_index=True)
     price_monthly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Superseded by subscriptions.PlanLimit for enforcement; kept for the
+    # landing page and backward compatibility.
     max_students = models.IntegerField(default=200)
     max_rooms = models.IntegerField(default=50)
+
+    # --- Enterprise pricing & billing (Super-Admin configurable, Module 5) ---
+    price_yearly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    price_lifetime = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    billing_interval = models.CharField(
+        max_length=20, choices=BillingInterval.choices, default=BillingInterval.MONTHLY
+    )
+    trial_days = models.PositiveIntegerField(default=0)
+    grace_period_days = models.PositiveIntegerField(default=0)
+    tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    # --- Presentation / lifecycle (Module 2) ---
+    badge = models.CharField(max_length=60, blank=True, default="")
+    theme_color = models.CharField(max_length=20, blank=True, default="")
+    visibility = models.CharField(
+        max_length=20, choices=PlanVisibility.choices, default=PlanVisibility.PUBLIC, db_index=True
+    )
+    is_recommended = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True, db_index=True)
+    is_archived = models.BooleanField(default=False, db_index=True)
+    version = models.PositiveIntegerField(default=1)
+    notes = models.TextField(blank=True, default="")
 
     # --- Public / marketing presentation (drives the landing-page pricing) ---
     description = models.CharField(max_length=200, blank=True, default="")
@@ -54,6 +95,19 @@ class Plan(TimeStampedModel):
 
     class Meta:
         ordering = ["sort_order", "price_monthly", "name"]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.name or "") or "plan"
+            candidate = base[:60]
+            i = 2
+            qs = Plan.objects.exclude(pk=self.pk)
+            while qs.filter(slug=candidate).exists():
+                suffix = str(i)
+                candidate = f"{base[: 60 - len(suffix) - 1]}-{suffix}"
+                i += 1
+            self.slug = candidate
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -176,6 +230,16 @@ class Hostel(TimeStampedModel):
 
     # SaaS settings and subscription basics
     settings = models.JSONField(default=dict, blank=True)
+    # Canonical current-plan pointer used by the entitlement engine. Kept
+    # alongside the legacy free-text ``plan_name`` (landing/back-compat); a data
+    # migration backfills this FK from ``plan_name`` where a match exists.
+    plan = models.ForeignKey(
+        "tenants.Plan",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="hostels",
+    )
     plan_name = models.CharField(max_length=50, default="basic")
     subscription_active_until = models.DateField(null=True, blank=True)
 

@@ -38,6 +38,12 @@ class RoomViewSet(HostelScopedViewSet):
     filterset_fields = ["block", "floor_ref", "status", "gender_type"]
     ordering_fields = ["room_no", "created_at", "rent", "capacity"]
 
+    def perform_create(self, serializer):
+        from apps.subscriptions.gates import enforce_limit
+
+        enforce_limit(self.request.hostel, "max_rooms")
+        super().perform_create(serializer)
+
 class BedViewSet(HostelScopedViewSet):
     # room__block / room__floor_ref are rendered by the nested RoomSerializer,
     # so join them here or every bed in a list costs two extra queries.
@@ -46,6 +52,12 @@ class BedViewSet(HostelScopedViewSet):
     search_fields = ["bed_no","room__room_no"]
     filterset_fields = ["status", "room"]
     ordering_fields = ["bed_no","created_at","status"]
+
+    def perform_create(self, serializer):
+        from apps.subscriptions.gates import enforce_limit
+
+        enforce_limit(self.request.hostel, "max_beds")
+        super().perform_create(serializer)
 
 class BedAssignmentViewSet(HostelScopedViewSet):
     queryset = BedAssignment.objects.select_related("bed","student").all().order_by("-start_date")

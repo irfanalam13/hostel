@@ -14,6 +14,8 @@ const ROUTE_POLICY: ReadonlyArray<{ prefix: string; permission: Permission }> = 
   { prefix: "/residents", permission: "residents:manage" },
   { prefix: "/rooms", permission: "rooms:manage" },
   { prefix: "/beds", permission: "rooms:manage" },
+  { prefix: "/finance", permission: "finance:manage" },
+  { prefix: "/accounting", permission: "accounting:manage" },
   { prefix: "/fees", permission: "finance:manage" },
   { prefix: "/payments", permission: "finance:manage" },
   { prefix: "/billing", permission: "finance:manage" },
@@ -30,7 +32,13 @@ const ROUTE_POLICY: ReadonlyArray<{ prefix: string; permission: Permission }> = 
   { prefix: "/exports", permission: "reports:view" },
   { prefix: "/settings", permission: "settings:manage" },
   { prefix: "/backup", permission: "backups:manage" },
-  { prefix: "/tenants", permission: "tenants:manage" },
+  // Cross-tenant hostel / plan / subscription console — a platform-operator
+  // surface (not in the tenant sidebar). Super-admin only; a tenant's own plan
+  // lives under Settings → Billing.
+  { prefix: "/tenants", permission: "platform:manage" },
+  { prefix: "/staff", permission: "staff:manage" },
+  // Platform (Super Admin) subscription & plan management — super-admin only.
+  { prefix: "/platform", permission: "platform:manage" },
   // End-user portals (Prompt 02): exclusively student/parent — staff and
   // admin roles hold no portal permission, so role escalation in either
   // direction is impossible at the route level.

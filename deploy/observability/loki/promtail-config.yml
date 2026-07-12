@@ -1,0 +1,41 @@
+# Promtail — ships Docker container logs (JSON stdout/stderr) to Loki.
+# The backend already emits structured JSON (apps.security.events logger,
+# RequestTimingMiddleware) carrying request_id / trace ids, so Loki queries can
+# correlate with Prometheus + traces on those labels.
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Discover running containers and tail their JSON log files.
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: container
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: stream
+    pipeline_stages:
+      # Docker wraps each line as {"log": "...", "stream": "...", "time": "..."}.
+      - docker: {}
+      # Best-effort: lift request_id / event / level out of our JSON app logs
+      # into Loki labels for correlation (non-JSON lines pass through untouched).
+      - json:
+          expressions:
+            request_id: request_id
+            event: event
+            level: level
+        drop_malformed: false
+      - labels:
+          request_id:
+          event:
+          level:

@@ -32,9 +32,19 @@ const nextConfig: NextConfig = {
   ],
   // Multi-zone: the client (marketing) app owns the domain and rewrites
   // non-marketing paths here. A distinct asset prefix keeps this zone's build
-  // assets from colliding with the client zone's /_next/* namespace. Dev is
-  // accessed directly on its own port, so the prefix is production-only.
-  assetPrefix: isDev ? undefined : "/admin-static",
+  // assets from colliding with the client zone's /_next/* namespace.
+  //
+  // Enabled in DEV too (was production-only): the local Nginx gateway
+  // (deploy/dev/nginx/gateway.conf) serves both zones on one origin, so admin's
+  // /_next/* would collide with the client's. With the prefix, admin assets AND
+  // the admin HMR socket live under /admin-static/_next/* — the dev server
+  // derives the HMR path from assetPrefix — so the gateway can route
+  // /admin-static -> admin and /_next -> client with no collision. Direct
+  // :3001 access still works (the dev server strips the prefix).
+  assetPrefix: "/admin-static",
+  // Allow the Nginx gateway's hostnames to request dev resources (Next 15.3+
+  // blocks cross-origin dev asset requests otherwise). Ignored in production.
+  allowedDevOrigins: ["localhost", "hostel.local", "127.0.0.1"],
   async rewrites() {
     return {
       beforeFiles: [

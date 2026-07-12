@@ -114,6 +114,20 @@ class IsOwnerOrManager(BasePermission):
         return getattr(request.user, "role", None) in {"ADMIN", "OWNER", "MANAGER"}
 
 
+class IsSuperUser(BasePermission):
+    """Platform staff only. Super admins (``is_superuser``) run the SaaS itself;
+    tenant owners/managers must never see cross-cutting platform/infrastructure
+    surfaces (system health, PWA telemetry, plan management). Mirrors the
+    frontend ``platform:manage`` gate so hiding the UI and refusing the API
+    stay in lockstep."""
+
+    message = "This is a platform-operator surface (super admin only)."
+
+    def has_permission(self, request, view):
+        user = getattr(request, "user", None)
+        return bool(user and user.is_authenticated and user.is_superuser)
+
+
 class IsAccountant(BasePermission):
     """Financial roles: owners/admins/managers plus accountants."""
     def has_permission(self, request, view):

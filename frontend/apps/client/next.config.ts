@@ -39,6 +39,17 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  // Allow the Nginx gateway's hostnames to request dev resources (Next 15.3+
+  // blocks cross-origin dev asset requests otherwise). Ignored in production.
+  allowedDevOrigins: ["localhost", "hostel.local", "127.0.0.1"],
+  // NOTE: there is deliberately NO redirects() here anymore. It used to bounce
+  // admin entry routes (/login, /signup, /dashboard, …) to the admin dev
+  // server's own origin (:3001) in development — a cross-origin hack needed
+  // because this client dev server could not proxy the admin dev server without
+  // breaking its Turbopack hydration. The local Nginx gateway
+  // (deploy/dev/nginx/gateway.conf) now routes those paths straight to the admin
+  // dev server on a single origin, so the bounce is gone. Production routing is
+  // unchanged — it uses the fallback rewrites() below (edge-routed same-origin).
   async rewrites() {
     return {
       beforeFiles: [],

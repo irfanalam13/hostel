@@ -8,10 +8,15 @@
  * sanitise and a safe migration path to full enforcement (CSP_TT_ENFORCE=1).
  *
  * Today the app renders through React (which escapes by default) and never sets
- * raw innerHTML, so the HTML/script branches are conservative pass-throughs that
- * warn in dev. The createScriptURL branch is the one that adds real protection:
- * it only permits same-origin / relative script URLs. Wire DOMPurify into
- * `createHTML` if/when the app starts rendering untrusted HTML.
+ * raw innerHTML, so the HTML/script branches are conservative pass-throughs. The
+ * createScriptURL branch is the one that adds real protection: it only permits
+ * same-origin / relative script URLs. Wire DOMPurify into `createHTML` if/when
+ * the app starts rendering untrusted HTML.
+ *
+ * Note: React's own hydration normalises attribute HTML through this default
+ * policy's `createHTML` (normalizeHTML → diffHydratedProperties), so the sink
+ * fires on every render — we deliberately do NOT warn there, as it is expected,
+ * React-controlled, and already escaped (warning on it was pure console noise).
  */
 
 declare global {
@@ -44,13 +49,10 @@ export function installTrustedTypes(): void {
 
   try {
     tt.createPolicy("default", {
-      createHTML: (input: string) => {
-        if (process.env.NODE_ENV !== "production") {
-          // A raw-HTML sink fired — investigate; React shouldn't hit this.
-          console.warn("[trusted-types] createHTML invoked; verify the sink is safe.");
-        }
-        return input;
-      },
+      // Pass-through: React escapes its output and never sets untrusted raw
+      // HTML. React's hydration routes normal attribute HTML through here, so
+      // this is a hot, expected path — no per-call warning (it was just noise).
+      createHTML: (input: string) => input,
       createScript: (input: string) => input,
       createScriptURL: (input: string) => {
         if (isSameOrigin(input)) return input;

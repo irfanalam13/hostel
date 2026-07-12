@@ -158,6 +158,16 @@ services:
     restart: unless-stopped
     environment:
       DOMAIN: ${DOMAIN:?set DOMAIN}
+      # Edge rate limiting (00-security.conf.template + app.conf.template).
+      # Tune per deployment in deploy/.env; these defaults suit a small VPS.
+      NGINX_RATE_AUTH: ${NGINX_RATE_AUTH:-5r/m}
+      NGINX_RATE_API: ${NGINX_RATE_API:-20r/s}
+      NGINX_RATE_GLOBAL: ${NGINX_RATE_GLOBAL:-100r/s}
+      NGINX_BURST_AUTH: ${NGINX_BURST_AUTH:-10}
+      NGINX_BURST_API: ${NGINX_BURST_API:-40}
+      NGINX_BURST_GLOBAL: ${NGINX_BURST_GLOBAL:-200}
+      NGINX_CONN_PER_IP: ${NGINX_CONN_PER_IP:-30}
+      NGINX_CONN_PER_SERVER: ${NGINX_CONN_PER_SERVER:-2000}
     volumes:
       - ./nginx/templates:/etc/nginx/templates:ro
       - ./nginx/snippets:/etc/nginx/snippets:ro

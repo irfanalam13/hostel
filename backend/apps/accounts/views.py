@@ -26,6 +26,17 @@ from apps.auditlog.models import AuditEvent
 from apps.auditlog.services import record_event
 from apps.common import rbac
 from apps.common.permissions import IsOwner
+from apps.security.throttles import (
+    ForgotHostelRateThrottle,
+    LoginRateThrottle,
+    OTPVerifyRateThrottle,
+    PasswordChangeRateThrottle,
+    PasswordResetRateThrottle,
+    SessionRevokeRateThrottle,
+    SignupOTPRateThrottle,
+    SignupRateThrottle,
+    TokenRefreshRateThrottle,
+)
 
 from .cookies import clear_auth_cookies, set_auth_cookies
 from .tokens import issue_tokens, remember_me_lifetime
@@ -140,6 +151,20 @@ class CookieTokenObtainPairSerializer(SecureLoginSerializer):
         request = self.context.get("request")
         generic_error = self.error_messages["invalid_login"]
 
+        # --- Enterprise auth protection (Prompt 08) ----------------------- #
+        # Pre-auth gate: progressive lockout + CAPTCHA escalation, keyed per
+        # IP and per (workspace, identifier). Runs before we touch the DB, so
+        # a locked-out source never reaches credential verification.
+        from apps.security import auth_guard
+        from apps.security.exceptions import CaptchaRequired, ProgressiveLockout
+
+        identity = auth_guard.make_identity(request, attrs["username"])
+        gate = auth_guard.check_gate("login", request, identity)
+        if gate.blocked:
+            raise ProgressiveLockout(wait=gate.retry_after)
+        if not auth_guard.verify_captcha_if_required(request, gate):
+            raise CaptchaRequired()
+
         resolved = getattr(request, "tenant", None) or getattr(request, "hostel", None)
         hostel = None
         if attrs["hostel_id"]:
@@ -181,7 +206,17 @@ class CookieTokenObtainPairSerializer(SecureLoginSerializer):
                 meta={"hostel_id": attrs["hostel_id"], "identifier": identifier,
                       "workspace": getattr(hostel, "slug", None), "portal": portal},
             )
-            raise serializers.ValidationError({"detail": generic_error})
+            # Progressive lockout + brute-force/credential-stuffing signals.
+            # Surface captcha_required so the SPA can show the widget next try;
+            # the message stays generic (no user/hostel enumeration).
+            outcome = auth_guard.register_failure(
+                "login", request, identity, credential_stuffing=True
+            )
+            if outcome.blocked:
+                raise ProgressiveLockout(wait=outcome.retry_after)
+            raise serializers.ValidationError(
+                {"detail": generic_error, "captcha_required": outcome.captcha_required}
+            )
 
         if authenticated.role not in dict(User._meta.get_field("role").choices):
             raise serializers.ValidationError({"detail": generic_error})
@@ -207,6 +242,9 @@ class CookieTokenObtainPairSerializer(SecureLoginSerializer):
             authenticated, hostel, portal=portal, remember=remember
         )
         update_last_login(None, authenticated)
+
+        # Successful auth clears this identity's progressive-lockout counters.
+        auth_guard.register_success("login", request, identity)
 
         self.user = authenticated
         self.hostel = hostel
@@ -251,7 +289,7 @@ class CookieTokenObtainPairSerializer(SecureLoginSerializer):
 )
 class CookieTokenObtainPairView(TokenObtainPairView):
     serializer_class = CookieTokenObtainPairSerializer
-    throttle_scope = "auth"
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -306,6 +344,8 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     },
 )
 class CookieTokenRefreshView(TokenRefreshView):
+    throttle_classes = [TokenRefreshRateThrottle]
+
     def post(self, request, *args, **kwargs):
         refresh = request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE) or request.data.get("refresh")
         if not refresh:
@@ -387,12 +427,17 @@ class CSRFView(APIView):
 class SignupOTPRequestView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_scope = "signup_otp"
+    throttle_classes = [SignupOTPRateThrottle]
 
     def post(self, request):
         serializer = SignupOTPRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
+
+        # Enumeration signal: many distinct emails probed from one IP.
+        from apps.security import auth_guard
+
+        auth_guard.note_enumeration(request, email)
 
         import random
         otp_code = f"{random.randint(100000, 999999)}"
@@ -442,7 +487,7 @@ class SignupOTPRequestView(APIView):
 class SignupView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_scope = "signup"
+    throttle_classes = [SignupRateThrottle]
 
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
@@ -491,6 +536,12 @@ class MeView(APIView):
 
     def _me_payload(self, request):
         data = MeSerializer(request.user).data
+        # Platform staff are distinguished by Django's is_superuser flag, not a
+        # tenant role. Surface it as the SUPER_ADMIN role so the frontend can
+        # gate the platform (Super Admin) subscription panel on it.
+        if getattr(request.user, "is_superuser", False):
+            data["role"] = "SUPER_ADMIN"
+        data["is_superuser"] = bool(getattr(request.user, "is_superuser", False))
         hostel = getattr(request, "hostel", None)
         if hostel:
             data["hostel_code"] = hostel.code
@@ -533,6 +584,7 @@ class PasswordChangeView(APIView):
     stays signed in: fresh tokens (with the new pwv) are set on the response."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [PasswordChangeRateThrottle]
 
     @extend_schema(
         tags=AUTH_TAGS,
@@ -733,6 +785,7 @@ class SessionRevokeView(APIView):
     are cleared too."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [SessionRevokeRateThrottle]
 
     @extend_schema(
         tags=AUTH_TAGS,
@@ -787,13 +840,18 @@ class SessionRevokeView(APIView):
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_scope = "password_reset"
+    throttle_classes = [PasswordResetRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data.get("email")
         username = serializer.validated_data.get("username")
+
+        # Enumeration signal (response stays uniform regardless).
+        from apps.security import auth_guard
+
+        auth_guard.note_enumeration(request, email or username or "")
 
         # Workspace-aware: on a workspace host the reset only ever finds THAT
         # workspace's members — never a global account search. The root-domain
@@ -862,14 +920,23 @@ class PasswordResetRequestView(APIView):
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_scope = "password_reset"
+    throttle_classes = [OTPVerifyRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         email_or_username = serializer.validated_data["email_or_username"]
         otp_code = serializer.validated_data["otp"]
+
+        # Progressive lockout on OTP verification (brute-forcing a 6-digit code).
+        from apps.security import auth_guard
+        from apps.security.exceptions import ProgressiveLockout
+
+        identity = auth_guard.make_identity(request, email_or_username)
+        gate = auth_guard.check_gate("otp_verify", request, identity)
+        if gate.blocked:
+            raise ProgressiveLockout(wait=gate.retry_after)
 
         # Same workspace scoping as the request step.
         user_qs = User.objects.filter(
@@ -884,10 +951,12 @@ class PasswordResetConfirmView(APIView):
         user = user_qs.first()
 
         if not user:
+            auth_guard.register_failure("otp_verify", request, identity)
             return Response({"detail": "Invalid credentials or OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
         otp_obj = PasswordResetOTP.objects.filter(user=user, otp=otp_code, is_used=False).order_by("-created_at").first()
         if not otp_obj or not otp_obj.is_valid():
+            auth_guard.register_failure("otp_verify", request, identity)
             return Response({"detail": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
         otp_obj.is_used = True
@@ -895,6 +964,7 @@ class PasswordResetConfirmView(APIView):
 
         user.set_password(serializer.validated_data["new_password"])
         user.save(update_fields=["password"])
+        auth_guard.register_success("otp_verify", request, identity)
         record_event(request, action=AuditEvent.Action.UPDATE, actor=user,
                      message="Password reset completed via OTP")
         return Response({"detail": "Password has been reset."})
@@ -909,12 +979,16 @@ class PasswordResetConfirmView(APIView):
 class ForgotHostelIDView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_scope = "password_reset"
+    throttle_classes = [ForgotHostelRateThrottle]
 
     def post(self, request):
         serializer = ForgotHostelIDSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email_or_username = serializer.validated_data["email_or_username"]
+
+        from apps.security import auth_guard
+
+        auth_guard.note_enumeration(request, email_or_username)
 
         user = User.objects.filter(
             Q(email__iexact=email_or_username) | Q(username__iexact=email_or_username), 

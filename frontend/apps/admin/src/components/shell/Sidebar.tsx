@@ -11,6 +11,7 @@ import {
   BarChart3,
   Bed,
   Building2,
+  Calculator,
   CalendarDays,
   CheckSquare,
   ChevronLeft,
@@ -27,11 +28,14 @@ import {
   Receipt,
   RefreshCw,
   Settings,
+  ShieldPlus,
   User,
   UserCheck,
+  UserCog,
   UserPlus,
   UserRound,
   Users,
+  Wallet,
 } from "lucide-react";
 
 const MODULES = [
@@ -41,6 +45,8 @@ const MODULES = [
   { name: "Residents", href: "/residents", icon: UserCheck },
   { name: "Rooms", href: "/rooms", icon: Home },
   { name: "Beds", href: "/beds", icon: Bed },
+  { name: "Finance", href: "/finance", icon: Wallet },
+  { name: "Accounting", href: "/accounting", icon: Calculator },
   { name: "Fees", href: "/fees", icon: Receipt },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Billing", href: "/billing", icon: FileText },
@@ -48,6 +54,7 @@ const MODULES = [
   { name: "Gate", href: "/gate", icon: Key },
   { name: "Leave", href: "/leave", icon: CalendarDays },
   { name: "Visitors", href: "/visitors", icon: UserRound },
+  { name: "Staff", href: "/staff", icon: UserCog },
   { name: "Complaints", href: "/complaints", icon: AlertTriangle },
   { name: "Notices", href: "/notices", icon: Megaphone },
   { name: "Notifications", href: "/notifications", icon: Bell },
@@ -58,6 +65,9 @@ const MODULES = [
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Profile", href: "/profile", icon: User },
   { name: "Backup", href: "/backup", icon: Database },
+  // Super-admin only: the route policy gates /platform on `platform:manage`,
+  // which only SUPER_ADMIN holds, so this entry is hidden for everyone else.
+  { name: "Platform", href: "/platform", icon: ShieldPlus },
 ];
 
 export default function Sidebar() {

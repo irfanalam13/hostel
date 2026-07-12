@@ -1,8 +1,8 @@
 import React from "react";
-import Link from "next/link";
 import { Check } from "lucide-react";
 import { Section } from "../components/Section";
 import { SectionHeader } from "../components/SectionHeader";
+import { CtaLink } from "../components/CtaLink";
 import { Reveal } from "../components/Reveal";
 import { PRICING, type PricingTier } from "../content";
 import { SECTION_IDS } from "../constants";
@@ -18,12 +18,6 @@ export function Pricing({ tiers = PRICING }: { tiers?: PricingTier[] }) {
 
       <div className="mt-14 grid items-stretch gap-6 lg:grid-cols-3">
         {tiers.map((tier, i) => {
-          const isAnchor = tier.cta.href.startsWith("#");
-          const CtaInner = (
-            <>
-              {tier.cta.label}
-            </>
-          );
           return (
             <Reveal key={tier.name} delay={i * 90}>
               <div
@@ -71,29 +65,16 @@ export function Pricing({ tiers = PRICING }: { tiers?: PricingTier[] }) {
                   ))}
                 </ul>
 
-                {isAnchor ? (
-                  <a
-                    href={tier.cta.href}
-                    className={`mt-8 inline-flex w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition ${
-                      tier.featured
-                        ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
-                        : "border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--background-secondary)]"
-                    }`}
-                  >
-                    {CtaInner}
-                  </a>
-                ) : (
-                  <Link
-                    href={tier.cta.href}
-                    className={`mt-8 inline-flex w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition ${
-                      tier.featured
-                        ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
-                        : "border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--background-secondary)]"
-                    }`}
-                  >
-                    {CtaInner}
-                  </Link>
-                )}
+                <CtaLink
+                  href={tier.cta.href}
+                  className={`mt-8 inline-flex w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition ${
+                    tier.featured
+                      ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+                      : "border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--background-secondary)]"
+                  }`}
+                >
+                  {tier.cta.label}
+                </CtaLink>
               </div>
             </Reveal>
           );

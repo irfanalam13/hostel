@@ -34,8 +34,38 @@ export function isStandalone(): boolean {
   );
 }
 
+/**
+ * Tear down any service worker (and its caches) currently controlling this
+ * origin. Used by dev cleanup and available to callers that need a hard reset.
+ */
+export async function unregisterServiceWorker(): Promise<void> {
+  if (!isPwaSupported()) return;
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((reg) => reg.unregister()));
+    if (typeof caches !== "undefined") {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch {
+    /* best-effort cleanup — never throw during app bootstrap */
+  }
+}
+
 export function registerServiceWorker(cb: RegisterCallbacks = {}): void {
   if (!isPwaSupported()) return;
+
+  // A production caching SW must NEVER control the dev server. It serves build
+  // output cache-first — safe in prod where /_next/static chunks are content-
+  // hashed and immutable, but Turbopack/HMR rebuild chunk URLs constantly in
+  // dev. The worker then hands back stale JS: the network-first HTML shell
+  // still renders, but the page never hydrates, so it looks "stuck rendering"
+  // (forms fall back to native GET submits, soft navigations fail with a red
+  // X). Existing dev installs self-heal because we actively unregister here.
+  if (process.env.NODE_ENV !== "production") {
+    void unregisterServiceWorker();
+    return;
+  }
 
   // Reload exactly once when a *new* worker takes over from an existing one
   // (a genuine update). The very first SW to claim a previously-uncontrolled

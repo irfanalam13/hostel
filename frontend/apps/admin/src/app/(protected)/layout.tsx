@@ -10,6 +10,7 @@ import { SidebarProvider } from "@/components/shell/SidebarContext";
 import Sidebar from "@/components/shell/Sidebar";
 import { MobileBottomNav } from "@/components/shell/MobileBottomNav";
 import { PresenceHeartbeat } from "@/features/system/PresenceHeartbeat";
+import { UpgradeProvider } from "@/features/subscription/UpgradeProvider";
 import { trackFeature } from "@hostel/pwa";
 import {
   AccessDenied,
@@ -70,15 +71,17 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <PresenceHeartbeat />
-      <div className="flex h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200">
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <main className="flex-1 overflow-y-auto pb-[64px] lg:pb-0 scrollbar-thin">
-            {allowed ? children : <AccessDenied homeHref={portalHomeForRole(role)} />}
-          </main>
-          <MobileBottomNav />
+      <UpgradeProvider>
+        <div className="flex h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200">
+          <Sidebar />
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <main className="flex-1 overflow-y-auto pb-[64px] lg:pb-0 scrollbar-thin">
+              {allowed ? children : <AccessDenied homeHref={portalHomeForRole(role)} />}
+            </main>
+            <MobileBottomNav />
+          </div>
         </div>
-      </div>
+      </UpgradeProvider>
     </SidebarProvider>
   );
 }

@@ -275,6 +275,20 @@ async function throwApiError(res: Response, ctx?: { method?: string; url?: strin
   err.status = res.status;
   err.data = data;
   err.code = code;
+
+  // Subscription entitlement blocks (feature_not_available / plan_limit_reached)
+  // carry their machine code in the error body. Broadcast a window event so the
+  // upgrade experience (Module 12) can surface a modal from anywhere, without
+  // every call site having to handle it. The error still throws as normal.
+  const bodyCode =
+    data && typeof data === "object" ? (data as { code?: unknown }).code : undefined;
+  if (
+    typeof window !== "undefined" &&
+    (bodyCode === "feature_not_available" || bodyCode === "plan_limit_reached")
+  ) {
+    window.dispatchEvent(new CustomEvent("entitlement:blocked", { detail: data }));
+  }
+
   throw err;
 }
 

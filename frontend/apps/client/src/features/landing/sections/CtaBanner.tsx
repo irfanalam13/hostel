@@ -1,7 +1,7 @@
 import React from "react";
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Container } from "../components/Container";
+import { CtaLink } from "../components/CtaLink";
 import { Reveal } from "../components/Reveal";
 
 export function CtaBanner() {
@@ -19,18 +19,18 @@ export function CtaBanner() {
               one calm, fast platform. Start free — no credit card required.
             </p>
             <div className="relative mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
+              <CtaLink
                 href="/signup"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-semibold text-[var(--accent)] shadow-sm transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40 sm:w-auto"
               >
                 Start free <ArrowRight className="h-4.5 w-4.5" aria-hidden />
-              </Link>
-              <Link
+              </CtaLink>
+              <CtaLink
                 href="/#contact"
                 className="inline-flex w-full items-center justify-center rounded-xl border border-white/40 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 sm:w-auto"
               >
                 Talk to sales
-              </Link>
+              </CtaLink>
             </div>
           </div>
         </Reveal>

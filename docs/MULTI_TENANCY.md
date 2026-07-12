@@ -14,15 +14,15 @@ subdomain label, so its rules are exactly the DNS-label rules.
 
 ## Architecture overview
 
-| Concern              | Where it lives                                                    |
-| -------------------- | ----------------------------------------------------------------- |
+| Concern              | Where it lives                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------- |
 | Tenant model         | `apps/tenants/models.py` — `Hostel` (slug, status, owner, locale, soft delete) |
-| Username rules       | `apps/tenants/validators.py` (pure, no DB)                        |
-| DB-touching services | `apps/tenants/services.py` (availability, suggestions, provisioning, lifecycle) |
-| Cached lookup        | `apps/tenants/cache.py` (Redis cache-aside + negative caching)    |
-| Request resolution   | `apps/tenants/middleware.py` — `TenantResolutionMiddleware`       |
-| Workspace API        | `apps/tenants/views.py` — `WorkspaceViewSet` (`/api/tenants/workspaces/`) |
-| Tests                | `apps/tenants/tests/` + `apps/common/tests/test_middleware.py`    |
+| Username rules       | `apps/tenants/validators.py` (pure, no DB)                                        |
+| DB-touching services | `apps/tenants/services.py` (availability, suggestions, provisioning, lifecycle)   |
+| Cached lookup        | `apps/tenants/cache.py` (Redis cache-aside + negative caching)                    |
+| Request resolution   | `apps/tenants/middleware.py` — `TenantResolutionMiddleware`                    |
+| Workspace API        | `apps/tenants/views.py` — `WorkspaceViewSet` (`/api/tenants/workspaces/`)    |
+| Tests                | `apps/tenants/tests/` + `apps/common/tests/test_middleware.py`                  |
 
 Legacy compatibility is preserved everywhere: `request.hostel`, the
 `X-HOSTEL-CODE` / `X-HOSTEL-ID` headers, JWT hostel claims, and the
@@ -94,14 +94,14 @@ Configured in settings; enforced in `apps/tenants/validators.py`:
 plus `is_active`, `is_deleted`/`deleted_at` (soft delete — tenant data is
 never physically removed).
 
-| Status / flag        | Middleware behaviour                          |
-| -------------------- | --------------------------------------------- |
-| `trial`, `active`    | request served                                |
-| `suspended`          | 403 `workspace_suspended`                     |
-| `expired`            | 403 `workspace_expired`                       |
-| `pending`            | 403 `workspace_pending`                       |
-| `is_active=False`    | 403 `workspace_inactive`                      |
-| `archived`/deleted   | 404 `workspace_not_found`                     |
+| Status / flag         | Middleware behaviour       |
+| --------------------- | -------------------------- |
+| `trial`, `active` | request served             |
+| `suspended`         | 403`workspace_suspended` |
+| `expired`           | 403`workspace_expired`   |
+| `pending`           | 403`workspace_pending`   |
+| `is_active=False`   | 403`workspace_inactive`  |
+| `archived`/deleted  | 404`workspace_not_found` |
 
 Transitions live in `services.py` (`activate_workspace`, `suspend_workspace`,
 `archive_workspace`, `restore_workspace`, `soft_delete_workspace`) — each
@@ -126,16 +126,16 @@ suffix). The signup response now includes
 All under `/api/tenants/workspaces/` (responses use the standard
 `{success, message, data, meta}` envelope):
 
-| Endpoint | Auth | Notes |
-| --- | --- | --- |
-| `GET availability/?username=everest` | public, throttled `workspace_check` (30/min) | `{available, reason, suggestions[]}`; reasons: `taken`, `reserved`, `invalid`, `too_short`, `too_long` |
-| `POST /` | authenticated, throttled `workspace` (5/hour) | register a workspace (`hostel_name`, optional `workspace_username`, phone/address/locale) |
-| `GET /` | member | my workspaces |
-| `GET current/` | member | the workspace resolved for this request |
-| `GET {id}/` | member | detail |
-| `PATCH {id}/` | OWNER/ADMIN | display fields only — never the slug |
-| `DELETE {id}/` | OWNER/ADMIN | soft delete |
-| `POST {id}/suspend|archive|restore/` | OWNER/ADMIN | lifecycle; restore also un-deletes |
+| Endpoint                               | Auth                                           | Notes                                                                                                              |
+| -------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GET availability/?username=everest` | public, throttled`workspace_check` (30/min)  | `{available, reason, suggestions[]}`; reasons: `taken`, `reserved`, `invalid`, `too_short`, `too_long` |
+| `POST /`                             | authenticated, throttled`workspace` (5/hour) | register a workspace (`hostel_name`, optional `workspace_username`, phone/address/locale)                      |
+| `GET /`                              | member                                         | my workspaces                                                                                                      |
+| `GET current/`                       | member                                         | the workspace resolved for this request                                                                            |
+| `GET {id}/`                          | member                                         | detail                                                                                                             |
+| `PATCH {id}/`                        | OWNER/ADMIN                                    | display fields only — never the slug                                                                              |
+| `DELETE {id}/`                       | OWNER/ADMIN                                    | soft delete                                                                                                        |
+| `POST {id}/suspend                     | archive                                        | restore/`                                                                                                          |
 
 ## Caching
 
@@ -175,14 +175,14 @@ Defense in depth, unchanged in principle but now enforced earlier:
 The frontend mirrors the backend rules so feedback is instant, while the
 backend stays authoritative:
 
-| Concern | Where it lives |
-| --- | --- |
-| Username rules + host parsing + `workspaceStore` | `frontend/packages/utils/src/workspace.ts` (pure logic also exported as `@hostel/utils/workspace` for the Edge proxy) |
-| `X-Workspace` request header + workspace error codes | `frontend/packages/api/src/apiClient.ts` (`isWorkspaceError`, `err.code`) |
-| SSR workspace context | `frontend/packages/config/src/securityProxy.ts` — derives `x-workspace` from the Host header (client-sent values are discarded) for both zones |
-| Workspace API client + types | `frontend/apps/admin/src/features/tenants/{api/workspaces.api.ts, types/workspaces.types.ts}` |
-| Live availability UI | `features/tenants/hooks/useWorkspaceAvailability.ts` (debounced + abortable) and `components/WorkspaceUsernameField.tsx` |
-| Signup integration | `(public)/signup` — username auto-derived from the hostel name until edited, availability-gated submit; `(public)/verify-otp` persists the workspace and shows its URL |
+| Concern                                                | Where it lives                                                                                                                                                              |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Username rules + host parsing +`workspaceStore`      | `frontend/packages/utils/src/workspace.ts` (pure logic also exported as `@hostel/utils/workspace` for the Edge proxy)                                                   |
+| `X-Workspace` request header + workspace error codes | `frontend/packages/api/src/apiClient.ts` (`isWorkspaceError`, `err.code`)                                                                                             |
+| SSR workspace context                                  | `frontend/packages/config/src/securityProxy.ts` — derives `x-workspace` from the Host header (client-sent values are discarded) for both zones                         |
+| Workspace API client + types                           | `frontend/apps/admin/src/features/tenants/{api/workspaces.api.ts, types/workspaces.types.ts}`                                                                             |
+| Live availability UI                                   | `features/tenants/hooks/useWorkspaceAvailability.ts` (debounced + abortable) and `components/WorkspaceUsernameField.tsx`                                                |
+| Signup integration                                     | `(public)/signup` — username auto-derived from the hostel name until edited, availability-gated submit; `(public)/verify-otp` persists the workspace and shows its URL |
 
 Key behaviors:
 
@@ -240,12 +240,12 @@ non-structural change.
 
 ## Troubleshooting
 
-| Symptom | Cause / fix |
-| --- | --- |
-| `400 Bad Request` on a tenant subdomain | Host failed `ALLOWED_HOSTS` — check `TENANT_BASE_DOMAIN` matches the domain being used |
-| `404 workspace_not_found` on a valid-looking URL | slug doesn't exist, workspace archived/soft-deleted, or nested subdomain (`a.b.domain`) |
-| `403 workspace_suspended/expired/pending` | workspace status gate — see lifecycle table above |
-| Stale tenant after a change | cache invalidation happens via `post_save`; direct SQL updates bypass it — call `invalidate_tenant_cache(hostel)` or wait out `TENANT_CACHE_TTL` |
-| Availability endpoint 429 | `THROTTLE_WORKSPACE_CHECK` (default 30/min per IP) |
-| Tenant changes don't apply in Docker dev | backend code is bind-mounted with auto-reload; for image-baked (prod) containers rebuild with `docker compose up -d --build` |
-| Frontend edits not visible in Docker dev | Windows bind mounts don't always propagate file-watch events into the container — `docker compose restart frontend admin` forces a fresh compile |
+| Symptom                                            | Cause / fix                                                                                                                                            |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `400 Bad Request` on a tenant subdomain          | Host failed`ALLOWED_HOSTS` — check `TENANT_BASE_DOMAIN` matches the domain being used                                                             |
+| `404 workspace_not_found` on a valid-looking URL | slug doesn't exist, workspace archived/soft-deleted, or nested subdomain (`a.b.domain`)                                                              |
+| `403 workspace_suspended/expired/pending`        | workspace status gate — see lifecycle table above                                                                                                     |
+| Stale tenant after a change                        | cache invalidation happens via`post_save`; direct SQL updates bypass it — call `invalidate_tenant_cache(hostel)` or wait out `TENANT_CACHE_TTL` |
+| Availability endpoint 429                          | `THROTTLE_WORKSPACE_CHECK` (default 30/min per IP)                                                                                                   |
+| Tenant changes don't apply in Docker dev           | backend code is bind-mounted with auto-reload; for image-baked (prod) containers rebuild with`docker compose up -d --build`                          |
+| Frontend edits not visible in Docker dev           | Windows bind mounts don't always propagate file-watch events into the container —`docker compose restart frontend admin` forces a fresh compile     |

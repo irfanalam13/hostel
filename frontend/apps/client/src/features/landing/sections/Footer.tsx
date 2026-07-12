@@ -1,6 +1,6 @@
 import React from "react";
-import Link from "next/link";
 import { Container } from "../components/Container";
+import { CtaLink } from "../components/CtaLink";
 import { Logo } from "../components/Logo";
 import { BRAND, FOOTER_LINKS } from "../content";
 
@@ -21,23 +21,15 @@ export function Footer() {
               <h3 className="text-sm font-semibold text-[var(--foreground)]">{group}</h3>
               <ul className="mt-4 space-y-3">
                 {links.map((link) => {
-                  // Hash links (e.g. "/#features") use a plain <a> so the browser
-                  // resolves the anchor reliably from any page. Real routes use
-                  // next/link for client-side navigation.
-                  const isRoute = link.href.startsWith("/") && !link.href.includes("#");
+                  // CtaLink soft-navigates within this marketing zone and does a
+                  // full-document jump for admin-zone routes (e.g. "/login").
                   const cls =
                     "text-sm text-[var(--foreground-secondary)] transition hover:text-[var(--accent)]";
                   return (
                     <li key={link.label}>
-                      {isRoute ? (
-                        <Link href={link.href} className={cls}>
-                          {link.label}
-                        </Link>
-                      ) : (
-                        <a href={link.href} className={cls}>
-                          {link.label}
-                        </a>
-                      )}
+                      <CtaLink href={link.href} className={cls}>
+                        {link.label}
+                      </CtaLink>
                     </li>
                   );
                 })}

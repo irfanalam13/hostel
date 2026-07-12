@@ -2,7 +2,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.permissions import HasHostelContext, IsOwnerOrManager
+from apps.common.permissions import HasHostelContext, IsSuperUser
 
 from .models import AnalyticsEvent
 from .serializers import CollectSerializer
@@ -53,9 +53,13 @@ class CollectView(APIView):
 
 
 class ReportView(APIView):
-    """Aggregated PWA metrics for the active hostel (owner/manager only)."""
+    """Aggregated PWA metrics for the active hostel (super admin only).
 
-    permission_classes = [HasHostelContext, IsOwnerOrManager]
+    PWA telemetry (install/cache/error rates, device mix) is a platform-operator
+    concern, not hostel business — so it is walled off from tenant owners and
+    surfaced only on the super-admin dashboard."""
+
+    permission_classes = [HasHostelContext, IsSuperUser]
 
     def get(self, request):
         try:

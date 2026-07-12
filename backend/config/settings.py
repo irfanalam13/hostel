@@ -92,6 +92,11 @@ INSTALLED_APPS = [
     "apps.marketing",
     "apps.website",
     "apps.domains",
+    "apps.subscriptions",
+    "apps.staff",
+    "apps.finance",
+    "apps.accounting",
+    "apps.security",
 ]
 
 MIDDLEWARE = [
@@ -99,6 +104,11 @@ MIDDLEWARE = [
     # Request id + Server-Timing + structured per-request log (duration, DB
     # time, query count). Sits at the top so it times the whole stack.
     "apps.common.observability.RequestTimingMiddleware",
+    # Edge security (Prompt 07): spoof-resistant client IP, IP allow/deny
+    # rules, IP reputation, bot detection, WAF-lite and distributed per-IP
+    # rate limits. Runs before anything expensive so abusive traffic is
+    # rejected with near-zero cost. Config-driven + hot-reloadable.
+    "apps.security.middleware.EdgeGuardMiddleware",
     "django.middleware.security.SecurityMiddleware",
     # Compress JSON/API responses (>200 bytes, Accept-Encoding permitting) —
     # large list payloads shrink ~5-10x on the wire.
@@ -119,6 +129,9 @@ MIDDLEWARE = [
     # Tenant resolution — resolves the workspace (subdomain / headers) before
     # authentication and rejects unknown/suspended/archived workspaces.
     "apps.tenants.middleware.TenantResolutionMiddleware",
+    # Per-workspace, plan-aware rate limit (needs request.tenant) — one tenant
+    # can never exhaust the platform for the others.
+    "apps.security.middleware.TenantRateLimitMiddleware",
     # Audit trail
     "apps.auditlog.middleware.AuditLogMiddleware",
 
@@ -230,8 +243,15 @@ REST_FRAMEWORK = {
     # Bound list responses -> {count, next, previous, results}
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": env.int("API_PAGE_SIZE", default=25),
-    # Rate limiting / abuse protection
+    # Rate limiting / abuse protection.
+    # RoleRateThrottle (Prompt 08) adds the per-role / per-plan / per-method
+    # global API budget on top of DRF's built-ins — atomic on Redis,
+    # tenant-aware, monitor-mode-aware. It's config-gated (role_limits.enabled,
+    # off in dev) so it's a no-op until switched on. The built-in Anon/User
+    # throttles stay for backward compatibility; ScopedRateThrottle still
+    # serves any view using the legacy `throttle_scope`.
     "DEFAULT_THROTTLE_CLASSES": (
+        "apps.security.throttles.RoleRateThrottle",
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
         "rest_framework.throttling.ScopedRateThrottle",
@@ -283,6 +303,19 @@ REMEMBER_ME_REFRESH_DAYS = env.int("REMEMBER_ME_REFRESH_DAYS", default=30)
 # RBAC: per-(workspace, role) permission-set cache TTL (seconds). Also
 # invalidated whenever the workspace's settings change (apps.tenants signal).
 PERMISSIONS_CACHE_TTL = env.int("PERMISSIONS_CACHE_TTL", default=300)
+
+# Subscription entitlement (feature/limit) snapshot cache TTL (seconds).
+# Invalidated immediately on any plan/catalog/override change via a global
+# generation counter (apps.subscriptions.entitlements); this only bounds
+# staleness if a signal is ever missed.
+ENTITLEMENTS_CACHE_TTL = env.int("ENTITLEMENTS_CACHE_TTL", default=300)
+
+# Master switch for plan-based entitlement enforcement. While the platform is
+# still under construction we ship with plans unset, so gating every module
+# behind a plan would lock the whole product. With this off, every feature is
+# treated as available and every limit as unlimited. Flip to True (or set
+# ENTITLEMENTS_ENFORCED=1) once plans are configured per workspace.
+ENTITLEMENTS_ENFORCED = env.bool("ENTITLEMENTS_ENFORCED", default=False)
 
 # httpOnly cookie auth configuration (consumed by apps.accounts)
 JWT_AUTH_COOKIE = "access_token"
@@ -508,6 +541,33 @@ TENANT_CACHE_TTL = env.int("TENANT_CACHE_TTL", default=300)
 TENANT_NEGATIVE_CACHE_TTL = env.int("TENANT_NEGATIVE_CACHE_TTL", default=60)
 
 # ---------------------------------------------------------------------------
+# Edge security & rate limiting foundation (Prompt 07) — apps.security
+# ---------------------------------------------------------------------------
+# Master switch for the whole security layer (middleware + throttles). The
+# full policy is layered: apps/security/defaults.py -> per-environment
+# overlay -> YAML (SECURITY_CONFIG_FILE) -> SECURITY_* env vars -> DB
+# (SecuritySetting rows, hot-reloaded). See docs/EDGE_SECURITY.md.
+SECURITY_ENABLED = env.bool("SECURITY_ENABLED", default=True)
+# Which environment overlay applies: development / testing / staging / production.
+SECURITY_ENVIRONMENT = env(
+    "SECURITY_ENVIRONMENT", default="development" if DEBUG else "production"
+)
+# Optional YAML policy file (infrastructure-managed layer).
+SECURITY_CONFIG_FILE = env("SECURITY_CONFIG_FILE", default="")
+# How often each process re-checks the shared config generation (hot reload).
+SECURITY_CONFIG_RECHECK_SECONDS = env.int("SECURITY_CONFIG_RECHECK_SECONDS", default=5)
+# Reverse proxies whose X-Forwarded-For is trusted (CIDRs). Empty = the
+# private-network defaults in apps/security/defaults.py (Docker/K8s networks).
+TRUSTED_PROXIES = env.list("TRUSTED_PROXIES", default=[])
+
+# CAPTCHA (Prompt 08) — verified server-side by apps.security.captcha when the
+# auth layer decides a challenge is required. The SECRET stays backend-only;
+# the SITE KEY is public (inlined into the SPA as NEXT_PUBLIC_CAPTCHA_SITE_KEY).
+# CAPTCHA is a no-op until a secret is set, regardless of config flags.
+SECURITY_CAPTCHA_SECRET = env("SECURITY_CAPTCHA_SECRET", default="")
+SECURITY_CAPTCHA_SITE_KEY = env("SECURITY_CAPTCHA_SITE_KEY", default="")
+
+# ---------------------------------------------------------------------------
 # Custom domains & white-label (Prompt 05)
 # ---------------------------------------------------------------------------
 # Per-plan custom-domain allowances (plan_name, lowercased). "default" covers
@@ -594,6 +654,11 @@ CELERY_BEAT_SCHEDULE = {
     "analytics-prune-old": {
         "task": "apps.analytics.tasks.prune_old_analytics",
         "schedule": crontab(hour=4, minute=45),  # daily 04:45
+    },
+    # Security-event retention + expired temporary IP-rule reaping.
+    "security-prune-events": {
+        "task": "apps.security.tasks.prune_security_events",
+        "schedule": crontab(hour=5, minute=0),  # daily 05:00
     },
 }
 

@@ -12,6 +12,7 @@ export const PERMISSIONS = [
   "residents:manage",
   "rooms:manage",
   "finance:manage",
+  "accounting:manage",
   "operations:manage",
   "complaints:manage",
   "communications:manage",
@@ -20,7 +21,10 @@ export const PERMISSIONS = [
   "profile:view",
   "settings:manage",
   "backups:manage",
-  "tenants:manage",
+  "staff:manage",
+  // Platform (Super Admin) surface: subscription/plan/feature management.
+  // Granted ONLY to SUPER_ADMIN (is_superuser) — never to tenant OWNER/ADMIN.
+  "platform:manage",
   // End-user portal surfaces (Prompt 02). Granted ONLY to portal roles —
   // staff/admin roles do not hold them, so /student and /parent stay
   // exclusively student/parent areas (and vice versa).
@@ -31,17 +35,28 @@ export const PERMISSIONS = [
 export type Permission = (typeof PERMISSIONS)[number];
 
 /**
- * What each role may do. `"*"` grants everything.
+ * Every permission a tenant admin may hold — i.e. all of them EXCEPT the
+ * platform (Super Admin) surface. OWNER/ADMIN get this: full access to their
+ * workspace, but never to cross-tenant plan/feature management, which is
+ * reserved for SUPER_ADMIN (is_superuser). This is the deliberate tightening
+ * of the old OWNER `"*"` default.
+ */
+const TENANT_ADMIN_GRANTS: readonly Permission[] = PERMISSIONS.filter(
+  (p) => p !== "platform:manage",
+);
+
+/**
+ * What each role may do. `"*"` grants everything (SUPER_ADMIN only).
  *
- * OWNER keeps `"*"` because until the backend issues differentiated roles,
- * every real account normalizes to OWNER and must keep exactly the access it
- * has today (see normalizeRole). End-user roles hold no admin permissions —
- * the admin app is staff-only by construction.
+ * OWNER/ADMIN historically held `"*"`; they now hold every permission except
+ * `platform:manage`, so existing accounts keep all their workspace access while
+ * the platform panel stays exclusively super-admin. End-user roles hold no
+ * admin permissions — the admin app is staff-only by construction.
  */
 const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
   SUPER_ADMIN: "*",
-  OWNER: "*",
-  ADMIN: "*",
+  OWNER: TENANT_ADMIN_GRANTS,
+  ADMIN: TENANT_ADMIN_GRANTS,
   MANAGER: [
     "dashboard:view",
     "admissions:manage",
@@ -49,6 +64,7 @@ const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
     "residents:manage",
     "rooms:manage",
     "finance:manage",
+    "accounting:manage",
     "operations:manage",
     "complaints:manage",
     "communications:manage",
@@ -56,6 +72,7 @@ const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
     "sync:view",
     "profile:view",
     "settings:manage",
+    "staff:manage",
   ],
   RECEPTIONIST: [
     "dashboard:view",
@@ -72,6 +89,7 @@ const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
   ACCOUNTANT: [
     "dashboard:view",
     "finance:manage",
+    "accounting:manage",
     "reports:view",
     "sync:view",
     "profile:view",

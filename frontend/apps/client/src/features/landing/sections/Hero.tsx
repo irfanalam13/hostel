@@ -1,7 +1,7 @@
 import React from "react";
-import Link from "next/link";
 import { ArrowRight, CheckCircle2, WifiOff, ShieldCheck } from "lucide-react";
 import { Container } from "../components/Container";
+import { CtaLink } from "../components/CtaLink";
 import { Reveal } from "../components/Reveal";
 import { HERO } from "../content";
 
@@ -40,12 +40,12 @@ export function Hero() {
 
         <Reveal delay={240}>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
+            <CtaLink
               href="/signup"
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-base font-semibold text-white shadow-[var(--shadow-md)] transition hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_25%,transparent)] sm:w-auto"
             >
               Start free <ArrowRight className="h-4.5 w-4.5" aria-hidden />
-            </Link>
+            </CtaLink>
             <a
               href="#contact"
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-6 py-3 text-base font-semibold text-[var(--foreground)] transition hover:border-[var(--border-hover)] hover:bg-[var(--background-secondary)] sm:w-auto"

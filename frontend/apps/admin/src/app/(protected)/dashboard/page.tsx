@@ -11,6 +11,7 @@ import { getOwnerDashboard } from "@/features/dashboard/api";
 import type { OwnerDashboardResponse } from "@/features/dashboard/types";
 import { SystemStatusPanel } from "@/features/system/SystemStatusPanel";
 import { AnalyticsPanel } from "@/features/analytics/AnalyticsPanel";
+import { Guard } from "@hostel/permissions";
 import { Button } from "@hostel/ui";
 import { PageSkeleton, Skeleton } from "@hostel/ui";
 
@@ -283,9 +284,16 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <SystemStatusPanel />
+        {/* Platform-operator surfaces: infrastructure health and PWA telemetry
+            are super-admin only. Tenant owners/managers never see them (the
+            backend endpoints also return 403 for non-super-admins). */}
+        <Guard permission="platform:manage">
+          <SystemStatusPanel />
+        </Guard>
 
-        <AnalyticsPanel />
+        <Guard permission="platform:manage">
+          <AnalyticsPanel />
+        </Guard>
 
         <DashboardCharts
           state={state}
