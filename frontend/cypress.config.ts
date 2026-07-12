@@ -10,7 +10,10 @@ import { defineConfig } from "cypress";
  *
  * This keeps both tools doing what each is best at instead of duplicating effort.
  */
-const PORT = Number(process.env.CY_PORT || 3100);
+// Target the admin zone directly (it owns /login, /dashboard, the whole app).
+// The two-zone client→admin rewrite is a production/edge concern and a flake
+// source under `next start`; see playwright.config.ts for the full rationale.
+const PORT = Number(process.env.CY_PORT || 3101);
 
 export default defineConfig({
   e2e: {

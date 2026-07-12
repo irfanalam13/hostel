@@ -25,7 +25,7 @@ test.describe("Visual regression @visual", () => {
   test("login page @smoke", async ({ page, mockApi }) => {
     await mockApi();
     await page.goto("/login");
-    await expect(page.getByRole("button", { name: /login/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
     await expect(page).toHaveScreenshot("login.png", { fullPage: true, maxDiffPixelRatio: 0.02 });
   });
 

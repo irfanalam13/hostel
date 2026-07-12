@@ -60,8 +60,8 @@ Cypress.Commands.add("login", () => {
   cy.mockApi();
   cy.visit("/login");
   cy.findByLabelText("Hostel ID").type(TEST_HOSTEL_CODE);
-  cy.findByLabelText("Username").type("warden");
+  cy.findByLabelText(/username/i).type("warden");
   cy.findByLabelText("Password").type("TestPass!234");
-  cy.contains("button", "Login").click();
+  cy.contains("button", "Sign in").click();
   cy.url().should("include", "/dashboard");
 });

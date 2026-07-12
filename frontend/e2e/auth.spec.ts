@@ -30,7 +30,7 @@ test.describe("Authentication @smoke", () => {
     await page.getByLabel("Hostel ID").fill("NOT-A-HOSTEL");
     await page.getByLabel("Username").fill("warden");
     await page.getByLabel("Password").fill("secret123");
-    await page.getByRole("button", { name: /login/i }).click();
+    await page.getByRole("button", { name: /sign in/i }).click();
 
     await expect(page.getByText(/official Hostel ID format/i)).toBeVisible();
     expect(loginCalled).toBe(false);
@@ -41,7 +41,7 @@ test.describe("Authentication @smoke", () => {
     await mockApi();
     await page.goto("/login");
     await fillLogin(page);
-    await page.getByRole("button", { name: /login/i }).click();
+    await page.getByRole("button", { name: /sign in/i }).click();
 
     await expect(page).toHaveURL(/\/dashboard/);
     // The login handler records a session marker the AuthProvider relies on.
@@ -53,9 +53,11 @@ test.describe("Authentication @smoke", () => {
     await mockApi({ unauthenticated: true });
     await page.goto("/login");
     await fillLogin(page);
-    await page.getByRole("button", { name: /login/i }).click();
+    await page.getByRole("button", { name: /sign in/i }).click();
 
-    await expect(page.getByText(/invalid credentials/i)).toBeVisible();
+    // The error surfaces in two places (inline form error + toast); assert the
+    // first so strict mode doesn't trip on the duplicate.
+    await expect(page.getByText(/invalid credentials/i).first()).toBeVisible();
     await expect(page).toHaveURL(/\/login/);
   });
 

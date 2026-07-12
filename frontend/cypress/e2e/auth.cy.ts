@@ -9,9 +9,9 @@ describe("Authentication", () => {
     cy.mockApi();
     cy.visit("/login");
     cy.findByLabelText("Hostel ID").type("BAD-ID");
-    cy.findByLabelText("Username").type("warden");
+    cy.findByLabelText(/username/i).type("warden");
     cy.findByLabelText("Password").type("secret123");
-    cy.contains("button", "Login").click();
+    cy.contains("button", "Sign in").click();
     cy.contains(/official Hostel ID format/i).should("be.visible");
     cy.url().should("include", "/login");
   });
@@ -25,9 +25,9 @@ describe("Authentication", () => {
     cy.mockApi({ unauthenticated: true });
     cy.visit("/login");
     cy.findByLabelText("Hostel ID").type("HTL-ABC12345");
-    cy.findByLabelText("Username").type("warden");
+    cy.findByLabelText(/username/i).type("warden");
     cy.findByLabelText("Password").type("wrong");
-    cy.contains("button", "Login").click();
+    cy.contains("button", "Sign in").click();
     cy.contains(/invalid credentials/i).should("be.visible");
     cy.url().should("include", "/login");
   });
