@@ -125,10 +125,42 @@ class DRState(models.Model):
     def __str__(self):
         return f"DR mode: {self.mode}"
 
+    # DRModeMiddleware runs on every request, so the current (mode, reason)
+    # pair is cached in Redis. set_mode() rewrites the key immediately, so a
+    # mode change propagates to all workers at once; the TTL only bounds
+    # staleness if the cache write itself is lost.
+    CACHE_KEY = "dr:state:v1"
+    CACHE_TTL = 30  # seconds
+
     @classmethod
     def get_solo(cls) -> "DRState":
         obj, _ = cls.objects.get_or_create(singleton_id=1)
         return obj
+
+    @classmethod
+    def get_cached_state(cls) -> tuple:
+        """Return (mode, reason) without a DB hit on the hot path."""
+        from django.core.cache import cache
+
+        try:
+            hit = cache.get(cls.CACHE_KEY)
+        except Exception:  # cache down — fall through to the DB
+            hit = None
+        if isinstance(hit, (tuple, list)) and len(hit) == 2:
+            return hit[0], hit[1]
+
+        obj = cls.get_solo()
+        cls._write_cache(obj)
+        return obj.mode, obj.reason
+
+    @classmethod
+    def _write_cache(cls, obj: "DRState") -> None:
+        from django.core.cache import cache
+
+        try:
+            cache.set(cls.CACHE_KEY, (obj.mode, obj.reason), cls.CACHE_TTL)
+        except Exception:
+            pass  # cache down — next read falls back to the DB
 
     @classmethod
     def set_mode(cls, mode: str, *, reason: str = "", user=None) -> "DRState":
@@ -137,4 +169,5 @@ class DRState(models.Model):
         obj.reason = (reason or "")[:255]
         obj.changed_by = user if (user is not None and getattr(user, "pk", None)) else None
         obj.save()
+        cls._write_cache(obj)
         return obj

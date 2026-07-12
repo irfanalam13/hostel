@@ -1,0 +1,56 @@
+# Alertmanager routing + receivers.
+# NOTE: Alertmanager does NOT expand ${ENV} in this file — edit the destinations
+# in place (the webhook URLs below are working placeholders pointing at a local
+# sink; swap for real email/Slack/PagerDuty receivers). Severity labels come
+# from alerts.yml.
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ["alertname", "severity", "service"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    # Critical pages immediately, repeats sooner.
+    - matchers: ['severity="critical"']
+      receiver: critical
+      repeat_interval: 1h
+      group_wait: 10s
+    - matchers: ['severity="high"']
+      receiver: high
+
+receivers:
+  - name: default
+    # Replace with a real destination. A webhook receiver keeps this valid
+    # config working out of the box (points at a local sink you can swap).
+    webhook_configs:
+      - url: "http://alert-sink:9099/default"
+        send_resolved: true
+
+  - name: critical
+    webhook_configs:
+      - url: "http://alert-sink:9099/critical"
+        send_resolved: true
+    # Example fan-out — uncomment and fill in for real notifications:
+    # email_configs:
+    #   - to: "oncall@yourdomain.com"
+    #     from: "alerts@yourdomain.com"
+    #     smarthost: "smtp.example.com:587"
+    #     auth_username: "alerts@yourdomain.com"
+    #     auth_password: "CHANGE_ME"
+    # slack_configs:
+    #   - api_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    #     channel: "#alerts-critical"
+
+  - name: high
+    webhook_configs:
+      - url: "http://alert-sink:9099/high"
+        send_resolved: true
+
+inhibit_rules:
+  # A critical alert silences a high alert for the same service.
+  - source_matchers: ['severity="critical"']
+    target_matchers: ['severity="high"']
+    equal: ["service"]

@@ -9,7 +9,7 @@ and [`TESTING.md`](TESTING.md); for an assessment checklist see
 
 | Control | Where | Notes |
 |---|---|---|
-| **Strict CSP** | `frontend/src/middleware.ts` | Per-request `nonce` + `'strict-dynamic'`; no effective `unsafe-inline` for scripts. Next applies the nonce to its own bundles. |
+| **Strict CSP** | `frontend/packages/config/src/securityProxy.ts (each app: frontend/apps/*/src/proxy.ts)` | Per-request `nonce` + `'strict-dynamic'`; no effective `unsafe-inline` for scripts. Next applies the nonce to its own bundles. |
 | **Trusted Types** | middleware (report-only) + `shared/security/trustedTypes.ts` | `require-trusted-types-for 'script'` ships **report-only** first; a `default` policy blocks cross-origin script URLs. Flip `CSP_TT_ENFORCE=1` to enforce once reports are clean. |
 | **SRI** | `frontend/next.config.ts` (`experimental.sri`) | `integrity="sha384-…"` on build `<script>` tags → tampered chunks rejected. |
 | **Permissions-Policy** | middleware (frontend) + `apps/common/middleware.py` (API) | Every powerful feature (camera, mic, geo, usb, payment, …) denied. |
@@ -36,7 +36,7 @@ and [`TESTING.md`](TESTING.md); for an assessment checklist see
 
 ## CSP / Trusted-Types reporting
 
-The middleware sets `report-uri`/`report-to` → `frontend/src/app/api/security/csp-report/route.ts`,
+The middleware sets `report-uri`/`report-to` → `frontend/apps/admin/src/app/api/security/csp-report/route.ts`,
 which logs a compact line per violation. Watch these during the Trusted-Types
 report-only rollout, then set `CSP_TT_ENFORCE=1` once clean.
 

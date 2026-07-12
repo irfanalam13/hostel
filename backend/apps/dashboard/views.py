@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -26,9 +26,15 @@ class OwnerDashboardView(APIView):
         total_due = FeeLedger.objects.filter(hostel=hostel, month=this_month).aggregate(total=Sum("net_due"))["total"] or 0
         due_count = FeeLedger.objects.filter(hostel=hostel, month=this_month, status__in=["DUE","PARTIAL"]).count()
 
-        total_beds = Bed.objects.filter(hostel=hostel).count()
-        occupied_beds = Bed.objects.filter(hostel=hostel, status="OCCUPIED").count()
-        available_beds = Bed.objects.filter(hostel=hostel, status="AVAILABLE").count()
+        # One pass over beds instead of three separate COUNT round-trips.
+        bed_stats = Bed.objects.filter(hostel=hostel).aggregate(
+            total=Count("id"),
+            occupied=Count("id", filter=Q(status="OCCUPIED")),
+            available=Count("id", filter=Q(status="AVAILABLE")),
+        )
+        total_beds = bed_stats["total"] or 0
+        occupied_beds = bed_stats["occupied"] or 0
+        available_beds = bed_stats["available"] or 0
         active_students = Student.objects.filter(hostel=hostel, status="ACTIVE").count()
         pending_complaints = Complaint.objects.filter(hostel=hostel, status__in=["OPEN", "IN_PROGRESS"]).count()
         pending_admissions = AdmissionRequest.objects.filter(hostel=hostel, status="PENDING").count()

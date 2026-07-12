@@ -1,0 +1,48 @@
+# =============================================================================
+# EDGE SECURITY — http-context zones and maps (Prompt 07).
+#
+# Loaded BEFORE app.conf (templates render into conf.d alphabetically), so the
+# zones/maps declared here are available to every server block. All rates are
+# env-tunable through the nginx service environment (see docker-compose.prod.yml
+# defaults) — envsubst substitutes only variables that are actually defined, so
+# nginx runtime tokens ($binary_remote_addr, $http_user_agent, …) pass through.
+#
+# Layered defence: these limits are the OUTER wall (connection + request-line,
+# cheapest possible rejection). The Redis distributed limiter inside Django
+# (apps.security) is the inner, tenant/plan-aware wall. Cloudflare, when
+# enabled, sits in front of both (see snippets/cloudflare-real-ip.conf).
+# =============================================================================
+
+# --- Rate-limit zones (keyed by client IP) -----------------------------------
+#   auth    login / token / signup / password reset (credential stuffing)
+#   api     general API + Django admin traffic
+#   global  everything else (frontend pages/assets) — generous flood ceiling
+limit_req_zone  $binary_remote_addr  zone=auth:10m    rate=${NGINX_RATE_AUTH};
+limit_req_zone  $binary_remote_addr  zone=api:10m     rate=${NGINX_RATE_API};
+limit_req_zone  $binary_remote_addr  zone=global:10m  rate=${NGINX_RATE_GLOBAL};
+limit_req_status  429;
+
+# --- Connection-limit zones (TCP flood / Slowloris containment) --------------
+limit_conn_zone $binary_remote_addr  zone=perip:10m;
+limit_conn_zone $server_name         zone=perserver:10m;
+limit_conn_status 429;
+
+# --- Attack tools & scanners (User-Agent) -------------------------------------
+# Only unambiguous offensive tooling is blocked at the edge; generic automation
+# (curl, python) is classified in the app layer where policy is hot-reloadable.
+map $http_user_agent $edge_block_agent {
+    default 0;
+    "~*(sqlmap|nikto|nessus|acunetix|masscan|zgrab|wpscan|dirbuster|gobuster|hydra|havij|netsparker|openvas|w3af|commix|arachni|jorgee)" 1;
+}
+
+# --- Method allow-list ---------------------------------------------------------
+map $request_method $edge_block_method {
+    default  1;
+    GET      0;
+    POST     0;
+    PUT      0;
+    PATCH    0;
+    DELETE   0;
+    HEAD     0;
+    OPTIONS  0;
+}

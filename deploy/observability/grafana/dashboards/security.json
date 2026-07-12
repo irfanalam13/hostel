@@ -1,0 +1,108 @@
+{
+  "uid": "hostel-security",
+  "title": "Hostel — Security & Rate Limiting",
+  "tags": ["hostel", "security"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "event_type",
+        "label": "Event type",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(hostel_security_events_total, event_type)",
+        "includeAll": true,
+        "multi": true,
+        "current": {"text": "All", "value": "$__all"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Security events / sec (by type)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum by (event_type) (rate(hostel_security_events_total{event_type=~\"$event_type\"}[5m]))",
+          "legendFormat": "{{event_type}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Rate-limit decisions / sec (allowed vs limited)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum by (result) (rate(hostel_rate_limit_decisions_total[5m]))",
+          "legendFormat": "{{result}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Blocked (last 1h)",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {"expr": "sum(increase(hostel_security_events_total{action=\"blocked\"}[1h]))"}
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Progressive lockouts (last 1h)",
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {"expr": "sum(increase(hostel_auth_events_total{event_type=\"auth_lockout\"}[1h]))"}
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Auth protection events / sec",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum by (event_type) (rate(hostel_auth_events_total[5m]))",
+          "legendFormat": "{{event_type}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "WAF violations / sec (by rule)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum by (rule) (rate(hostel_waf_violations_total[5m]))",
+          "legendFormat": "{{rule}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Security event log (Loki)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "targets": [
+        {"expr": "{container=~\".*web.*\"} |= \"event\" | json | event != \"\""}
+      ]
+    }
+  ]
+}

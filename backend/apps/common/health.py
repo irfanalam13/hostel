@@ -10,6 +10,12 @@ Endpoints
     /health/database/  readiness — `SELECT 1` against the default DB
     /health/cache/     readiness — PING against Redis
     /health/celery/    readiness — ping live Celery workers
+    /health/storage/   readiness — write/read/delete a probe file on the
+                                   default media storage (volume or S3/MinIO)
+    /health/queue/     readiness — Celery queue depth (backlog warning)
+
+None of these expose secrets, hostnames or credentials — components report
+only ok/error plus a short generic detail string.
 """
 
 from django.conf import settings
@@ -102,5 +108,63 @@ def health_celery(request):
         )
     return _json(
         {"status": "ok", "component": "celery", "workers": workers},
+        healthy=True,
+    )
+
+
+@csrf_exempt
+@never_cache
+@require_GET
+def health_storage(request):
+    """Readiness probe for the default media storage (filesystem volume or
+    S3/MinIO/R2): write, read back and delete a tiny probe object."""
+    from django.core.files.base import ContentFile
+    from django.core.files.storage import default_storage
+
+    probe_name = "health/.storage-probe"
+    try:
+        saved = default_storage.save(probe_name, ContentFile(b"ok"))
+        try:
+            with default_storage.open(saved, "rb") as handle:
+                content = handle.read()
+        finally:
+            default_storage.delete(saved)
+        if content != b"ok":
+            raise RuntimeError("probe readback mismatch")
+    except Exception:
+        # Generic detail only — storage errors can embed endpoints/credentials.
+        return _json(
+            {"status": "error", "component": "storage",
+             "detail": "storage write/read probe failed"},
+            healthy=False,
+        )
+    return _json({"status": "ok", "component": "storage"}, healthy=True)
+
+
+@csrf_exempt
+@never_cache
+@require_GET
+def health_queue(request):
+    """Readiness probe for the Celery queue: reports backlog depth. Unhealthy
+    only when the broker is unreachable; a deep-but-reachable queue returns
+    200 with the depth so monitoring can alert on trend, not flap the LB."""
+    redis_url = getattr(settings, "CELERY_BROKER_URL", "") or getattr(
+        settings, "REDIS_URL", ""
+    )
+    try:
+        import redis
+
+        client = redis.Redis.from_url(
+            redis_url, socket_connect_timeout=2, socket_timeout=2
+        )
+        depth = int(client.llen("celery"))  # default Celery queue key
+    except Exception:
+        return _json(
+            {"status": "error", "component": "queue",
+             "detail": "broker unreachable"},
+            healthy=False,
+        )
+    return _json(
+        {"status": "ok", "component": "queue", "depth": depth},
         healthy=True,
     )

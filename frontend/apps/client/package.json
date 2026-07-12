@@ -1,0 +1,22 @@
+{
+  "name": "@hostel/client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build --webpack",
+    "start": "next start -p 3000",
+    "start:test": "next start --port 3100"
+  },
+  "dependencies": {
+    "@hostel/auth": "*",
+    "@hostel/config": "*",
+    "@hostel/pwa": "*",
+    "@hostel/ui": "*",
+    "@hostel/utils": "*",
+    "lucide-react": "^1.21.0",
+    "next": "16.2.9",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  }
+}

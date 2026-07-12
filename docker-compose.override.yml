@@ -1,0 +1,186 @@
+# =============================================================================
+# Hostel SaaS — DEVELOPMENT overrides (hot reload, no image rebuilds)
+#
+# docker compose AUTOMATICALLY merges this file on top of docker-compose.yml
+# for local `docker compose up`. It bind-mounts your source into the running
+# containers and swaps the production commands for auto-reloading dev servers,
+# so editing code applies live — no `--build`, no restart.
+#
+#   docker compose up                 dev stack with hot reload (this file)
+#   docker compose -f docker-compose.yml up --build   production-style, no reload
+#
+# Redis is unchanged (still a Docker service). PostgreSQL runs on the HOST
+# machine in dev — the backend containers reach it via host.docker.internal,
+# and the base file's containerized `postgres` service is profiled out below so
+# it does not start. (The base stack keeps its own Postgres container.)
+# =============================================================================
+
+# Point the app at the host's PostgreSQL and make host.docker.internal resolve
+# on plain Linux engines. DATABASE_URL here overrides the base service DSN.
+x-host-db-hosts: &host-db-hosts
+  - "host.docker.internal:host-gateway"
+
+services:
+  # The base file's Postgres container is not used in dev (host Postgres is).
+  # Assigning a profile keeps it from starting unless explicitly requested with
+  # `docker compose --profile container-db up`.
+  postgres:
+    profiles: ["container-db"]
+
+  # Django dev server: built-in autoreload on any .py change.
+  web:
+    extra_hosts: *host-db-hosts
+    environment:
+      # Dev-only: verbose errors + regenerate migrations from models at boot.
+      DEBUG: "True"
+      MAKE_MIGRATIONS: "1"
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
+      # Single-origin Nginx gateway (deploy/dev/nginx/gateway.conf). The browser
+      # now talks to http://localhost (or http://hostel.local) on :80, so those
+      # origins must be trusted for CSRF and allowed as Hosts. Same-origin means
+      # no CORS is involved at all. The :3000/:3001 entries keep direct-port
+      # debugging working. (This overrides ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS
+      # from .env — list every origin you need here.)
+      ALLOWED_HOSTS: "localhost,127.0.0.1,web,hostel.local"
+      CSRF_TRUSTED_ORIGINS: "http://localhost,http://hostel.local,http://127.0.0.1,http://localhost:3000,http://localhost:3001"
+    # Live source over the baked image code (venv lives in /opt/venv, untouched).
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    # The bind mount above shadows the image's chmod +x entrypoint with the host
+    # copy, whose executable bit may be lost on Windows/OneDrive checkouts. Invoke
+    # it via `sh` so it runs regardless of file mode.
+    entrypoint: ["sh", "/app/entrypoint.sh"]
+    command:
+      ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+  # Celery worker: watchmedo restarts the worker whenever a .py file changes.
+  # watchdog isn't in the production image, so it's installed at dev boot only.
+  celery_worker:
+    # Dev-only: run as root so the boot-time `pip install watchdog` can write
+    # into the root-owned /opt/venv (the non-root app user can't).
+    user: root
+    extra_hosts: *host-db-hosts
+    environment:
+      DEBUG: "True"
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    # Run the bind-mounted entrypoint via `sh` (see the web service note).
+    entrypoint: ["sh", "/app/entrypoint.sh"]
+    # Folded scalar (>-) joins these lines with single spaces into one command.
+    command:
+      - sh
+      - -c
+      - >-
+        pip install --quiet 'watchdog[watchmedo]' &&
+        watchmedo auto-restart --directory=/app --pattern='*.py' --recursive --
+        celery -A config worker --loglevel=info
+
+  # Celery beat: same live-reload treatment for the scheduler.
+  celery_beat:
+    # Dev-only: run as root so the boot-time `pip install watchdog` can write
+    # into the root-owned /opt/venv (the non-root app user can't).
+    user: root
+    extra_hosts: *host-db-hosts
+    environment:
+      DEBUG: "True"
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
+    volumes:
+      - ./backend:/app
+    # Run the bind-mounted entrypoint via `sh` (see the web service note).
+    entrypoint: ["sh", "/app/entrypoint.sh"]
+    # Folded scalar (>-) joins these lines with single spaces into one command.
+    command:
+      - sh
+      - -c
+      - >-
+        pip install --quiet 'watchdog[watchmedo]' &&
+        watchmedo auto-restart --directory=/app --pattern='*.py' --recursive --
+        celery -A config beat --loglevel=info
+        --schedule /tmp/celerybeat-schedule --pidfile=/tmp/celerybeat.pid
+
+  # Next.js dev servers: Fast Refresh on file changes. Build only the `deps`
+  # stage (has the full workspace node_modules); source comes from the bind
+  # mount of the whole workspace root.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: apps/client/Dockerfile
+      target: deps
+    environment:
+      NODE_ENV: development
+      # Browser calls the API SAME-ORIGIN through the Nginx gateway ("/api" ->
+      # http://localhost/api -> web:8000). Relative so it works for whatever host
+      # you open the gateway on (localhost / hostel.local) with zero CORS.
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
+      NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${NEXT_PUBLIC_TENANT_BASE_DOMAIN:-localhost}
+      # Empty on purpose: with the gateway, cross-zone landing CTAs are SAME-ORIGIN
+      # ("/signup" is routed to the admin dev server by Nginx), so CtaLink emits a
+      # plain relative <a> (still a hard nav — soft-nav across zones isn't
+      # supported). Set only for direct-port dev without the gateway.
+      NEXT_PUBLIC_ADMIN_ORIGIN: ${NEXT_PUBLIC_ADMIN_ORIGIN:-}
+      # SSR fetches (public hostel websites) reach the API via the service name.
+      API_INTERNAL_URL: http://web:8000/api
+      ADMIN_ZONE_URL: http://admin:3000
+    volumes:
+      - ./frontend:/app
+      # Keep the container's installed node_modules; don't let the host mount
+      # (which has none / a Windows-built one) shadow it. Same for each app's
+      # build dir.
+      - /app/node_modules
+      - /app/apps/client/.next
+      - /app/apps/admin/.next
+    command:
+      ["sh", "-c", "cd apps/client && npx next dev -H 0.0.0.0 -p 3000"]
+
+  admin:
+    build:
+      context: ./frontend
+      dockerfile: apps/admin/Dockerfile
+      target: deps
+    environment:
+      NODE_ENV: development
+      # Same-origin API through the gateway (see the client service note).
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
+      NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${NEXT_PUBLIC_TENANT_BASE_DOMAIN:-localhost}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/apps/client/.next
+      - /app/apps/admin/.next
+    command:
+      ["sh", "-c", "cd apps/admin && npx next dev -H 0.0.0.0 -p 3000"]
+
+  # ---------------------------------------------------------------------------
+  # nginx — DEV single-origin gateway (the production mirror).
+  #
+  # Fronts the client zone, the admin zone and Django on ONE origin
+  # (http://localhost by default; set GATEWAY_PORT to move it off :80). This is
+  # THE way to use the dev stack — open http://localhost, not :3000 / :3001 —
+  # so both Next.js apps hydrate correctly with no cross-origin routing. See
+  # deploy/dev/nginx/gateway.conf and deploy/dev/GATEWAY.md.
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      # Single browser origin. Override with GATEWAY_PORT if :80 is taken (then
+      # open http://localhost:<port>).
+      - "${GATEWAY_PORT:-80}:80"
+    volumes:
+      - ./deploy/dev/nginx/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      web:
+        condition: service_started
+      frontend:
+        condition: service_started
+      admin:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

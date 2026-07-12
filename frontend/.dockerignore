@@ -26,3 +26,12 @@ yarn-error.log*
 *.tsbuildinfo
 coverage/
 .vercel
+
+# Monorepo: per-app build output + test tooling never needed in images
+apps/*/.next/
+apps/*/out/
+e2e/
+cypress/
+playwright-report/
+test-results/
+Documentation/

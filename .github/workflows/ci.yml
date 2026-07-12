@@ -14,6 +14,7 @@ on:
       - master
       - develop
       - "feature/**"
+      - "fix/**"
   pull_request:
 
 # Cancel superseded runs on the same ref so a force-push doesn't pile up runners.
@@ -70,7 +71,7 @@ jobs:
         run: npm run lint
       - name: TypeScript type-check
         working-directory: frontend
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
   # ===========================================================================
   # 2. TEST (backend) + migration validation. JUnit + coverage reports.
@@ -200,8 +201,14 @@ jobs:
           - service: backend
             context: ./backend
             build-args: ""
-          - service: frontend
+          - service: client
             context: ./frontend
+            dockerfile: ./frontend/apps/client/Dockerfile
+            build-args: |
+              NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+          - service: admin
+            context: ./frontend
+            dockerfile: ./frontend/apps/admin/Dockerfile
             build-args: |
               NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
     steps:
@@ -211,6 +218,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
+          # Empty for backend (defaults to <context>/Dockerfile); the two
+          # frontend zone images share the workspace context but have their own
+          # Dockerfiles under apps/.
+          file: ${{ matrix.dockerfile }}
           push: false
           load: true
           tags: hostel-${{ matrix.service }}:ci

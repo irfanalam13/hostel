@@ -90,11 +90,29 @@ INSTALLED_APPS = [
     "apps.idempotency",
     "apps.analytics",
     "apps.marketing",
+    "apps.website",
+    "apps.domains",
+    "apps.subscriptions",
+    "apps.staff",
+    "apps.finance",
+    "apps.accounting",
+    "apps.security",
 ]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+    # Request id + Server-Timing + structured per-request log (duration, DB
+    # time, query count). Sits at the top so it times the whole stack.
+    "apps.common.observability.RequestTimingMiddleware",
+    # Edge security (Prompt 07): spoof-resistant client IP, IP allow/deny
+    # rules, IP reputation, bot detection, WAF-lite and distributed per-IP
+    # rate limits. Runs before anything expensive so abusive traffic is
+    # rejected with near-zero cost. Config-driven + hot-reloadable.
+    "apps.security.middleware.EdgeGuardMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # Compress JSON/API responses (>200 bytes, Accept-Encoding permitting) —
+    # large list payloads shrink ~5-10x on the wire.
+    "django.middleware.gzip.GZipMiddleware",
     # Serve collected static files directly from Gunicorn (no nginx required).
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "apps.common.middleware.SecurityHeadersMiddleware",
@@ -108,11 +126,14 @@ MIDDLEWARE = [
     # Disaster-recovery gate: enforces maintenance / emergency (read-only / lock)
     "apps.backups.middleware.DRModeMiddleware",
 
-    # Tenant resolution
-    "apps.common.middleware.HostelResolveMiddleware",
+    # Tenant resolution — resolves the workspace (subdomain / headers) before
+    # authentication and rejects unknown/suspended/archived workspaces.
+    "apps.tenants.middleware.TenantResolutionMiddleware",
+    # Per-workspace, plan-aware rate limit (needs request.tenant) — one tenant
+    # can never exhaust the platform for the others.
+    "apps.security.middleware.TenantRateLimitMiddleware",
     # Audit trail
     "apps.auditlog.middleware.AuditLogMiddleware",
-    "apps.common.middleware.HostelContextMiddleware",
 
     # Offline-sync idempotency + payload integrity (needs request.user/.hostel,
     # so it runs after tenant resolution and before brute-force protection).
@@ -167,6 +188,14 @@ if DATABASES["default"].get("ENGINE") != "django.db.backends.postgresql":
 # is alive before use.
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=600)
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+# Optional per-connection statement timeout (ms) — a runaway query dies instead
+# of holding a worker. 0/unset = provider default. (Pooling beyond CONN_MAX_AGE
+# belongs in pgbouncer/managed poolers — see docs/PRODUCTION.md.)
+_db_stmt_timeout = env.int("DB_STATEMENT_TIMEOUT_MS", default=0)
+if _db_stmt_timeout:
+    DATABASES["default"].setdefault("OPTIONS", {})["options"] = (
+        f"-c statement_timeout={_db_stmt_timeout}"
+    )
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -214,8 +243,15 @@ REST_FRAMEWORK = {
     # Bound list responses -> {count, next, previous, results}
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": env.int("API_PAGE_SIZE", default=25),
-    # Rate limiting / abuse protection
+    # Rate limiting / abuse protection.
+    # RoleRateThrottle (Prompt 08) adds the per-role / per-plan / per-method
+    # global API budget on top of DRF's built-ins — atomic on Redis,
+    # tenant-aware, monitor-mode-aware. It's config-gated (role_limits.enabled,
+    # off in dev) so it's a no-op until switched on. The built-in Anon/User
+    # throttles stay for backward compatibility; ScopedRateThrottle still
+    # serves any view using the legacy `throttle_scope`.
     "DEFAULT_THROTTLE_CLASSES": (
+        "apps.security.throttles.RoleRateThrottle",
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
         "rest_framework.throttling.ScopedRateThrottle",
@@ -236,6 +272,14 @@ REST_FRAMEWORK = {
         "review": env("THROTTLE_REVIEW", default="5/hour"),
         # Public sales/demo lead submissions from the landing page.
         "lead": env("THROTTLE_LEAD", default="10/hour"),
+        # Public website inquiry form (per-IP).
+        "website_inquiry": env("THROTTLE_WEBSITE_INQUIRY", default="5/hour"),
+        # Custom-domain verification / SSL checks (live DNS+TLS probes).
+        "domain_verify": env("THROTTLE_DOMAIN_VERIFY", default="20/hour"),
+        # Real-time workspace-username availability checks (public, per-IP).
+        "workspace_check": env("THROTTLE_WORKSPACE_CHECK", default="30/min"),
+        # Workspace registration by an authenticated user.
+        "workspace": env("THROTTLE_WORKSPACE", default="5/hour"),
     },
 }
 
@@ -251,6 +295,27 @@ SIMPLE_JWT = {
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+# "Remember me" logins get a longer refresh-token lifetime (days); the access
+# token stays short-lived regardless.
+REMEMBER_ME_REFRESH_DAYS = env.int("REMEMBER_ME_REFRESH_DAYS", default=30)
+
+# RBAC: per-(workspace, role) permission-set cache TTL (seconds). Also
+# invalidated whenever the workspace's settings change (apps.tenants signal).
+PERMISSIONS_CACHE_TTL = env.int("PERMISSIONS_CACHE_TTL", default=300)
+
+# Subscription entitlement (feature/limit) snapshot cache TTL (seconds).
+# Invalidated immediately on any plan/catalog/override change via a global
+# generation counter (apps.subscriptions.entitlements); this only bounds
+# staleness if a signal is ever missed.
+ENTITLEMENTS_CACHE_TTL = env.int("ENTITLEMENTS_CACHE_TTL", default=300)
+
+# Master switch for plan-based entitlement enforcement. While the platform is
+# still under construction we ship with plans unset, so gating every module
+# behind a plan would lock the whole product. With this off, every feature is
+# treated as available and every limit as unlimited. Flip to True (or set
+# ENTITLEMENTS_ENFORCED=1) once plans are configured per workspace.
+ENTITLEMENTS_ENFORCED = env.bool("ENTITLEMENTS_ENFORCED", default=False)
 
 # httpOnly cookie auth configuration (consumed by apps.accounts)
 JWT_AUTH_COOKIE = "access_token"
@@ -276,7 +341,15 @@ CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
     default=["https://hostel-mwre.onrender.com"] if DEBUG else [],
 )
-CORS_ALLOW_HEADERS = list(default_headers) + ["x-hostel-code", "x-hostel-id"]
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-hostel-code",
+    "x-hostel-id",
+    "x-workspace",
+    # Frontend-generated trace id, echoed back by RequestTimingMiddleware.
+    "x-request-id",
+]
+# Let the SPA read the trace id + timing breakdown off responses.
+CORS_EXPOSE_HEADERS = ["X-Request-ID", "Server-Timing"]
 CORS_ALLOW_CREDENTIALS = True
 # In production, require an explicit allow-list and never permit a wildcard
 # (a wildcard is incompatible with credentialed requests anyway).
@@ -352,12 +425,38 @@ MEDIA_ROOT = BASE_DIR / "media"
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # WhiteNoise: compress + hash static assets so Gunicorn can serve them in prod.
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
+#
+# Media (uploads: website assets, logos, exports, documents) is env-switchable:
+#   STORAGE_BACKEND=local  -> filesystem volume (default; dev + single host)
+#   STORAGE_BACKEND=s3     -> any S3-compatible object store (AWS S3, MinIO,
+#                             Cloudflare R2) via django-storages -- required for
+#                             multi-replica/stateless deployments and CDN offload.
+STORAGE_BACKEND = env("STORAGE_BACKEND", default="local").strip().lower()
+if STORAGE_BACKEND == "s3":
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3.S3Storage"},
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY_ID", default="")
+    AWS_SECRET_ACCESS_KEY = env("S3_SECRET_ACCESS_KEY", default="")
+    AWS_STORAGE_BUCKET_NAME = env("S3_BUCKET", default="hostel-media")
+    # Endpoint empty = AWS S3; set for MinIO (http://minio:9000) or R2.
+    AWS_S3_ENDPOINT_URL = env("S3_ENDPOINT_URL", default="") or None
+    AWS_S3_REGION_NAME = env("S3_REGION", default="auto")
+    # Public CDN/custom domain for media URLs (e.g. media.myhostel.com).
+    AWS_S3_CUSTOM_DOMAIN = env("S3_PUBLIC_DOMAIN", default="") or None
+    AWS_DEFAULT_ACL = None                 # bucket policy governs access
+    AWS_QUERYSTRING_AUTH = env.bool("S3_QUERYSTRING_AUTH", default=False)
+    AWS_S3_FILE_OVERWRITE = False          # never silently replace tenant assets
+else:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 TIME_ZONE = "Asia/Kathmandu"
 USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -375,6 +474,114 @@ BACKUP_ENCRYPTION_KEY = env("BACKUP_ENCRYPTION_KEY", default="")
 REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=REDIS_URL)
+
+# ---------------------------------------------------------------------------
+# Cache — Redis-backed (tenant resolution runs on every request, so cached
+# tenant lookups must be sub-millisecond). apps.tenants.cache degrades to a
+# direct DB lookup if Redis is unreachable, so a cache outage never 500s.
+# ---------------------------------------------------------------------------
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("CACHE_URL", default=REDIS_URL),
+        "KEY_PREFIX": "hostel",
+        "TIMEOUT": 300,
+        # Bound every Redis operation: a hung/unreachable Redis must degrade
+        # (tenant/membership caches fall back to the DB) instead of stalling
+        # the request for the OS TCP timeout.
+        "OPTIONS": {
+            "socket_connect_timeout": env.float("REDIS_CONNECT_TIMEOUT", default=1.5),
+            "socket_timeout": env.float("REDIS_SOCKET_TIMEOUT", default=1.5),
+        },
+    }
+}
+
+# Sessions are only used by the Django admin (the API is JWT-cookie based) —
+# keep them out of Postgres on the hot path via write-through cache.
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
+# Requests slower than this are logged at WARNING by RequestTimingMiddleware.
+SLOW_REQUEST_MS = env.int("SLOW_REQUEST_MS", default=300)
+
+# Audit events are inserted by a Celery worker (sync fallback if the broker is
+# down) so the request never waits on the audit INSERT.
+AUDIT_LOG_ASYNC = env.bool("AUDIT_LOG_ASYNC", default=True)
+
+# Membership (user↔hostel) checks are cached this many seconds; entries are
+# also invalidated by UserHostel save/delete signals.
+MEMBERSHIP_CACHE_TTL = env.int("MEMBERSHIP_CACHE_TTL", default=60)
+
+# ---------------------------------------------------------------------------
+# Multi-tenant workspaces (subdomain routing)
+# ---------------------------------------------------------------------------
+# The wildcard base domain tenants live under: <slug>.<TENANT_BASE_DOMAIN>.
+# In production set e.g. TENANT_BASE_DOMAIN=myhostel.com and include
+# ".myhostel.com" in ALLOWED_HOSTS. Default "localhost" makes
+# http://everest.localhost:8000 work in dev with zero DNS setup.
+TENANT_BASE_DOMAIN = env("TENANT_BASE_DOMAIN", default="localhost")
+TENANT_URL_SCHEME = env("TENANT_URL_SCHEME", default="http" if DEBUG else "https")
+# Host-header validation for wildcard workspace hosts: when the API itself is
+# served on the tenant domain, every <slug>.<base> must pass ALLOWED_HOSTS.
+# (".localhost" in dev makes http://everest.localhost:8000 work zero-config.)
+if TENANT_BASE_DOMAIN:
+    _wildcard_host = f".{TENANT_BASE_DOMAIN}"
+    if _wildcard_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_wildcard_host)
+# Workspace-username rules (see apps.tenants.validators). Max is capped at 63
+# (DNS label limit) regardless of this setting.
+WORKSPACE_USERNAME_MIN_LENGTH = env.int("WORKSPACE_USERNAME_MIN_LENGTH", default=3)
+WORKSPACE_USERNAME_MAX_LENGTH = env.int("WORKSPACE_USERNAME_MAX_LENGTH", default=32)
+# Extra reserved workspace names, merged with the built-in list in
+# apps.tenants.validators.BASE_RESERVED_WORKSPACE_NAMES.
+RESERVED_WORKSPACE_NAMES = env.list("RESERVED_WORKSPACE_NAMES", default=[])
+# New workspaces start on a trial of this many days (0 = created active).
+TENANT_TRIAL_DAYS = env.int("TENANT_TRIAL_DAYS", default=14)
+# Tenant-lookup cache TTLs (seconds); entries are also invalidated on change.
+TENANT_CACHE_TTL = env.int("TENANT_CACHE_TTL", default=300)
+TENANT_NEGATIVE_CACHE_TTL = env.int("TENANT_NEGATIVE_CACHE_TTL", default=60)
+
+# ---------------------------------------------------------------------------
+# Edge security & rate limiting foundation (Prompt 07) — apps.security
+# ---------------------------------------------------------------------------
+# Master switch for the whole security layer (middleware + throttles). The
+# full policy is layered: apps/security/defaults.py -> per-environment
+# overlay -> YAML (SECURITY_CONFIG_FILE) -> SECURITY_* env vars -> DB
+# (SecuritySetting rows, hot-reloaded). See docs/EDGE_SECURITY.md.
+SECURITY_ENABLED = env.bool("SECURITY_ENABLED", default=True)
+# Which environment overlay applies: development / testing / staging / production.
+SECURITY_ENVIRONMENT = env(
+    "SECURITY_ENVIRONMENT", default="development" if DEBUG else "production"
+)
+# Optional YAML policy file (infrastructure-managed layer).
+SECURITY_CONFIG_FILE = env("SECURITY_CONFIG_FILE", default="")
+# How often each process re-checks the shared config generation (hot reload).
+SECURITY_CONFIG_RECHECK_SECONDS = env.int("SECURITY_CONFIG_RECHECK_SECONDS", default=5)
+# Reverse proxies whose X-Forwarded-For is trusted (CIDRs). Empty = the
+# private-network defaults in apps/security/defaults.py (Docker/K8s networks).
+TRUSTED_PROXIES = env.list("TRUSTED_PROXIES", default=[])
+
+# CAPTCHA (Prompt 08) — verified server-side by apps.security.captcha when the
+# auth layer decides a challenge is required. The SECRET stays backend-only;
+# the SITE KEY is public (inlined into the SPA as NEXT_PUBLIC_CAPTCHA_SITE_KEY).
+# CAPTCHA is a no-op until a secret is set, regardless of config flags.
+SECURITY_CAPTCHA_SECRET = env("SECURITY_CAPTCHA_SECRET", default="")
+SECURITY_CAPTCHA_SITE_KEY = env("SECURITY_CAPTCHA_SITE_KEY", default="")
+
+# ---------------------------------------------------------------------------
+# Custom domains & white-label (Prompt 05)
+# ---------------------------------------------------------------------------
+# Per-plan custom-domain allowances (plan_name, lowercased). "default" covers
+# unknown plans. Fully configurable without code changes, e.g.:
+#   CUSTOM_DOMAIN_LIMITS=free:0,basic:1,professional:1,enterprise:3
+_domain_limits_raw = env("CUSTOM_DOMAIN_LIMITS", default="free:0,basic:1,professional:1,enterprise:3,default:1")
+CUSTOM_DOMAIN_LIMITS = {}
+for _pair in _domain_limits_raw.split(","):
+    if ":" in _pair:
+        _plan, _n = _pair.split(":", 1)
+        try:
+            CUSTOM_DOMAIN_LIMITS[_plan.strip().lower()] = int(_n)
+        except ValueError:
+            pass
 
 # Timezone-safe scheduling: run Celery Beat in the project timezone so "Sunday
 # 2AM" / "1st of the month" mean local time, not UTC.
@@ -402,6 +609,11 @@ BACKUP_MAX_AGE_HOURS = env.int("BACKUP_MAX_AGE_HOURS", default=26)
 
 # Scheduled backups + retention (timezone = CELERY_TIMEZONE above).
 CELERY_BEAT_SCHEDULE = {
+    # Custom-domain health: DNS re-validation + SSL expiry monitoring (daily 3AM).
+    "domains-revalidate": {
+        "task": "domains.revalidate",
+        "schedule": crontab(hour=3, minute=30),
+    },
     "dr-daily-backups": {
         "task": "apps.backups.tasks.run_scheduled_backups",
         "schedule": crontab(hour=1, minute=0),  # every day 01:00
@@ -442,6 +654,11 @@ CELERY_BEAT_SCHEDULE = {
     "analytics-prune-old": {
         "task": "apps.analytics.tasks.prune_old_analytics",
         "schedule": crontab(hour=4, minute=45),  # daily 04:45
+    },
+    # Security-event retention + expired temporary IP-rule reaping.
+    "security-prune-events": {
+        "task": "apps.security.tasks.prune_security_events",
+        "schedule": crontab(hour=5, minute=0),  # daily 05:00
     },
 }
 

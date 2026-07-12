@@ -1,0 +1,282 @@
+
+:root {
+  color-scheme: light;
+  --background: #f8fafc;
+  --background-secondary: #f1f5f9;
+  --card: #ffffff;
+  --card-elevated: #ffffff;
+  --foreground: #0f172a;
+  --foreground-secondary: #475569;
+  --muted: #64748b;
+  --disabled: #94a3b8;
+  --border: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-active: #1e40af;
+  --accent-soft: #dbeafe;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --error: #dc2626;
+  --info: #0284c7;
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
+  --shadow-md: 0 8px 24px -18px rgb(15 23 42 / 0.35);
+  --shadow-lg: 0 18px 48px -28px rgb(15 23 42 / 0.45);
+}
+
+html.dark {
+  color-scheme: dark;
+  --background: #020617;
+  --background-secondary: #0f172a;
+  --card: #111827;
+  --card-elevated: #1e293b;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --muted: #94a3b8;
+  --disabled: #64748b;
+  --border: #334155;
+  --border-hover: #475569;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-active: #93c5fd;
+  --accent-soft: rgb(59 130 246 / 0.16);
+  --success: #22c55e;
+  --warning: #fbbf24;
+  --error: #ef4444;
+  --info: #38bdf8;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow-md: 0 12px 32px -20px rgb(0 0 0 / 0.75);
+  --shadow-lg: 0 24px 64px -34px rgb(0 0 0 / 0.85);
+}
+
+/*
+ * No-flash dark fallback. Before the ThemeProvider applies the resolved theme on
+ * the client it sets `data-resolved-theme` on <html>; until then this honours the
+ * OS preference so "system" users on a dark device don't see a light flash. Must
+ * mirror the `html.dark` tokens above. CSP-safe (no inline script needed).
+ */
+@media (prefers-color-scheme: dark) {
+  html:not([data-resolved-theme]) {
+    color-scheme: dark;
+    --background: #020617;
+    --background-secondary: #0f172a;
+    --card: #111827;
+    --card-elevated: #1e293b;
+    --foreground: #f8fafc;
+    --foreground-secondary: #cbd5e1;
+    --muted: #94a3b8;
+    --disabled: #64748b;
+    --border: #334155;
+    --border-hover: #475569;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-active: #93c5fd;
+    --accent-soft: rgb(59 130 246 / 0.16);
+    --success: #22c55e;
+    --warning: #fbbf24;
+    --error: #ef4444;
+    --info: #38bdf8;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+    --shadow-md: 0 12px 32px -20px rgb(0 0 0 / 0.75);
+    --shadow-lg: 0 24px 64px -34px rgb(0 0 0 / 0.85);
+  }
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+* {
+  border-color: var(--border);
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 150ms ease;
+}
+
+input,
+select,
+textarea {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+html.dark .bg-white {
+  background-color: var(--card) !important;
+}
+
+html.dark .bg-gray-50,
+html.dark .bg-zinc-50,
+html.dark .bg-slate-50 {
+  background-color: var(--background) !important;
+}
+
+html.dark .bg-zinc-100,
+html.dark .bg-gray-100,
+html.dark .bg-slate-100 {
+  background-color: var(--background-secondary) !important;
+}
+
+html.dark .text-zinc-900,
+html.dark .text-gray-900,
+html.dark .text-slate-900,
+html.dark .text-zinc-800,
+html.dark .text-gray-800,
+html.dark .text-slate-800,
+html.dark .text-gray-700 {
+  color: var(--foreground) !important;
+}
+
+html.dark .text-zinc-700,
+html.dark .text-slate-700,
+html.dark .text-zinc-600,
+html.dark .text-gray-600,
+html.dark .text-slate-600 {
+  color: var(--foreground-secondary) !important;
+}
+
+html.dark .text-zinc-500,
+html.dark .text-gray-500,
+html.dark .text-slate-500,
+html.dark .text-zinc-400,
+html.dark .text-gray-400 {
+  color: var(--muted) !important;
+}
+
+html.dark .border,
+html.dark .border-zinc-100,
+html.dark .border-zinc-150,
+html.dark .border-zinc-200,
+html.dark .border-gray-200,
+html.dark .border-slate-200 {
+  border-color: var(--border) !important;
+}
+
+html.dark table tr {
+  border-color: var(--border);
+}
+
+/*
+ * Lightweight CSS entrance animations — these replace the former framer-motion
+ * usages (sidebar labels/drawer, PWA banners). Pure compositor transforms
+ * (transform/opacity) keep them cheap on low-end devices, and dropping the JS
+ * animation library trims the critical-path bundle.
+ */
+@keyframes anim-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes anim-slide-up {
+  from { opacity: 0; transform: translateY(1rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes anim-slide-down {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes anim-slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.anim-fade-in { animation: anim-fade-in 200ms ease both; }
+.anim-slide-up { animation: anim-slide-up 280ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-slide-down { animation: anim-slide-down 260ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-slide-in-left { animation: anim-slide-in-left 260ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-in,
+  .anim-slide-up,
+  .anim-slide-down,
+  .anim-slide-in-left {
+    animation: none;
+  }
+}
+
+/*
+ * Landing page (marketing) styles. Scroll-reveal + decorative backdrops, all
+ * compositor-only (opacity/transform) and fully reduced-motion aware.
+ */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Subtle dotted grid backdrop for the hero. */
+.landing-grid-bg {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--foreground) 7%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+/* Soft accent glow behind the hero headline. */
+.landing-hero-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 50% at 50% 0%,
+    color-mix(in srgb, var(--accent) 22%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* Glow inside the CTA banner. */
+.landing-cta-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(60% 120% at 100% 0%, rgb(255 255 255 / 0.18) 0%, transparent 60%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

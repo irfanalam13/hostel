@@ -21,6 +21,8 @@ urlpatterns = [
     path("health/database/", health.health_database, name="health-database"),
     path("health/cache/", health.health_cache, name="health-cache"),
     path("health/celery/", health.health_celery, name="health-celery"),
+    path("health/storage/", health.health_storage, name="health-storage"),
+    path("health/queue/", health.health_queue, name="health-queue"),
 
     # 📄 API Schema & Docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -53,6 +55,15 @@ urlpatterns = [
     path("api/backups/", include("apps.backups.urls")),
     path("api/exports/", include("apps.exports.urls")),
     path("api/marketing/", include("apps.marketing.urls")),
+    path("api/website/", include("apps.website.urls")),
+    path("api/domains/", include("apps.domains.urls")),
+    path("api/subscriptions/", include("apps.subscriptions.urls")),
+    path("api/platform/", include("apps.subscriptions.platform_urls")),
+    # 🛡️ Super-Admin security operations (dashboard, rules, kill switch)
+    path("api/platform/security/", include("apps.security.urls")),
+    path("api/staff/", include("apps.staff.urls")),
+    path("api/finance/", include("apps.finance.urls")),
+    path("api/accounting/", include("apps.accounting.urls")),
 
     # 🛟 Admin disaster-recovery API (admin-only)
     path("api/admin/", include("apps.backups.admin_urls")),

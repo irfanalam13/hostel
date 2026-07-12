@@ -14,7 +14,10 @@ def _common_kwargs():
     )
 
 
-def set_auth_cookies(response, access=None, refresh=None):
+def set_auth_cookies(response, access=None, refresh=None, refresh_max_age=None):
+    """Set the httpOnly auth cookies. ``refresh_max_age`` (seconds) overrides
+    the default refresh lifetime — used by "remember me" logins, whose refresh
+    token itself carries the longer expiry."""
     kwargs = _common_kwargs()
     if access:
         response.set_cookie(
@@ -27,7 +30,7 @@ def set_auth_cookies(response, access=None, refresh=None):
         response.set_cookie(
             settings.JWT_AUTH_REFRESH_COOKIE,
             refresh,
-            max_age=int(SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()),
+            max_age=int(refresh_max_age or SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()),
             **kwargs,
         )
     return response

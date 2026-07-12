@@ -58,17 +58,33 @@ def record_event(
         ip = client_ip(request)
         ua = request.META.get("HTTP_USER_AGENT", "")[:2000] if request is not None else ""
 
-        AuditEvent.objects.create(
-            action=action,
-            actor=resolved_actor,
-            hostel_id=getattr(hostel, "id", None),
-            entity_type=entity_type or "",
-            entity_id=str(entity_id or ""),
-            message=(message or "")[:255],
-            meta=meta or {},
-            ip_address=ip,
-            user_agent=ua,
-        )
+        payload = {
+            "action": action,
+            "actor_id": getattr(resolved_actor, "pk", None),
+            "hostel_id": getattr(hostel, "id", None),
+            "entity_type": entity_type or "",
+            "entity_id": str(entity_id or ""),
+            "message": (message or "")[:255],
+            "meta": meta or {},
+            "ip_address": ip,
+            "user_agent": ua,
+        }
+
+        # The INSERT runs on a Celery worker so the request never waits on it.
+        # Any enqueue failure (broker down, unserializable meta) falls back to
+        # the original synchronous write.
+        from django.conf import settings
+
+        if getattr(settings, "AUDIT_LOG_ASYNC", True):
+            try:
+                from .tasks import persist_audit_event
+
+                persist_audit_event.delay(payload)
+                return
+            except Exception:
+                pass
+
+        AuditEvent.objects.create(**payload)
     except Exception:
         # Never break the caller because of audit logging.
         pass

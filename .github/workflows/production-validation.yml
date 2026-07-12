@@ -36,13 +36,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [backend, frontend]
+        include:
+          - image: backend
+            dockerfile: backend/Dockerfile
+          - image: client
+            dockerfile: frontend/apps/client/Dockerfile
+          - image: admin
+            dockerfile: frontend/apps/admin/Dockerfile
     steps:
       - uses: actions/checkout@v4
       - name: hadolint (${{ matrix.image }})
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: ${{ matrix.image }}/Dockerfile
+          dockerfile: ${{ matrix.dockerfile }}
           # DL3008 (pin apt versions) is intentionally relaxed — base images are
           # already pinned and Debian point releases are trusted here.
           ignore: DL3008
@@ -97,6 +103,11 @@ jobs:
     name: Stack boot + health (docker compose)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # This job validates the PRODUCTION stack. Pin the base compose file so the
+    # dev-only docker-compose.override.yml is never auto-merged here (it swaps in
+    # runserver/npm-dev and bind-mounts source, which is not what we validate).
+    env:
+      COMPOSE_FILE: docker-compose.yml
     steps:
       - uses: actions/checkout@v4
 
@@ -114,7 +125,7 @@ jobs:
           DJANGO_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')
           ALLOWED_HOSTS=localhost,127.0.0.1,web
           CORS_ALLOWED_ORIGINS=http://localhost:3000
-          CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:8000
+          CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:8000
           SECURE_SSL_REDIRECT=False
           POSTGRES_DB=hostel
           POSTGRES_USER=hostel
@@ -125,6 +136,7 @@ jobs:
           CELERY_RESULT_BACKEND=redis://redis:6379/0
           WEB_PORT=8000
           FRONTEND_PORT=3000
+          ADMIN_PORT=3001
           NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
           EOF
           echo "Wrote .env ($(wc -l < .env) lines)"
@@ -186,12 +198,15 @@ jobs:
             echo "✓ volume ${v} present"
           done
 
-      - name: Verify frontend is serving
+      - name: Verify frontend is serving (client + admin zones)
         run: |
           set -euo pipefail
           code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/)
-          test "$code" = "200" || { echo "::error::frontend returned ${code}"; exit 1; }
-          echo "✓ frontend serving (200)"
+          test "$code" = "200" || { echo "::error::client zone returned ${code}"; exit 1; }
+          echo "✓ client zone serving (200)"
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/login)
+          test "$code" = "200" || { echo "::error::admin zone returned ${code}"; exit 1; }
+          echo "✓ admin zone serving (200)"
 
       - name: Stack validation summary
         if: success()
@@ -200,7 +215,7 @@ jobs:
             echo "### ✅ Production stack validated";
             echo "";
             echo "All services booted with DEBUG=False and passed health checks:";
-            echo "- Gunicorn (web) · PostgreSQL · Redis · Celery worker/beat · Next.js frontend";
+            echo "- Gunicorn (web) · PostgreSQL · Redis · Celery worker/beat · Next.js client + admin zones";
             echo "- Health endpoints, named volumes, and collected static assets verified";
           } >> "$GITHUB_STEP_SUMMARY"
 

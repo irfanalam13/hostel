@@ -2,7 +2,7 @@
 
 A complete, tenant-aware Web Push notification system for the Hostel Management
 System. The Django app `apps.notifications` is the backend half; it pairs with
-the already-built frontend (`frontend/src/shared/pwa/push.ts` + the service
+the already-built frontend (`frontend/packages/pwa/src/push.ts` + the service
 worker `push`/`notificationclick` handlers) — see `frontend/Documentation/PWA.md`.
 
 ---

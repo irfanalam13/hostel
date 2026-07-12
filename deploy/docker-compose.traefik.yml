@@ -1,0 +1,108 @@
+# =============================================================================
+# Traefik edge — drop-in ALTERNATIVE to the nginx service for deployments that
+# prefer automatic certificate management over static cert files.
+#
+#   docker compose -f deploy/docker-compose.prod.yml \
+#                  -f deploy/docker-compose.traefik.yml \
+#                  --env-file deploy/.env up -d --scale nginx=0
+#
+# Routing mirrors deploy/nginx/templates/app.conf.template:
+#   /api /admin /health /static /media /metrics(blocked)  → backend (web)
+#   everything else                                        → frontend (client zone)
+# Host rule is intentionally broad (root + wildcard + tenant custom domains) —
+# tenancy is decided by the app's tenant middleware from the Host header, so
+# the edge needs no per-workspace configuration.
+#
+# TLS:
+#   *.${DOMAIN} wildcard  → Let's Encrypt DNS-01 (set your DNS provider's
+#                           credentials; example below uses Cloudflare).
+#   customer domains      → Let's Encrypt HTTP-01, issued automatically the
+#                           first time the domain is served (after the customer
+#                           points DNS at this host and the domain is activated
+#                           in Settings → Custom Domains).
+# =============================================================================
+services:
+  traefik:
+    image: traefik:v3.1
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # HTTP → HTTPS everywhere (permanent).
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      # ACME: HTTP-01 for apex + customer domains.
+      - "--certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL:?set LETSENCRYPT_EMAIL}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      # ACME: DNS-01 for the *.${DOMAIN} wildcard (set provider creds via env).
+      - "--certificatesresolvers.ledns.acme.email=${LETSENCRYPT_EMAIL}"
+      - "--certificatesresolvers.ledns.acme.storage=/letsencrypt/acme-dns.json"
+      - "--certificatesresolvers.ledns.acme.dnschallenge.provider=${TRAEFIK_DNS_PROVIDER:-cloudflare}"
+    environment:
+      # DNS-01 provider credentials, e.g. for Cloudflare:
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    depends_on:
+      web: { condition: service_healthy }
+      frontend: { condition: service_started }
+
+  web:
+    labels:
+      - "traefik.enable=true"
+      # Block /metrics from the public edge (scraped on the docker network).
+      - "traefik.http.routers.metrics-block.rule=PathPrefix(`/metrics`)"
+      - "traefik.http.routers.metrics-block.entrypoints=websecure"
+      - "traefik.http.routers.metrics-block.tls=true"
+      - "traefik.http.routers.metrics-block.priority=100"
+      - "traefik.http.routers.metrics-block.middlewares=deny-all"
+      - "traefik.http.middlewares.deny-all.ipallowlist.sourcerange=127.0.0.1/32"
+      # Auth endpoints: tight rate limit (credential stuffing guard).
+      - "traefik.http.routers.backend-auth.rule=PathRegexp(`^/api/auth/(login|token|signup|password)`)"
+      - "traefik.http.routers.backend-auth.entrypoints=websecure"
+      - "traefik.http.routers.backend-auth.tls=true"
+      - "traefik.http.routers.backend-auth.priority=90"
+      - "traefik.http.routers.backend-auth.middlewares=auth-ratelimit"
+      - "traefik.http.middlewares.auth-ratelimit.ratelimit.average=5"
+      - "traefik.http.middlewares.auth-ratelimit.ratelimit.period=1m"
+      - "traefik.http.middlewares.auth-ratelimit.ratelimit.burst=10"
+      # API / Django admin / health / static / media → backend.
+      - "traefik.http.routers.backend.rule=PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/health`) || PathPrefix(`/static`) || PathPrefix(`/media`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.backend.priority=50"
+      - "traefik.http.routers.backend.middlewares=api-ratelimit"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=20"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=40"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+
+  frontend:
+    labels:
+      - "traefik.enable=true"
+      # Catch-all: root + wildcard workspaces on the DNS-01 wildcard cert…
+      - "traefik.http.routers.site.rule=Host(`${DOMAIN}`) || HostRegexp(`^[a-z0-9-]+\\.${DOMAIN}$`)"
+      - "traefik.http.routers.site.entrypoints=websecure"
+      - "traefik.http.routers.site.tls=true"
+      - "traefik.http.routers.site.tls.certresolver=ledns"
+      - "traefik.http.routers.site.tls.domains[0].main=${DOMAIN}"
+      - "traefik.http.routers.site.tls.domains[0].sans=*.${DOMAIN}"
+      - "traefik.http.routers.site.priority=10"
+      # …and tenant custom domains on per-domain HTTP-01 certs (lowest priority
+      # catch-all; certificates are requested on first request per host).
+      - "traefik.http.routers.site-custom.rule=HostRegexp(`^.+$`)"
+      - "traefik.http.routers.site-custom.entrypoints=websecure"
+      - "traefik.http.routers.site-custom.tls=true"
+      - "traefik.http.routers.site-custom.tls.certresolver=le"
+      - "traefik.http.routers.site-custom.priority=1"
+      - "traefik.http.services.site.loadbalancer.server.port=3000"
+
+volumes:
+  traefik_letsencrypt:

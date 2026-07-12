@@ -28,7 +28,7 @@ def test_heartbeat_is_idempotent_per_user(auth_client, warden, hostel):
     assert UserPresence.objects.filter(user=warden, hostel=hostel).count() == 1
 
 
-def test_system_status_counts(auth_client, make_user, hostel):
+def test_system_status_counts(auth_client, make_user, superuser, hostel):
     owner = make_user(role="OWNER", hostel=hostel)
     resident = make_user(role="RESIDENT", hostel=hostel)
     # owner + resident online; resident installed
@@ -38,7 +38,9 @@ def test_system_status_counts(auth_client, make_user, hostel):
         user=resident, hostel=hostel, endpoint="https://push/x", p256dh="k", auth="a"
     )
 
-    resp = auth_client(owner, hostel).get(STATUS)
+    # system-status is a platform-operator surface — read it as a super admin.
+    # The superuser is not a hostel member, so it does not inflate the counts.
+    resp = auth_client(superuser, hostel).get(STATUS)
     assert resp.status_code == 200
     data = resp.data
     assert data["users"]["members"] == 2
@@ -49,17 +51,18 @@ def test_system_status_counts(auth_client, make_user, hostel):
     assert set(data["sync"]) == {"pending", "failed"}
 
 
-def test_system_status_requires_staff(auth_client, resident_user, hostel):
-    resp = auth_client(resident_user, hostel).get(STATUS)
-    assert resp.status_code == 403
+def test_system_status_requires_staff(auth_client, resident_user, owner, hostel):
+    # Neither residents nor tenant owners may see the platform status surface.
+    assert auth_client(resident_user, hostel).get(STATUS).status_code == 403
+    assert auth_client(owner, hostel).get(STATUS).status_code == 403
 
 
-def test_offline_derived_from_window(auth_client, make_user, hostel):
+def test_offline_derived_from_window(auth_client, make_user, superuser, hostel):
     owner = make_user(role="OWNER", hostel=hostel)
     make_user(role="RESIDENT", hostel=hostel)  # never sends a heartbeat → offline
     auth_client(owner, hostel).post(HEARTBEAT, {}, format="json")
 
-    data = auth_client(owner, hostel).get(STATUS).data
+    data = auth_client(superuser, hostel).get(STATUS).data
     assert data["users"]["members"] == 2
     assert data["users"]["online"] == 1
     assert data["users"]["offline"] == 1

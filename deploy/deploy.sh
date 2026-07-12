@@ -2,7 +2,11 @@
 # =============================================================================
 # Health-gated rollout for the Hostel SaaS on a single Docker host.
 #
-#   deploy.sh <backend_image> <frontend_image>
+#   deploy.sh <backend_image> <client_image> <admin_image>
+#
+# The client (marketing) image runs the compose `frontend` service and the
+# admin zone image runs the `admin` service (FRONTEND_IMAGE / ADMIN_IMAGE in
+# .env).
 #
 # Steps: record current images (for rollback) -> registry login -> pull new
 # images -> safety backup (pg_dump) -> apply migrations -> recreate services
@@ -16,8 +20,9 @@
 # =============================================================================
 set -euo pipefail
 
-BACKEND_IMAGE_NEW="${1:?usage: deploy.sh <backend_image> <frontend_image>}"
-FRONTEND_IMAGE_NEW="${2:?usage: deploy.sh <backend_image> <frontend_image>}"
+BACKEND_IMAGE_NEW="${1:?usage: deploy.sh <backend_image> <client_image> <admin_image>}"
+FRONTEND_IMAGE_NEW="${2:?usage: deploy.sh <backend_image> <client_image> <admin_image>}"
+ADMIN_IMAGE_NEW="${3:?usage: deploy.sh <backend_image> <client_image> <admin_image>}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -34,17 +39,19 @@ log() { echo "[deploy $(date +%H:%M:%S)] $*"; }
 current_image() { grep -E "^$1=" "$ENV_FILE" | head -1 | cut -d= -f2- || true; }
 BACKEND_IMAGE_OLD="$(current_image BACKEND_IMAGE)"
 FRONTEND_IMAGE_OLD="$(current_image FRONTEND_IMAGE)"
+ADMIN_IMAGE_OLD="$(current_image ADMIN_IMAGE)"
 
 rolled_back=0
 rollback() {
   [ "$rolled_back" = "1" ] && return
   rolled_back=1
-  if [ -z "$BACKEND_IMAGE_OLD" ] || [ -z "$FRONTEND_IMAGE_OLD" ]; then
+  if [ -z "$BACKEND_IMAGE_OLD" ] || [ -z "$FRONTEND_IMAGE_OLD" ] || [ -z "$ADMIN_IMAGE_OLD" ]; then
     log "!! no previous images recorded — cannot auto-rollback"; return
   fi
-  log "!! rolling back to ${BACKEND_IMAGE_OLD} / ${FRONTEND_IMAGE_OLD}"
+  log "!! rolling back to ${BACKEND_IMAGE_OLD} / ${FRONTEND_IMAGE_OLD} / ${ADMIN_IMAGE_OLD}"
   set_image BACKEND_IMAGE "$BACKEND_IMAGE_OLD"
   set_image FRONTEND_IMAGE "$FRONTEND_IMAGE_OLD"
+  set_image ADMIN_IMAGE "$ADMIN_IMAGE_OLD"
   "${COMPOSE[@]}" up -d --wait --wait-timeout 180 || log "!! rollback rollout reported errors"
 }
 
@@ -66,6 +73,8 @@ log "pulling ${BACKEND_IMAGE_NEW}"
 docker pull "$BACKEND_IMAGE_NEW"
 log "pulling ${FRONTEND_IMAGE_NEW}"
 docker pull "$FRONTEND_IMAGE_NEW"
+log "pulling ${ADMIN_IMAGE_NEW}"
+docker pull "$ADMIN_IMAGE_NEW"
 
 # ---- 3. Safety backup (pg_dump) --------------------------------------------
 mkdir -p "$BACKUP_DIR"
@@ -76,13 +85,14 @@ log "backing up database -> backups/db-${TS}.sql.gz"
 ls -1t "$BACKUP_DIR"/db-*.sql.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
 
 # Save rollback state now that we know the previous images are still running.
-printf 'BACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$BACKEND_IMAGE_OLD" "$FRONTEND_IMAGE_OLD" > "$ROLLBACK_STATE"
+printf 'BACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\nADMIN_IMAGE=%s\n' "$BACKEND_IMAGE_OLD" "$FRONTEND_IMAGE_OLD" "$ADMIN_IMAGE_OLD" > "$ROLLBACK_STATE"
 
 # ---- 4. From here a failure means we must roll back -------------------------
 trap 'rc=$?; if [ $rc -ne 0 ]; then log "FAILED (rc=$rc)"; rollback; fi; exit $rc' EXIT
 
 set_image BACKEND_IMAGE "$BACKEND_IMAGE_NEW"
 set_image FRONTEND_IMAGE "$FRONTEND_IMAGE_NEW"
+set_image ADMIN_IMAGE "$ADMIN_IMAGE_NEW"
 
 # ---- 5. Migration safety: review the plan, then apply -----------------------
 log "migration plan:"
@@ -105,4 +115,4 @@ done
 # ---- 8. Success: clean up the trap + dangling images ------------------------
 trap - EXIT
 docker image prune -f >/dev/null 2>&1 || true
-log "deploy OK: ${BACKEND_IMAGE_NEW} / ${FRONTEND_IMAGE_NEW}"
+log "deploy OK: ${BACKEND_IMAGE_NEW} / ${FRONTEND_IMAGE_NEW} / ${ADMIN_IMAGE_NEW}"

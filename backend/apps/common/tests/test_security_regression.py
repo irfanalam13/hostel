@@ -93,15 +93,28 @@ def test_cross_origin_and_permissions_headers_present(api):
 # Throttling configured on sensitive auth endpoints (H11/M5)
 # --------------------------------------------------------------------------- #
 def test_sensitive_auth_views_declare_throttle_scopes():
+    """Prompt 08 replaced the legacy DRF `throttle_scope` strings on the auth
+    views with dedicated, config-driven security throttle classes. Assert every
+    sensitive auth endpoint now carries a security throttle mapped to a
+    `rate_limits.auth_*` scope."""
     from apps.accounts import views as account_views
+    from apps.security.throttling import SecurityScopedThrottle
 
-    scoped = [
-        getattr(getattr(account_views, name), "throttle_scope", None)
-        for name in dir(account_views)
-        if name.endswith("View")
-    ]
-    # At least the auth, signup and password_reset scopes must be wired.
-    assert {"auth", "signup", "password_reset"}.issubset({s for s in scoped if s})
+    def scopes_for(view_name):
+        view = getattr(account_views, view_name, None)
+        classes = getattr(view, "throttle_classes", None) or []
+        return {
+            getattr(c, "scope", None)
+            for c in classes
+            if isinstance(c, type) and issubclass(c, SecurityScopedThrottle)
+        }
+
+    login = scopes_for("CookieTokenObtainPairView")
+    signup = scopes_for("SignupView")
+    reset = scopes_for("PasswordResetRequestView")
+    assert "auth_login" in login
+    assert "auth_signup" in signup
+    assert "auth_password_reset" in reset
 
 
 # --------------------------------------------------------------------------- #

@@ -21,9 +21,11 @@
 # Playwright browser binaries are installed via `npm run e2e:install`, not vendored.
 /playwright/.cache
 
-# next.js
+# next.js (workspace apps)
 /.next/
+apps/*/.next/
 /out/
+apps/*/out/
 
 # production
 /build
@@ -47,3 +49,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# per-app generated files
+apps/*/next-env.d.ts
+apps/*/tsconfig.tsbuildinfo

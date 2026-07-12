@@ -16,8 +16,10 @@ const BASE = `http://localhost:${PORT}`;
 module.exports = {
   ci: {
     collect: {
-      startServerCommand: `npm run start -- --port ${PORT}`,
-      startServerReadyPattern: "Ready in|started server on|Local:",
+      // Starts BOTH zones (client on LHCI_PORT, admin on 3101) — /login is
+      // served through the client zone's rewrite to the admin app.
+      startServerCommand: `node scripts/start-zones.mjs`,
+      startServerReadyPattern: "ALL_ZONES_READY",
       startServerReadyTimeout: 120000,
       url: [`${BASE}/login`],
       // One run keeps the job well under its CI timeout; the app's background

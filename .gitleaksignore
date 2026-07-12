@@ -1,0 +1,9 @@
+# gitleaks fingerprints intentionally ignored (false positives).
+# Format: <commit>:<file>:<ruleID>:<startLine>
+#
+# Synthetic JWT test fixture — proves the `storage` helper refuses to persist
+# token-shaped values. Not a real secret. The full-history scan (security.yml,
+# fetch-depth: 0) flags the commit that introduced it; the inline
+# `gitleaks:allow` comment only covers current/future commits, so this pins the
+# historical finding.
+d0216b8051985ef1b3f86f8a088dc76f2a81ffa1:frontend/src/shared/lib/__tests__/storage.test.ts:jwt:18

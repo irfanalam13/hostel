@@ -1,73 +1,8 @@
-import re
-
 from django.conf import settings
 
-from apps.tenants.models import Hostel
-
-# Official backend-generated Hostel IDs look like "HTL-7F4D91A2".
-_CODE_RE = re.compile(r"^HTL-[A-Z0-9]{8}$")
-
-# Health-check endpoints must stay dependency-free (a liveness probe should not
-# touch the DB), so tenant resolution is skipped for them.
-_HEALTH_PREFIX = "/health/"
-
-
-class HostelResolveMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        # ✅ Let CORS preflight pass without tenant logic
-        if request.method == "OPTIONS":
-            return self.get_response(request)
-
-        # ✅ Health checks never resolve a tenant (avoids a DB hit on liveness)
-        if request.path.startswith(_HEALTH_PREFIX):
-            request.hostel = None
-            return self.get_response(request)
-
-        hostel = None
-
-        code = (request.headers.get("X-HOSTEL-CODE") or "").strip().upper()
-        if code and _CODE_RE.match(code):
-            hostel = Hostel.objects.filter(code=code, is_active=True).first()
-        elif not code:
-            host = request.get_host().split(":")[0]
-            parts = host.split(".")
-            if len(parts) >= 3:
-                sub = parts[0]
-                hostel = Hostel.objects.filter(code=sub, is_active=True).first()
-
-        request.hostel = hostel
-        return self.get_response(request)    
-    
-
-
-class HostelContextMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        # ✅ Let CORS preflight pass
-        if request.method == "OPTIONS":
-            return self.get_response(request)
-
-        # ✅ Health checks never resolve a tenant (avoids a DB hit on liveness)
-        if request.path.startswith(_HEALTH_PREFIX):
-            return self.get_response(request)
-
-        # ✅ If HostelResolveMiddleware already set request.hostel, keep it
-        if getattr(request, "hostel", None):
-            return self.get_response(request)
-
-        hostel_id = request.headers.get("X-HOSTEL-ID") or request.META.get("HTTP_X_HOSTEL_ID")
-        if hostel_id:
-            try:
-                request.hostel = Hostel.objects.filter(id=hostel_id).first()
-            except Exception:
-                request.hostel = None
-
-        return self.get_response(request)
+# NOTE: Tenant resolution moved to apps.tenants.middleware.TenantResolutionMiddleware
+# (subdomain-first workspace routing with header fallbacks + Redis caching).
+# The legacy HostelResolveMiddleware / HostelContextMiddleware lived here.
 
 
 # Default CSP suitable for a JSON API. It is intentionally strict: the API

@@ -25,6 +25,10 @@ class ResidentViewSet(ModelViewSet):
         )
 
     def perform_create(self, serializer):
+        # Enforce the plan's resident (student) quota before creating.
+        from apps.subscriptions.gates import enforce_limit
+
+        enforce_limit(self.request.hostel, "max_students")
         resident = serializer.save(hostel=self.request.hostel)
         if resident.current_bed:
             BedAssignmentHistory.objects.create(

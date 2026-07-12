@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["../../types-jest-dom.d.ts", "src/**/*.ts", "src/**/*.tsx"]
+}

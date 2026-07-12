@@ -6,14 +6,30 @@ ROLE_CHOICES = [
     ("ADMIN", "Admin"),
     ("OWNER", "Owner"),
     ("MANAGER", "Manager"),
+    ("RECEPTIONIST", "Receptionist"),
     ("STAFF", "Staff"),
     ("ACCOUNTANT", "Accountant"),
     ("WARDEN", "Warden"),
-    ("RESIDENT", "Resident"),
+    ("STUDENT", "Student"),
+    ("PARENT", "Parent"),
+    ("RESIDENT", "Resident"),  # legacy pre-portal role (student-equivalent)
+    ("READ_ONLY", "Read only"),
 ]
 
 class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="WARDEN")
+    # MFA architecture preparation: flag + per-user opt-in exist so enabling a
+    # second factor later is additive (verification flow only), not structural.
+    # Login responses already advertise `mfa_required` based on this.
+    mfa_enabled = models.BooleanField(default=False)
+
+    @property
+    def password_version(self) -> str:
+        """Short fingerprint of the current password hash. Embedded in JWTs so
+        a password change invalidates every previously issued token."""
+        import hashlib
+
+        return hashlib.sha256((self.password or "").encode()).hexdigest()[:12]
 
 class UserHostel(TimeStampedModel):
     user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="hostel_links")

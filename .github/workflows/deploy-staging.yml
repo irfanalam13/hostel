@@ -24,6 +24,7 @@ jobs:
     with:
       tag: staging-${{ github.sha }}
       api_base_url: ${{ vars.STAGING_API_BASE_URL }}
+      tenant_base_domain: ${{ vars.STAGING_TENANT_BASE_DOMAIN }}
     secrets: inherit
 
   deploy:
@@ -74,7 +75,7 @@ jobs:
             set -e
             cd "${{ secrets.STAGING_PATH }}/deploy"
             chmod +x deploy.sh rollback.sh
-            ./deploy.sh "${{ needs.build.outputs.backend_image }}" "${{ needs.build.outputs.frontend_image }}"
+            ./deploy.sh "${{ needs.build.outputs.backend_image }}" "${{ needs.build.outputs.client_image }}" "${{ needs.build.outputs.admin_image }}"
         env:
           GHCR_USER: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

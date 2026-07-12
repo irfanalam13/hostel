@@ -1,0 +1,114 @@
+# Alerting rules — severity: critical / high / medium / low.
+# Wired to Alertmanager (alertmanager.yml) for routing + notification.
+groups:
+  - name: infrastructure
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "Redis is down"
+          description: "redis_up=0 for >1m. Rate limiter degrades to per-container/memory; sessions/cache impacted."
+
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "pg_up=0 for >1m. The application cannot serve authenticated requests."
+
+      - alert: BackendTargetDown
+        expr: up{job="hostel-backend"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: "Backend /metrics target is down"
+          description: "Prometheus cannot scrape web:8000 for >2m."
+
+      - alert: HighCPU
+        expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 0.9
+        for: 10m
+        labels: {severity: high}
+        annotations:
+          summary: "High CPU (>90%)"
+          description: "Host CPU >90% for 10m — scale out or investigate a hot loop."
+
+      - alert: HighMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 10m
+        labels: {severity: high}
+        annotations:
+          summary: "High memory (>90%)"
+          description: "Host memory >90% for 10m — risk of OOM kills."
+
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) > 0.85
+        for: 15m
+        labels: {severity: high}
+        annotations:
+          summary: "Disk >85% full"
+          description: "A filesystem is over 85% used — free space or grow the volume."
+
+      - alert: ContainerRestarting
+        expr: rate(container_start_time_seconds[15m]) > 0 and on(name) container_last_seen{name!=""}
+        for: 5m
+        labels: {severity: medium}
+        annotations:
+          summary: "Container restarting"
+          description: "A container has restarted recently — check its logs."
+
+  - name: application
+    rules:
+      - alert: HighApiErrorRate
+        expr: |
+          sum(rate(django_http_responses_total_by_status_total{status=~"5.."}[5m]))
+          / clamp_min(sum(rate(django_http_responses_total_by_status_total[5m])), 1) > 0.05
+        for: 5m
+        labels: {severity: high}
+        annotations:
+          summary: "API 5xx error rate >5%"
+          description: "More than 5% of responses are 5xx over 5m."
+
+      - alert: ApiLatencyP95High
+        expr: histogram_quantile(0.95, sum(rate(django_http_requests_latency_seconds_by_view_method_bucket[5m])) by (le)) > 1
+        for: 10m
+        labels: {severity: medium}
+        annotations:
+          summary: "API p95 latency >1s"
+          description: "95th percentile request latency exceeds 1s for 10m."
+
+  - name: security
+    rules:
+      - alert: RateLimitSpike
+        expr: sum(rate(hostel_rate_limit_decisions_total{result="limited"}[5m])) > 50
+        for: 5m
+        labels: {severity: high}
+        annotations:
+          summary: "Rate-limit blocks spiking (possible DDoS / flood)"
+          description: ">50 rate-limit blocks/s over 5m. Check the security dashboard and top offenders."
+
+      - alert: AuthLockoutSurge
+        expr: sum(rate(hostel_auth_events_total{event_type="auth_lockout"}[10m])) > 5
+        for: 10m
+        labels: {severity: high}
+        annotations:
+          summary: "Progressive-lockout surge (possible brute force / credential stuffing)"
+          description: ">5 lockouts/s over 10m. Confirm enforce mode + review offending IPs."
+
+      - alert: WafViolationSurge
+        expr: sum(rate(hostel_waf_violations_total[10m])) > 10
+        for: 10m
+        labels: {severity: medium}
+        annotations:
+          summary: "WAF violation surge"
+          description: ">10 WAF matches/s over 10m — inspect matched rules and sources."
+
+      - alert: BotActivitySurge
+        expr: sum(rate(hostel_security_events_total{event_type="bot_detected"}[10m])) > 20
+        for: 10m
+        labels: {severity: low}
+        annotations:
+          summary: "Elevated automated traffic"
+          description: "Consider enabling Cloudflare Super Bot Fight Mode / Managed Challenge."

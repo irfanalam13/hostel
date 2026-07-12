@@ -64,11 +64,12 @@ class DRModeMiddleware:
             return self.get_response(request)
 
         # Import lazily so the app imports cleanly before migrations run.
+        # get_cached_state() serves from Redis; the DB is only hit on a cache
+        # miss, so the normal-mode hot path costs one cache GET, not a query.
         try:
             from .models import DRMode, DRState
 
-            state = DRState.get_solo()
-            mode = state.mode
+            mode, reason = DRState.get_cached_state()
         except Exception:  # noqa: BLE001 — never let the gate break the site
             return self.get_response(request)
 
@@ -78,7 +79,7 @@ class DRModeMiddleware:
         if mode == DRMode.MAINTENANCE:
             if request.method in SAFE_METHODS:
                 return self.get_response(request)
-            return _blocked(mode, state.reason)
+            return _blocked(mode, reason)
 
         # EMERGENCY: full lock (exempt paths already returned above).
-        return _blocked(mode, state.reason)
+        return _blocked(mode, reason)
