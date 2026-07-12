@@ -34,7 +34,13 @@ _MAX_SET = 512  # hard cap on tracked distinct values per IP
 
 
 def _hash(value: str) -> str:
-    return hashlib.sha1((value or "").strip().lower().encode()).hexdigest()[:16]
+    # Non-cryptographic fingerprint: we need set cardinality, not a security
+    # primitive (no signing/passwords/tokens), so plaintext never hits Redis.
+    # usedforsecurity=False marks that intent (and keeps this usable under FIPS);
+    # the digest is unchanged.
+    return hashlib.sha1(
+        (value or "").strip().lower().encode(), usedforsecurity=False
+    ).hexdigest()[:16]
 
 
 def _track_distinct(key: str, value: str, window: int, threshold: int):
