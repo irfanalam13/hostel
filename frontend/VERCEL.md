@@ -14,15 +14,23 @@ whole product is served under one domain in production.
 
 ## Per-app config lives in `apps/<app>/vercel.json`
 
-Each app ships a `vercel.json` pinning the framework and build command:
+Each app ships a `vercel.json` pinning the framework, install, and build:
 
 ```json
-{ "$schema": "https://openapi.vercel.sh/vercel.json", "framework": "nextjs", "buildCommand": "npm run build" }
+{ "$schema": "https://openapi.vercel.sh/vercel.json", "framework": "nextjs",
+  "installCommand": "cd ../.. && npm ci", "buildCommand": "npm run build" }
 ```
 
-`buildCommand: "npm run build"` runs that app's own script (`next build
---webpack`) — explicit so a future Turbopack default doesn't change the output
-this app was validated against.
+- `installCommand: "cd ../.. && npm ci"` — from the Root Directory (`apps/<app>`)
+  step up to the workspace root and do a **clean, complete** install from the
+  lockfile. This is REQUIRED: Vercel's default install produced only a partial
+  set ("added 86 packages") which made webpack fail to resolve app source under
+  `@/features/*` (e.g. `@/features/accounting/components/primitives`) even though
+  the files were in the checkout. A clean `npm ci` (what Docker CI and every
+  green build do) resolves everything.
+- `buildCommand: "npm run build"` runs that app's own script (`next build
+  --webpack`) — explicit so a future Turbopack default doesn't change the output
+  this app was validated against.
 
 > **`vercel.json` cannot set the Root Directory.** That is a project-level
 > dashboard setting and is the single most important part of this setup — see
