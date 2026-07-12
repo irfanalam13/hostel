@@ -34,11 +34,13 @@ _MAX_SET = 512  # hard cap on tracked distinct values per IP
 
 
 def _hash(value: str) -> str:
-    # Non-cryptographic fingerprint: we need set cardinality, not a security
-    # primitive (no signing/passwords/tokens), so plaintext never hits Redis.
-    # usedforsecurity=False marks that intent (and keeps this usable under FIPS);
-    # the digest is unchanged.
-    return hashlib.sha1(
+    # Privacy fingerprint of an identity/target (username/email/IP) so plaintext
+    # never hits Redis — we only need set cardinality, not a security primitive
+    # (no signing/passwords/tokens). SHA-256 (not SHA-1/MD5) so hashing this
+    # sensitive input isn't a weak-hash finding; usedforsecurity=False documents
+    # that it's a fingerprint, not an auth secret. Truncated: 64 bits is ample
+    # for the capped per-IP sets.
+    return hashlib.sha256(
         (value or "").strip().lower().encode(), usedforsecurity=False
     ).hexdigest()[:16]
 
