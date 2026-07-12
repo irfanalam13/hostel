@@ -10,7 +10,10 @@
  * Assertions are tuned to be meaningful but not flaky on CI hardware — bump the
  * minScore thresholds as the app is optimised.
  */
-const PORT = process.env.LHCI_PORT || 3100;
+// Audit the admin zone's /login directly (it owns the app shell). Auditing
+// through the client→admin rewrite added no signal and was a flake source; see
+// playwright.config.ts. start-zones still boots both; we point at admin (3101).
+const PORT = process.env.LHCI_PORT || 3101;
 const BASE = `http://localhost:${PORT}`;
 
 module.exports = {

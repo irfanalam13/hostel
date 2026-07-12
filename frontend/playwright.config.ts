@@ -19,8 +19,17 @@ import { defineConfig, devices } from "@playwright/test";
  *   - Smoke / navigation .... e2e/smoke.spec.ts
  */
 
-const PORT = Number(process.env.PW_PORT || 3100);
-const BASE_URL = process.env.PW_BASE_URL || `http://localhost:${PORT}`;
+// The E2E specs all exercise APP routes (/login, /dashboard, /offline, sw.js)
+// which are owned by the ADMIN zone. We therefore drive the admin zone DIRECTLY
+// rather than through the client zone's marketing→admin rewrite: the two-zone
+// proxy is a production/edge concern (Vercel handles it), and routing browser
+// PWA specs through it under `next start` is a flake source — the SW gate keys
+// on the served build being production, and any proxy hiccup silently breaks
+// registration. Direct admin is deterministic. The client zone still boots
+// (start-zones) but no spec depends on it.
+const CLIENT_PORT = Number(process.env.PW_CLIENT_PORT || 3100);
+const ADMIN_PORT = Number(process.env.PW_PORT || 3101);
+const BASE_URL = process.env.PW_BASE_URL || `http://localhost:${ADMIN_PORT}`;
 const isLive = process.env.PW_LIVE === "1";
 const isCI = !!process.env.CI;
 
@@ -71,19 +80,22 @@ export default defineConfig({
     },
   ],
 
-  // Build both zones once, then start them together (client on PORT proxying
-  // the admin zone on PORT+1 — see scripts/start-zones.mjs). In live mode we
+  // Build both zones once, then start them together (client on CLIENT_PORT,
+  // admin on ADMIN_PORT — see scripts/start-zones.mjs). The suite targets the
+  // admin zone directly (BASE_URL). In live mode we
   // assume servers are already running and just reuse them.
   webServer: isLive
     ? undefined
     : {
         command: `npm run build && node scripts/start-zones.mjs`,
+        // Wait on the ADMIN zone (the target) rather than the client, so the
+        // suite starts as soon as the app under test is ready.
         url: BASE_URL,
         timeout: 480_000,
         reuseExistingServer: !isCI,
         env: {
-          ZONE_CLIENT_PORT: String(PORT),
-          ZONE_ADMIN_PORT: String(PORT + 1),
+          ZONE_CLIENT_PORT: String(CLIENT_PORT),
+          ZONE_ADMIN_PORT: String(ADMIN_PORT),
           // Point the app at the origin we intercept in mock-api.ts.
           NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api",
           NEXT_PUBLIC_VAPID_PUBLIC_KEY:

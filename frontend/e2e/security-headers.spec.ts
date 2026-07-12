@@ -37,7 +37,7 @@ test.describe("Security headers @smoke", () => {
     expect(cspRo).toContain("require-trusted-types-for 'script'");
 
     // The strict CSP must not have broken the app's own scripts.
-    await expect(page.getByRole("button", { name: /login/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
   });
 
   test("each navigation gets a fresh CSP nonce", async ({ page, mockApi }) => {

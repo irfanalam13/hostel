@@ -39,7 +39,7 @@ test.describe("Offline behaviour @chromium-only", () => {
     await context.setOffline(true);
     await page.reload();
     // The login form is the cached page — it should still render offline.
-    await expect(page.getByRole("button", { name: /login/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible({ timeout: 10_000 });
     await context.setOffline(false);
   });
 
