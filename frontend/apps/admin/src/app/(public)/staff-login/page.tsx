@@ -1,14 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { WorkspaceLoginForm } from "@/features/auth/components/WorkspaceLoginForm";
-
-/** Staff portal login (alias of /login, kept for the canonical portal URL). */
+/**
+ * Legacy staff portal URL. Role-specific login pages have been collapsed into
+ * the single unified tenant login at `/login`; this path is kept only so old
+ * bookmarks/links keep working.
+ */
 export default function StaffLoginPage() {
-  return (
-    <WorkspaceLoginForm
-      portal="staff"
-      title="Staff Login"
-      subtitle="Sign in with your staff account."
-    />
-  );
+  redirect("/login");
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { can, portalHomeForRole } from "../permissions";
+import { can, portalHomeForRole, postAuthHome } from "../permissions";
 import { permissionForPath } from "../routePolicy";
 import { normalizeRole } from "../roles";
 
@@ -48,5 +48,25 @@ describe("portal route policy (Prompt 02)", () => {
     expect(normalizeRole("read_only")).toBe("READ_ONLY");
     expect(normalizeRole("RESIDENT")).toBe("RESIDENT");
     expect(normalizeRole("ADMIN")).toBe("ADMIN");
+  });
+
+  it("fails CLOSED (least privilege), never open to OWNER, for unknown/missing roles", () => {
+    // The historical fail-open OWNER default was a privilege-escalation risk.
+    expect(normalizeRole(undefined)).toBe("READ_ONLY");
+    expect(normalizeRole(null)).toBe("READ_ONLY");
+    expect(normalizeRole("")).toBe("READ_ONLY");
+    expect(normalizeRole("wizard")).toBe("READ_ONLY");
+    // Known taxonomy roles are still preserved (not swallowed by the fallback).
+    expect(normalizeRole("GUARDIAN")).toBe("GUARDIAN");
+    expect(normalizeRole("SUPER_ADMIN")).toBe("SUPER_ADMIN");
+  });
+
+  it("postAuthHome prefers the backend redirect, falling back to the role home", () => {
+    expect(postAuthHome("STUDENT")).toBe("/student/dashboard");
+    expect(postAuthHome("OWNER")).toBe("/dashboard");
+    // Backend redirect wins when present (it is authoritative).
+    expect(postAuthHome("OWNER", "/parent/dashboard")).toBe("/parent/dashboard");
+    expect(postAuthHome("STUDENT", "")).toBe("/student/dashboard");
+    expect(postAuthHome("STUDENT", null)).toBe("/student/dashboard");
   });
 });
