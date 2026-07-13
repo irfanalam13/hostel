@@ -65,7 +65,13 @@ const nextConfig: NextConfig = {
   output: process.env.NEXT_OUTPUT_STANDALONE === "1" ? "standalone" : undefined,
   // Monorepo: trace files from the workspace root so the standalone bundle
   // includes hoisted node_modules and workspace packages deterministically.
-  outputFileTracingRoot: path.join(__dirname, "../.."),
+  // ONLY for the Docker standalone build. On Vercel this MUST stay unset: with a
+  // Root Directory of frontend/apps/admin, a tracing root two levels up makes
+  // Vercel's Next builder look for the app's output at apps/admin/.next relative
+  // to that root instead of at the Root Directory, failing with
+  // "ENOENT ... .next/package.json".
+  outputFileTracingRoot:
+    process.env.NEXT_OUTPUT_STANDALONE === "1" ? path.join(__dirname, "../..") : undefined,
   // Don't leak the framework or ship browser source maps to production clients.
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
