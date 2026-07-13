@@ -1,14 +1,12 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { WorkspaceLoginForm } from "@/features/auth/components/WorkspaceLoginForm";
-
-/** Student portal login — student/resident accounts only. */
+/**
+ * Legacy student portal login URL. Students/residents now sign in through the
+ * single unified tenant login at `/login`; the backend routes them to
+ * `/student/dashboard` afterwards. Kept as a redirect for backward compat.
+ * (Note: `/student/dashboard` and other `/student/*` app routes are unaffected
+ * — only the bare `/student` login page redirects.)
+ */
 export default function StudentLoginPage() {
-  return (
-    <WorkspaceLoginForm
-      portal="student"
-      title="Student Portal"
-      subtitle="Sign in to view your dues, attendance and notices."
-    />
-  );
+  redirect("/login");
 }

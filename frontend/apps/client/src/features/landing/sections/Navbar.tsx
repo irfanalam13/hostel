@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu, X, ArrowRight, Download } from "lucide-react";
 import { useAuth } from "@hostel/auth";
+import { postAuthHome, usePermissions } from "@hostel/permissions";
 import { usePwa } from "@hostel/pwa";
 import { useToast } from "@hostel/ui";
 import { Container } from "../components/Container";
@@ -16,6 +17,11 @@ import { usePlatform, manualInstallHint } from "../hooks/usePlatform";
 
 export function Navbar() {
   const { status } = useAuth();
+  const { role } = usePermissions();
+  // Where the "Go to dashboard" CTA sends an authenticated visitor — role-aware
+  // so a signed-in student/parent lands on their own portal, not the owner
+  // dashboard. Owners (the platform's primary audience) resolve to /dashboard.
+  const dashboardHref = postAuthHome(role);
   const { isInstallable, isInstalled, installApp } = usePwa();
   const platform = usePlatform();
   const toast = useToast();
@@ -104,7 +110,7 @@ export function Navbar() {
 
           {authed ? (
             <CtaLink
-              href="/dashboard"
+              href={dashboardHref}
               className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
             >
               Go to dashboard <ArrowRight className="h-4 w-4" aria-hidden />
@@ -170,7 +176,7 @@ export function Navbar() {
               )}
               {authed ? (
                 <CtaLink
-                  href="/dashboard"
+                  href={dashboardHref}
                   onClick={() => setOpen(false)}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white"
                 >

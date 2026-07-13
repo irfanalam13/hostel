@@ -33,19 +33,29 @@ validity + pwv → workspace binding → membership (cached) → role/permission
 
 ## Workspace routing (frontend, admin zone)
 
-| Route | Portal | Roles admitted |
-| --- | --- | --- |
-| `/login`, `/staff` | staff | MANAGER, RECEPTIONIST, ACCOUNTANT, WARDEN, STAFF, READ_ONLY (+ OWNER/ADMIN) |
-| `/admin` | admin | OWNER, ADMIN only |
-| `/student` | student | STUDENT, RESIDENT (legacy) |
-| `/parent` | parent | PARENT |
+**One unified tenant login authenticates every role** (Authentication Flow
+Refactor). Authentication establishes identity; authorization (role +
+permissions) decides access and where the session lands.
 
-All four render `WorkspaceLoginForm` (`features/auth/components/`): on a
+| Route | Purpose |
+| --- | --- |
+| `/login` | the single tenant login — all roles (owner, admin, staff, receptionist, accountant, warden, parent, student, security, laundry, maintenance …) |
+| `/admin`, `/staff-login`, `/student`, `/parent` | **legacy redirects → `/login`** (kept so old bookmarks/links keep working; no role-specific login UI remains) |
+| `/select-workspace` | owner workspace picker for accounts that belong to more than one hostel |
+
+`/login` renders `WorkspaceLoginForm` (`features/auth/components/`): on a
 workspace host it shows the tenant's logo/name/workspace-username (from the
 public branding endpoint), asks for no Hostel ID, and renders
 `WorkspaceErrorScreen` for unknown/suspended/expired workspaces. On the root
-domain the legacy Hostel-ID flow is unchanged. Adding a portal = one page +
-one `PORTALS` entry + one redirect mapping — no routing changes.
+domain the legacy Hostel-ID flow is unchanged. It sends **no `portal`**, so the
+backend admits every role and returns each role's `redirect`.
+
+The backend `portal` gate (`PORTALS` in `apps/common/rbac.py`) still exists and
+is honored when a caller supplies a `portal` — the API stays backward
+compatible — but the UI no longer sends one. Post-auth destinations are
+centralized in `postAuthHome()` (`@hostel/permissions`), used by the login
+form, the public/protected layouts, logout and the marketing navbar so a
+session never lands somewhere its role can't open.
 
 Successful login follows the backend's `redirect`:
 OWNER/ADMIN/staff roles → `/dashboard`, STUDENT/RESIDENT →

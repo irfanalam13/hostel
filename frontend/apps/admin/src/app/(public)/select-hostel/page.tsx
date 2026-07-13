@@ -58,6 +58,16 @@ export default function SelectHostelPage() {
           Continue
         </button>
       </div>
+
+      <p className="mt-4 text-center text-sm text-zinc-500">
+        Own more than one hostel?{" "}
+        <button
+          onClick={() => router.push("/select-workspace")}
+          className="font-semibold text-blue-600 hover:underline"
+        >
+          Choose from your workspaces
+        </button>
+      </p>
     </div>
   );
 }

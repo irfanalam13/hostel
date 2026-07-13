@@ -1,15 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { WorkspaceLoginForm } from "@/features/auth/components/WorkspaceLoginForm";
-
-/** Admin dashboard login — owner and hostel-admin roles only. */
+/**
+ * Legacy admin login URL. Owners and hostel admins now sign in through the
+ * single unified tenant login at `/login` (authentication decides identity,
+ * authorization decides access). Kept as a redirect for backward compatibility.
+ */
 export default function AdminLoginPage() {
-  return (
-    <WorkspaceLoginForm
-      portal="admin"
-      title="Admin Login"
-      subtitle="Sign in to manage your hostel."
-      showSignup
-    />
-  );
+  redirect("/login");
 }

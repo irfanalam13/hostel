@@ -5,10 +5,20 @@
     POST /api/admin/dr/mode/            switch DR mode (normal/maintenance/emergency)
     POST /api/admin/backups/<id>/validate/   re-validate a stored backup
 
-All endpoints require an admin (superuser or role=ADMIN). Every restore request
-is audited, requires an explicit backup_id, defaults to force=false, and a
-destructive restore additionally requires a confirmation token equal to the
-hostel code being overwritten.
+Authorization has two tiers:
+
+* **Per-hostel operations** (restore, backup validate) run against one hostel
+  and are gated by :class:`IsDRAdmin` (superuser or ADMIN role) *plus* an
+  explicit :func:`_can_touch_hostel` membership check — a tenant admin may
+  recover their own workspace, never another's.
+* **Platform-global operations** (DR mode switch, DR status overview) affect
+  every tenant / expose cross-tenant data, so they are super-admin only
+  (:class:`IsSuperUser`) — a single tenant's ADMIN must never flip the global
+  DR mode or read other tenants' restore history.
+
+Every restore request is audited, requires an explicit backup_id, defaults to
+force=false, and a destructive restore additionally requires a confirmation
+token equal to the hostel code being overwritten.
 """
 
 import logging
@@ -19,6 +29,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import UserHostel
+from apps.common.permissions import IsSuperUser
 from apps.auditlog.models import AuditEvent
 from apps.auditlog.services import record_event
 
@@ -125,7 +136,10 @@ class AdminRestoreView(APIView):
 
 
 class DRStatusView(APIView):
-    permission_classes = [IsAuthenticated, IsDRAdmin]
+    # Platform-global: exposes the DR mode, aggregate storage and cross-tenant
+    # restore history. Super-admin only — a tenant ADMIN must not see other
+    # tenants' restore runs (previously an IsDRAdmin cross-tenant metadata leak).
+    permission_classes = [IsAuthenticated, IsSuperUser]
 
     def get(self, request):
         recent = RestoreRun.objects.order_by("-created_at")[:10]
@@ -148,7 +162,10 @@ class DRStatusView(APIView):
 
 
 class DRModeView(APIView):
-    permission_classes = [IsAuthenticated, IsDRAdmin]
+    # Platform-global: switching DR mode (normal/maintenance/emergency) affects
+    # every tenant, so it is super-admin only — a single tenant's ADMIN must
+    # never be able to put the whole SaaS into maintenance/emergency mode.
+    permission_classes = [IsAuthenticated, IsSuperUser]
 
     def post(self, request):
         mode = request.data.get("mode")
