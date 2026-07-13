@@ -147,3 +147,76 @@ def test_report_tenant_isolated(hostel, other_hostel, warden, make_user):
     assert report["total_events"] == 0
     assert report["install"]["rate"] == 0.0
     assert outsider  # silence lint
+
+
+# --------------------------------------------------------------------------- #
+# Aggregation pipeline (Phase 8)
+# --------------------------------------------------------------------------- #
+def test_rollup_aggregates_and_survives_raw_prune(hostel, warden):
+    from django.utils import timezone
+
+    from apps.analytics.models import EventDailyRollup
+    from apps.analytics.rollup import rollup_recent
+    from apps.analytics.tasks import prune_old_analytics
+
+    _seed(hostel, warden)
+    written = rollup_recent(days=1)
+    assert written > 0
+
+    today = timezone.localdate()
+    prompt = EventDailyRollup.objects.get(
+        date=today, hostel=hostel, event_type="INSTALL_PROMPT"
+    )
+    assert prompt.count == 2
+    cache = EventDailyRollup.objects.get(date=today, hostel=hostel, event_type="CACHE_HIT")
+    assert cache.value_sum == 75
+
+    # Age every raw event past the retention window, then prune.
+    AnalyticsEvent.objects.update(created_at=timezone.now() - timezone.timedelta(days=400))
+    prune_old_analytics()
+    assert AnalyticsEvent.objects.count() == 0
+    # Rollups persist → historical analytics survive.
+    assert EventDailyRollup.objects.filter(hostel=hostel).exists()
+
+
+def test_rollup_is_idempotent(hostel, warden):
+    from apps.analytics.models import EventDailyRollup
+    from apps.analytics.rollup import rollup_recent
+
+    _seed(hostel, warden)
+    rollup_recent(days=1)
+    first = EventDailyRollup.objects.count()
+    rollup_recent(days=1)  # re-run
+    assert EventDailyRollup.objects.count() == first
+
+
+def test_trends_served_from_rollup(hostel, warden):
+    from apps.analytics.rollup import build_trends, rollup_recent
+
+    _seed(hostel, warden)
+    rollup_recent(days=1)
+    trends = build_trends(hostel, days=30, granularity="day")
+    assert trends["source"] == "rollup"
+    assert trends["totals"]["INSTALL_PROMPT"] == 2
+    assert len(trends["buckets"]) == 1
+
+
+def test_trends_endpoint_superuser_only(auth_client, superuser, owner, hostel, warden):
+    _seed(hostel, warden)
+    from apps.analytics.rollup import rollup_recent
+
+    rollup_recent(days=1)
+    assert auth_client(owner, hostel).get("/api/analytics/trends/").status_code == 403
+    resp = auth_client(superuser, hostel).get("/api/analytics/trends/", {"granularity": "week"})
+    assert resp.status_code == 200
+    assert resp.data["granularity"] == "week"
+
+
+def test_collect_captures_country_from_edge(auth_client, warden, hostel):
+    client = auth_client(warden, hostel)
+    resp = client.post(
+        COLLECT, {"events": [{"event_type": "INSTALLED"}]}, format="json",
+        HTTP_CF_IPCOUNTRY="np",
+    )
+    assert resp.status_code == 200
+    assert AnalyticsEvent.objects.filter(hostel=hostel, country="NP").exists()

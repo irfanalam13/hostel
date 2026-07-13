@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Layers,
   ShieldPlus,
+  Siren,
 } from "lucide-react";
 
 export type PlatformSection = {
@@ -67,5 +68,12 @@ export const PLATFORM_SECTIONS: PlatformSection[] = [
     description: "Revenue (MRR/ARR), plan distribution and feature adoption",
     href: "/platform/analytics",
     icon: BarChart3,
+  },
+  {
+    id: "ops",
+    label: "Operations",
+    description: "Announcements, scheduled maintenance, incidents and feature flags",
+    href: "/platform/ops",
+    icon: Siren,
   },
 ];

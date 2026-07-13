@@ -74,6 +74,9 @@ class AnalyticsEvent(models.Model):
     device_type = models.CharField(max_length=10, choices=DeviceType.choices, default=DeviceType.UNKNOWN)
     browser = models.CharField(max_length=10, choices=Browser.choices, default=Browser.OTHER)
     platform = models.CharField(max_length=40, blank=True, default="")
+    # ISO-3166 alpha-2, derived server-side from the CDN geo header (never trusted
+    # from the client). Empty when unknown / not behind a geo-aware edge.
+    country = models.CharField(max_length=2, blank=True, default="", db_index=True)
     app_version = models.CharField(max_length=40, blank=True, default="")
     sw_version = models.CharField(max_length=40, blank=True, default="")
 
@@ -90,3 +93,43 @@ class AnalyticsEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type} ({self.created_at:%Y-%m-%d})"
+
+
+class EventDailyRollup(models.Model):
+    """Durable per-day, per-tenant, per-event-type aggregate (analytics storage).
+
+    This is the "analytics storage" tier of the pipeline (Phase 8): raw events
+    are pruned after ``ANALYTICS_RETENTION_DAYS``, but these rollups persist, so
+    historical trends/KPIs are served cheaply from pre-aggregated rows rather
+    than scanned live off the transactional table. Recomputed idempotently by
+    the daily aggregation task.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    date = models.DateField(db_index=True)
+    hostel = models.ForeignKey(
+        "tenants.Hostel", on_delete=models.CASCADE, null=True, blank=True,
+        related_name="analytics_rollups",
+    )
+    event_type = models.CharField(max_length=24, choices=EventType.choices)
+
+    count = models.PositiveIntegerField(default=0)
+    value_sum = models.FloatField(default=0)
+    unique_users = models.PositiveIntegerField(default=0)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["date", "hostel", "event_type"], name="analytics_rollup_unique_day",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["hostel", "date"]),
+            models.Index(fields=["event_type", "date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.date} {self.event_type} x{self.count}"

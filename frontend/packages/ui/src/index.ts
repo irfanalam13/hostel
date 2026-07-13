@@ -10,6 +10,7 @@ export * from "./Select";
 export * from "./Skeleton";
 export * from "./Spinner";
 export * from "./Table";
+export * from "./DataTable";
 export * from "./Textarea";
 export * from "./ThemeContext";
 export * from "./toast/ToastProvider";

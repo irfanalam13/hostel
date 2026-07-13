@@ -30,6 +30,8 @@ const ROUTE_POLICY: ReadonlyArray<{ prefix: string; permission: Permission }> = 
   { prefix: "/notifications", permission: "communications:manage" },
   { prefix: "/reports", permission: "reports:view" },
   { prefix: "/exports", permission: "reports:view" },
+  // Immutable, hash-chained audit trail (owners/admins).
+  { prefix: "/audit", permission: "settings:manage" },
   { prefix: "/settings", permission: "settings:manage" },
   { prefix: "/backup", permission: "backups:manage" },
   // Cross-tenant hostel / plan / subscription console — a platform-operator

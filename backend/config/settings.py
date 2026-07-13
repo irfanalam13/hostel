@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     "apps.finance",
     "apps.accounting",
     "apps.security",
+    "apps.platformops",
 ]
 
 MIDDLEWARE = [
@@ -507,6 +508,12 @@ SLOW_REQUEST_MS = env.int("SLOW_REQUEST_MS", default=300)
 # down) so the request never waits on the audit INSERT.
 AUDIT_LOG_ASYNC = env.bool("AUDIT_LOG_ASYNC", default=True)
 
+# Audit retention: events older than this are archived to JSONL then pruned
+# (chain checkpoint advances so the surviving tail stays verifiable). 0 = keep
+# forever. Archives are written under AUDIT_ARCHIVE_DIR.
+AUDIT_RETENTION_DAYS = env.int("AUDIT_RETENTION_DAYS", default=365)
+AUDIT_ARCHIVE_DIR = env.str("AUDIT_ARCHIVE_DIR", default=str(BASE_DIR / "audit-archive"))
+
 # Membership (user↔hostel) checks are cached this many seconds; entries are
 # also invalidated by UserHostel save/delete signals.
 MEMBERSHIP_CACHE_TTL = env.int("MEMBERSHIP_CACHE_TTL", default=60)
@@ -650,6 +657,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.notifications.tasks.prune_expired_subscriptions",
         "schedule": crontab(hour=4, minute=30),  # daily 04:30
     },
+    # Analytics aggregation pipeline: build durable rollups BEFORE pruning raw.
+    "analytics-rollup": {
+        "task": "apps.analytics.tasks.rollup_analytics",
+        "schedule": crontab(hour=4, minute=35),  # daily 04:35 (before prune)
+    },
     # PWA analytics retention.
     "analytics-prune-old": {
         "task": "apps.analytics.tasks.prune_old_analytics",
@@ -659,6 +671,21 @@ CELERY_BEAT_SCHEDULE = {
     "security-prune-events": {
         "task": "apps.security.tasks.prune_security_events",
         "schedule": crontab(hour=5, minute=0),  # daily 05:00
+    },
+    # Audit-trail retention: archive-then-prune events beyond AUDIT_RETENTION_DAYS.
+    "auditlog-prune-events": {
+        "task": "apps.auditlog.tasks.prune_audit_events",
+        "schedule": crontab(hour=5, minute=15),  # daily 05:15
+    },
+    # Ops governance: auto start/complete maintenance windows at their times.
+    "platformops-transition-maintenance": {
+        "task": "apps.platformops.tasks.transition_maintenance_windows",
+        "schedule": crontab(minute="*/1"),  # every minute
+    },
+    # Ops governance: reap expired feature-flag overrides.
+    "platformops-reap-overrides": {
+        "task": "apps.platformops.tasks.reap_feature_overrides",
+        "schedule": crontab(minute=20),  # hourly at :20
     },
 }
 

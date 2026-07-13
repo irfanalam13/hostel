@@ -14,3 +14,16 @@ export interface AnalyticsReport {
   browsers: Record<string, number>;
   errors: { total: number; daily: Record<string, number> };
 }
+
+// Mirrors backend/apps/analytics/rollup.py build_trends() — served from the
+// durable EventDailyRollup aggregation tier (not the transactional table).
+export type TrendGranularity = "day" | "week" | "month";
+
+export interface AnalyticsTrends {
+  granularity: TrendGranularity;
+  window_days: number;
+  source: string;
+  buckets: string[];
+  series: Record<string, Record<string, number>>; // bucket -> event_type -> count
+  totals: Record<string, number>; // event_type -> total
+}
