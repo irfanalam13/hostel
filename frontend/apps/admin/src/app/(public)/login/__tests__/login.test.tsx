@@ -78,6 +78,28 @@ describe("Login flow (unified tenant login, legacy Hostel-ID path)", () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard"));
   });
 
+  it("routes a root-domain owner login to the workspace selector (Phase 6)", async () => {
+    const user = userEvent.setup();
+    apiFetch.mockImplementation((path: string) =>
+      path === "/auth/login/"
+        ? Promise.resolve({
+            hostel_code: "HTL-ABC12345",
+            user: { role: "OWNER" },
+            role: "OWNER",
+            redirect: "/dashboard",
+          })
+        : Promise.reject(new Error("401")),
+    );
+    renderLogin();
+    await fillAndSubmit(user);
+
+    // An owner on the platform (root) domain may belong to several hostels, so
+    // login lands on the selector — which loads their orgs and auto-forwards
+    // when there is exactly one — never straight onto a single dashboard.
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/select-workspace"));
+    expect(replace).not.toHaveBeenCalledWith("/dashboard");
+  });
+
   it("shows an error and stays on the page on bad credentials", async () => {
     const user = userEvent.setup();
     apiFetch.mockImplementation((path: string) => {

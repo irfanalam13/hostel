@@ -115,3 +115,21 @@ plus two backend security gaps. Changes are additive and backward-compatible.
 Preserved unchanged: every `/api/auth/*` and `/api/tenants/*` contract, JWT
 cookies, RBAC semantics, subscription/feature gating, tenant isolation, and the
 existing test suites (extended, not rewritten).
+
+---
+
+## 4. Phase completion (5, 6, 9)
+
+A follow-up pass closed the three phases that the first cut left partial. All
+additive, all reusing existing services, no contract changes.
+
+| Phase | Gap | Fix | Files |
+| --- | --- | --- | --- |
+| 5 — Signup | Provisioning created the tenant + owner + trial but **no `Subscription` row and no default departments**. | `provision_workspace()` now seeds a default subscription via the existing `subscriptions.lifecycle.assign_plan` service (real `Subscription` row + immutable `SubscriptionEvent` + entitlement-cache refresh; trial status bounded by the trial end date) and a default department set. Both are savepoint-isolated best-effort so a fresh install with no seeded plans (or a staff-app hiccup) still provisions cleanly; `plan_name` remains the entitlement fallback. | `apps/tenants/services.py` |
+| 6 — Owner login | The `/select-workspace` selector existed but was **not auto-triggered after login** for multi-org owners. | The login form now routes a root-domain OWNER/ADMIN through `/select-workspace`, which loads their organizations and auto-forwards when there is exactly one (picker only when several). A workspace-host login stays bound to its single workspace. | `WorkspaceLoginForm.tsx` |
+| 9 — Authorization sweep | Only the audit-log endpoint was reviewed. A full DRF view sweep found two more platform-surface leaks in disaster recovery. | `DRModeView` (global DR mode switch) and `DRStatusView` (cross-tenant restore history) are now **super-admin only** (`IsSuperUser`) — a tenant `ADMIN` could previously flip the platform-wide DR mode and read every tenant's restore runs. Per-hostel restore/validate keep the `IsDRAdmin` + `_can_touch_hostel` membership gate. Every other tenant-facing viewset was verified either hostel-scoped or correctly platform-gated. | `apps/backups/admin_api.py` |
+
+Tests added: `apps/tenants/tests/test_workspace_service.py` (subscription +
+departments seeding, and no-plans fallback), `apps/backups/test_dr_authz.py`
+(tenant admin forbidden / super admin allowed on the global DR surfaces), and a
+`login.test.tsx` case for the owner → selector route.

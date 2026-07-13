@@ -168,3 +168,56 @@ def test_lifecycle_writes_audit_trail(hostel, owner):
     assert AuditEvent.objects.filter(
         hostel_id=hostel.pk, entity_type="workspace", message="Workspace suspended"
     ).exists()
+
+
+# --- Phase 5: default subscription + departments -----------------------------
+def test_provision_seeds_trial_subscription(owner_user):
+    """A new workspace starts on a real Subscription row created through the
+    subscription lifecycle service (not just a ``plan_name`` string), so
+    entitlements and billing history are consistent from the moment of signup."""
+    from apps.tenants.models import Plan, Subscription
+
+    Plan.objects.create(name="Basic", slug="basic")
+
+    hostel = services.provision_workspace(
+        owner=owner_user, hostel_name="Sub Test Hostel",
+        workspace_username="subtest", plan_name="basic",
+    )
+
+    sub = Subscription.objects.filter(hostel=hostel).first()
+    assert sub is not None
+    # Trial workspace → trial subscription bounded by the trial end date.
+    assert sub.status == "trial"
+    assert sub.end_date == hostel.trial_ends_at
+    # Canonical plan pointer wired for the entitlement engine.
+    hostel.refresh_from_db()
+    assert hostel.plan_id is not None
+    assert hostel.plan_name == "basic"
+
+
+def test_provision_seeds_default_departments(owner_user):
+    from apps.staff.models import Department
+
+    hostel = services.provision_workspace(
+        owner=owner_user, hostel_name="Dept Test Hostel", workspace_username="depttest",
+    )
+    names = set(Department.objects.filter(hostel=hostel).values_list("name", flat=True))
+    assert names == set(services.DEFAULT_DEPARTMENTS)
+
+
+def test_provision_succeeds_without_seeded_plans(owner_user):
+    """Fresh install with no plans seeded → provisioning still succeeds. The
+    subscription seed is skipped (best-effort, savepoint-isolated) and default
+    departments still seed; ``plan_name`` remains the entitlement fallback."""
+    from apps.staff.models import Department
+    from apps.tenants.models import Plan, Subscription
+
+    # Simulate a fresh install: no plans in the catalog at all.
+    Plan.objects.all().delete()
+
+    hostel = services.provision_workspace(
+        owner=owner_user, hostel_name="No Plan Hostel", workspace_username="noplan",
+    )
+    assert not Subscription.objects.filter(hostel=hostel).exists()
+    assert Department.objects.filter(hostel=hostel).count() == len(services.DEFAULT_DEPARTMENTS)
+    assert hostel.plan_name == "basic"

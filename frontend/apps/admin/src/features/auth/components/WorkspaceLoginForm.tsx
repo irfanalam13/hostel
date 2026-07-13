@@ -140,9 +140,20 @@ export function WorkspaceLoginForm({
         branding?.name ? `Welcome back to ${branding.name}!` : "Welcome back!",
         "Login successful",
       );
-      // The backend's role-based redirect is authoritative; fall back to the
-      // client-side portal map. replace() avoids a back-button bounce.
-      router.replace(postAuthHome(normalizeRole(data?.role), data?.redirect));
+      // Phase 6 — owner login. On the platform (root) domain an owner/admin may
+      // belong to more than one workspace, so route through the selector, which
+      // loads their organizations and auto-forwards when there is exactly one
+      // (showing the picker only when there are several). A workspace-host login
+      // is already bound to a single workspace, so it lands directly.
+      // Otherwise the backend's role-based redirect is authoritative, falling
+      // back to the client-side role map. replace() avoids a back-button bounce.
+      const role = normalizeRole(data?.role);
+      const mayOwnMultipleWorkspaces = role === "OWNER" || role === "ADMIN";
+      if (!workspaceSlug && mayOwnMultipleWorkspaces) {
+        router.replace("/select-workspace");
+      } else {
+        router.replace(postAuthHome(role, data?.redirect));
+      }
     } catch (e: unknown) {
       if (isWorkspaceError(e)) {
         setWorkspaceError(e.code);
