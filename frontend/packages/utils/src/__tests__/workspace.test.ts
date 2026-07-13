@@ -14,6 +14,7 @@ const ENV_KEYS = [
   "NEXT_PUBLIC_TENANT_URL_SCHEME",
   "NEXT_PUBLIC_WORKSPACE_USERNAME_MIN_LENGTH",
   "NEXT_PUBLIC_WORKSPACE_USERNAME_MAX_LENGTH",
+  "NEXT_PUBLIC_PLATFORM_HOSTS",
 ] as const;
 const saved: Record<string, string | undefined> = {};
 
@@ -123,6 +124,14 @@ describe("extractWorkspaceFromHost (mirrors backend middleware)", () => {
     expect(extractWorkspaceFromHost("everest.localhost:3000")).toBe("everest");
     expect(extractWorkspaceFromHost("localhost:3000")).toBeNull();
   });
+
+  it("never treats a *.vercel.app deployment host as a workspace", () => {
+    // Base domain unset on Vercel -> defaults to "localhost"; the vercel.app
+    // suffix must still be recognised as platform, not a tenant.
+    delete process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN;
+    expect(extractWorkspaceFromHost("hostel-ten-hazel.vercel.app")).toBeNull();
+    expect(extractWorkspaceFromHost("my-app-git-main.vercel.app")).toBeNull();
+  });
 });
 
 describe("isPlatformHost (custom-domain detection, Prompt 05)", () => {
@@ -142,6 +151,24 @@ describe("isPlatformHost (custom-domain detection, Prompt 05)", () => {
       expect(isPlatformHost(host)).toBe(false);
     },
   );
+
+  it.each([
+    "hostel-ten-hazel.vercel.app",
+    "my-app-git-main.vercel.app",
+    "vercel.app",
+  ])("%s (Vercel deployment host) is a platform host", (host) => {
+    // Even with the base domain unset (the Vercel default of "localhost").
+    delete process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN;
+    expect(isPlatformHost(host)).toBe(true);
+  });
+
+  it("honours NEXT_PUBLIC_PLATFORM_HOSTS for exact hosts and suffixes", () => {
+    process.env.NEXT_PUBLIC_PLATFORM_HOSTS = "staging.example.dev, .preview.example.dev";
+    expect(isPlatformHost("staging.example.dev")).toBe(true); // exact
+    expect(isPlatformHost("pr-42.preview.example.dev")).toBe(true); // suffix
+    expect(isPlatformHost("preview.example.dev")).toBe(true); // bare, via ".suffix"
+    expect(isPlatformHost("hostel.everest.com")).toBe(false); // still a tenant domain
+  });
 });
 
 describe("workspaceUrlFor", () => {

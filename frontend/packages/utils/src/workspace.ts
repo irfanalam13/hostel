@@ -105,6 +105,49 @@ function isIp(host: string): boolean {
 }
 
 /**
+ * Host suffixes that always belong to the platform, never a tenant's custom
+ * domain. Vercel's deployment/preview hostnames (`*.vercel.app`) are the
+ * platform's own — a tenant would never point one at us — so the root page must
+ * render the marketing site there, not attempt tenant resolution. Without this,
+ * a `*.vercel.app` host falls through to the "custom tenant domain" branch and
+ * the homepage renders "Workspace not found".
+ */
+const PLATFORM_HOST_SUFFIXES = [".vercel.app"];
+
+/**
+ * Extra platform hosts/suffixes from `NEXT_PUBLIC_PLATFORM_HOSTS`
+ * (comma-separated). An entry beginning with "." is a suffix match
+ * (".example.com" matches any subdomain and the bare "example.com"); anything
+ * else is an exact hostname match. Lets a deployment mark additional non-tenant
+ * hosts (staging/preview URLs, the bare apex) as platform without a code change.
+ */
+function configuredPlatformHosts(): string[] {
+  return (process.env.NEXT_PUBLIC_PLATFORM_HOSTS || "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * True when `host` (already normalized, no port) is a platform-owned host by the
+ * built-in suffix list or the configured allowlist — independent of the tenant
+ * base domain. Used by both the workspace extractor and `isPlatformHost` so the
+ * two never disagree about who owns a hostname.
+ */
+function isAllowlistedPlatformHost(host: string): boolean {
+  if (PLATFORM_HOST_SUFFIXES.some((sfx) => host === sfx.slice(1) || host.endsWith(sfx))) {
+    return true;
+  }
+  for (const entry of configuredPlatformHosts()) {
+    const matches = entry.startsWith(".")
+      ? host === entry.slice(1) || host.endsWith(entry)
+      : host === entry;
+    if (matches) return true;
+  }
+  return false;
+}
+
+/**
  * Extract the workspace label from a hostname, or null when the host is not
  * a workspace host (root domain, reserved label, localhost, IP, nested or
  * unrelated domain). Mirrors backend `extract_workspace_subdomain`.
@@ -112,6 +155,7 @@ function isIp(host: string): boolean {
 export function extractWorkspaceFromHost(hostWithPort: string): string | null {
   const host = (hostWithPort || "").split(":")[0].trim().toLowerCase().replace(/\.$/, "");
   if (!host || LOCAL_HOSTS.has(host) || isIp(host)) return null;
+  if (isAllowlistedPlatformHost(host)) return null; // *.vercel.app etc. are never tenant hosts
 
   const base = tenantBaseDomain();
   if (!base || host === base) return null;
@@ -138,6 +182,7 @@ export function isPlatformHost(hostWithPort: string): boolean {
   const host = (hostWithPort || "").split(":")[0].trim().toLowerCase().replace(/\.$/, "");
   if (!host || LOCAL_HOSTS.has(host) || isIp(host)) return true;
   if (host.endsWith(".localhost")) return true;
+  if (isAllowlistedPlatformHost(host)) return true; // *.vercel.app + NEXT_PUBLIC_PLATFORM_HOSTS
   const base = tenantBaseDomain();
   return host === base || host.endsWith("." + base);
 }
