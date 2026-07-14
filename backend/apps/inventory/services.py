@@ -243,12 +243,16 @@ def apply_movement(
 def item_on_hand(item) -> Decimal:
     from django.db.models import Sum
 
-    return (
+    total = (
         StockLevel.objects.filter(hostel=item.hostel, item=item).aggregate(
             s=Sum("quantity_on_hand")
         )["s"]
         or ZERO
     )
+    # Normalise scale: the DB SUM() can return a Decimal without the field's
+    # 3-place scale (e.g. Decimal('8') vs Decimal('8.000')), which leaks into
+    # str()-serialised API output. Quantize so callers get a stable shape.
+    return total.quantize(QTY)
 
 
 # --------------------------------------------------------------------------- #
