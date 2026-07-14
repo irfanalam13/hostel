@@ -174,7 +174,7 @@ export async function installApiMock(target: Page | BrowserContext, opts: MockOp
 }
 
 /** Seed the localStorage session marker so AuthProvider treats us as logged in. */
-export async function seedSession(page: Page, baseURL: string) {
+export async function seedSession(page: Page, _baseURL: string) {
   await page.addInitScript(
     ({ code }) => {
       try {

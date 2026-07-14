@@ -87,12 +87,12 @@ export function useApi<T>(
       if (mounted.current) setLoading(false);
     }
     // toastOnError is read from optsRef; toast is stable from context.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 
   useEffect(() => {
     if (immediate) void refetch();
     // `deps` is a caller-provided dependency list; refetch/immediate are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return { data, loading, error, refetch, setData };

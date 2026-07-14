@@ -131,7 +131,6 @@ function DetailsTab({ plan, onSaved }: { plan: Plan; onSaved: (p: Plan) => void 
 }
 
 export function PlanEditor({ planId }: { planId: string }) {
-  const toast = useToast();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [tab, setTab] = useState("details");
   const [error, setError] = useState<string | null>(null);

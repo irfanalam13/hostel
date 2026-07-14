@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getPayments } from "../api/payment.api";
 import type { Payment } from "../types/payment.types";
 import StudentPaymentForm from "./StudentPaymentForm";
@@ -8,14 +8,17 @@ import StudentPaymentForm from "./StudentPaymentForm";
 export default function StudentPayments({ studentId }: { studentId: string }) {
   const [payments, setPayments] = useState<Payment[]>([]);
 
-  const refresh = () =>
-    getPayments({ student: studentId, ordering: "-date" })
-      .then(setPayments)
-      .catch(() => setPayments([]));
+  const refresh = useCallback(
+    () =>
+      getPayments({ student: studentId, ordering: "-date" })
+        .then(setPayments)
+        .catch(() => setPayments([])),
+    [studentId],
+  );
 
   useEffect(() => {
     refresh();
-  }, [studentId]);
+  }, [refresh]);
 
   return (
     <div className="mt-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@hostel/api";
 import { generateMonth, getLedgers } from "@/features/fees/api/fee-ledger.api";
 import type { FeeLedger } from "@/features/fees/types/fee-ledger.types";
@@ -24,18 +24,18 @@ export default function FeesPage() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [message, setMessage] = useState("");
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const [planRes, ledgerRows] = await Promise.all([
       api.get<FeePlan[]>("/fees/fee-plans/"),
       getLedgers({ month }),
     ]);
     setPlans(planRes.data);
     setLedgers(ledgerRows);
-  }
+  }, [month]);
 
   useEffect(() => {
     refresh().catch((err) => setMessage(err?.message || "Failed to load fees."));
-  }, [month]);
+  }, [refresh]);
 
   async function savePlan(e: React.FormEvent) {
     e.preventDefault();

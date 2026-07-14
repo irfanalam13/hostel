@@ -27,6 +27,7 @@ export function TargetCombobox({ label, placeholder, value, onChange, fetcher, d
   const [loading, setLoading] = React.useState(false);
   const [active, setActive] = React.useState(0);
   const boxRef = React.useRef<HTMLDivElement>(null);
+  const listboxId = React.useId();
 
   // Debounced fetch on query change (only while open, no selection pinned).
   React.useEffect(() => {
@@ -111,6 +112,7 @@ export function TargetCombobox({ label, placeholder, value, onChange, fetcher, d
           className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
           role="combobox"
           aria-expanded={open}
+          aria-controls={listboxId}
           aria-autocomplete="list"
         />
       )}
@@ -124,7 +126,7 @@ export function TargetCombobox({ label, placeholder, value, onChange, fetcher, d
               {query ? "No matches." : "Type to search…"}
             </div>
           ) : (
-            <ul role="listbox">
+            <ul id={listboxId} role="listbox">
               {results.map((r, i) => (
                 <li
                   key={String(r.id)}
