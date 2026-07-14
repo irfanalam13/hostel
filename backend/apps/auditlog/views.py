@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.common.permissions import IsOwnerOrManager, IsSuperUser
+from apps.common.permissions import IsHostelResolved, IsOwnerOrManager, IsSuperUser
 
 from .integrity import verify_chain
 from .models import AuditEvent
@@ -33,12 +33,14 @@ class AuditEventFilter(django_filters.FilterSet):
 class AuditEventViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only, filterable, exportable, tamper-evident audit trail.
 
-    Non-superusers only ever see their own tenant's events (scoped by
-    ``request.hostel``); platform admins see everything.
+    Always scoped to the caller's workspace: an owner/manager only ever sees
+    their own tenant's events (membership enforced by ``IsHostelResolved``),
+    while platform admins (superusers) see everything. Previously an unscoped
+    ``.all()`` behind only a role check leaked events across tenants.
     """
 
     serializer_class = AuditEventSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrManager]
+    permission_classes = [IsHostelResolved, IsOwnerOrManager]
     filterset_class = AuditEventFilter
     filter_backends = [
         django_filters.rest_framework.DjangoFilterBackend,
@@ -54,12 +56,19 @@ class AuditEventViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         if getattr(user, "is_superuser", False):
             return qs
-        # Tenant isolation: an owner/manager must never read another tenant's trail.
+
+        # Tenant isolation: prefer the workspace resolved for this request; fall
+        # back to every workspace the caller actively belongs to. Never unscoped.
         hostel = getattr(self.request, "hostel", None)
-        hostel_id = getattr(hostel, "id", None)
-        if hostel_id is None:
-            return qs.none()
-        return qs.filter(hostel_id=hostel_id)
+        if hostel is not None:
+            return qs.filter(hostel_id=hostel.id)
+
+        from apps.accounts.models import UserHostel
+
+        member_hostel_ids = UserHostel.objects.filter(
+            user=user, is_active=True
+        ).values_list("hostel_id", flat=True)
+        return qs.filter(hostel_id__in=list(member_hostel_ids))
 
     @action(detail=False, methods=["get"])
     def export(self, request):

@@ -36,7 +36,7 @@ async function fillAndSubmit(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: /sign in/i }));
 }
 
-describe("Login flow (staff portal, legacy Hostel-ID path)", () => {
+describe("Login flow (unified tenant login, legacy Hostel-ID path)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -45,7 +45,7 @@ describe("Login flow (staff portal, legacy Hostel-ID path)", () => {
     apiFetch.mockRejectedValue(new Error("401"));
   });
 
-  it("logs in with portal+remember payload and follows the backend redirect", async () => {
+  it("logs in with NO portal (unified: all roles) and follows the backend redirect", async () => {
     const user = userEvent.setup();
     apiFetch.mockImplementation((path: string) => {
       if (path === "/auth/login/") {
@@ -65,15 +65,39 @@ describe("Login flow (staff portal, legacy Hostel-ID path)", () => {
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith("/auth/login/", expect.anything()));
     const [, options] = apiFetch.mock.calls.find(([p]) => p === "/auth/login/")!;
     const body = JSON.parse((options as { body: string }).body);
+    // The unified login sends NO portal — the backend admits every role and
+    // routes by role. (Role-specific portals were collapsed in Phase 7.)
     expect(body).toEqual({
       username: "warden",
       password: "secret123",
-      portal: "staff",
       remember: false,
       hostel_id: "HTL-ABC12345",
     });
+    expect(body).not.toHaveProperty("portal");
     expect(await screen.findByText("Login successful")).toBeInTheDocument();
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard"));
+  });
+
+  it("routes a root-domain owner login to the workspace selector (Phase 6)", async () => {
+    const user = userEvent.setup();
+    apiFetch.mockImplementation((path: string) =>
+      path === "/auth/login/"
+        ? Promise.resolve({
+            hostel_code: "HTL-ABC12345",
+            user: { role: "OWNER" },
+            role: "OWNER",
+            redirect: "/dashboard",
+          })
+        : Promise.reject(new Error("401")),
+    );
+    renderLogin();
+    await fillAndSubmit(user);
+
+    // An owner on the platform (root) domain may belong to several hostels, so
+    // login lands on the selector — which loads their orgs and auto-forwards
+    // when there is exactly one — never straight onto a single dashboard.
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/select-workspace"));
+    expect(replace).not.toHaveBeenCalledWith("/dashboard");
   });
 
   it("shows an error and stays on the page on bad credentials", async () => {

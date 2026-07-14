@@ -1,14 +1,11 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { WorkspaceLoginForm } from "@/features/auth/components/WorkspaceLoginForm";
-
-/** Parent portal login — parent/guardian accounts only. */
+/**
+ * Legacy parent portal login URL. Parents/guardians now sign in through the
+ * single unified tenant login at `/login`; the backend routes them to
+ * `/parent/dashboard` afterwards. Kept as a redirect for backward compat.
+ * (`/parent/dashboard` and other `/parent/*` app routes are unaffected.)
+ */
 export default function ParentLoginPage() {
-  return (
-    <WorkspaceLoginForm
-      portal="parent"
-      title="Parent Portal"
-      subtitle="Sign in to follow your child's stay, payments and notices."
-    />
-  );
+  redirect("/login");
 }

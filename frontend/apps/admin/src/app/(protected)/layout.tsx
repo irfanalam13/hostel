@@ -38,16 +38,14 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     // localStorage read) avoids the flash-of-unauthorized-content and the
     // double-redirect the old layout could cause.
     if (status === "unauthenticated") {
-      // Send portal visitors to their own login page, staff to /login.
-      const portalLogin = pathname?.startsWith("/student")
-        ? "/student"
-        : pathname?.startsWith("/parent")
-          ? "/parent"
-          : "/login";
-      router.replace(portalLogin);
+      // One unified tenant login for every role — no role-specific login pages.
+      router.replace("/login");
       return;
     }
-    if (status === "authenticated" && !hostelCode && !authStore.getHostelCode()) {
+    // The workspace selector's whole job is to establish which workspace to
+    // open, so it must not itself be bounced to /select-hostel.
+    const needsHostel = pathname !== "/select-workspace";
+    if (needsHostel && status === "authenticated" && !hostelCode && !authStore.getHostelCode()) {
       router.replace("/select-hostel");
     }
   }, [status, hostelCode, router, pathname]);

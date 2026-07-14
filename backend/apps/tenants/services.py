@@ -46,6 +46,45 @@ DEFAULT_WORKSPACE_SETTINGS = {
     "branding": {"logo_url": "", "primary_color": ""},
 }
 
+# Default departments seeded for every new workspace so it has a usable org
+# structure the moment it exists; owners rename, deactivate or extend these
+# later (they are ordinary tenant-scoped ``staff.Department`` rows).
+DEFAULT_DEPARTMENTS = [
+    "Administration",
+    "Front Desk",
+    "Housekeeping",
+    "Maintenance",
+    "Security",
+    "Accounts",
+    "Kitchen & Mess",
+]
+
+
+def _default_plan(plan_name: str):
+    """Resolve the plan a new workspace should start on.
+
+    Prefers the requested plan (by slug then name), then the cheapest public
+    plan, then any plan at all. Returns ``None`` when no plans are seeded yet —
+    subscription seeding is then skipped (best-effort); ``Hostel.plan_name``
+    still carries the canonical fallback the entitlement engine reads.
+    """
+    from .models import Plan
+
+    name = (plan_name or "").strip()
+    if name:
+        plan = (
+            Plan.objects.filter(slug__iexact=name).first()
+            or Plan.objects.filter(name__iexact=name).first()
+        )
+        if plan is not None:
+            return plan
+    return (
+        Plan.objects.filter(is_public=True)
+        .order_by("sort_order", "price_monthly", "name")
+        .first()
+        or Plan.objects.order_by("sort_order").first()
+    )
+
 
 def is_workspace_username_available(username: str, *, exclude_pk=None) -> bool:
     """DB-level availability. Assumes the value is already normalized+valid.
@@ -180,6 +219,44 @@ def provision_workspace(
         get_or_scaffold_website(hostel)
     except Exception:
         logger.exception("default website scaffold failed (hostel=%s)", hostel.pk)
+
+    # Default subscription. Reuse the subscription lifecycle service so the
+    # Subscription row + immutable SubscriptionEvent + entitlement cache are
+    # written exactly as any later plan change would be — no duplicate
+    # provisioning logic. Savepoint-isolated best-effort: if no plans are seeded
+    # yet (fresh install) or the subscriptions app errors, the workspace still
+    # provisions and `plan_name` remains the canonical entitlement fallback.
+    try:
+        with transaction.atomic():
+            plan = _default_plan(plan_name)
+            if plan is not None:
+                from apps.subscriptions.lifecycle import assign_plan
+
+                sub_status = "trial" if hostel.status == WorkspaceStatus.TRIAL else "active"
+                assign_plan(
+                    hostel,
+                    plan,
+                    actor=owner,
+                    status=sub_status,
+                    end_date=hostel.trial_ends_at,
+                    reason="Workspace provisioned",
+                )
+    except Exception:
+        logger.exception("default subscription seed failed (hostel=%s)", hostel.pk)
+
+    # Default departments — savepoint-isolated so a staff-app hiccup can never
+    # fail an otherwise-successful signup. ``ignore_conflicts`` keeps re-runs
+    # idempotent against the (hostel, name) uniqueness constraint.
+    try:
+        with transaction.atomic():
+            from apps.staff.models import Department
+
+            Department.objects.bulk_create(
+                [Department(hostel=hostel, name=name) for name in DEFAULT_DEPARTMENTS],
+                ignore_conflicts=True,
+            )
+    except Exception:
+        logger.exception("default departments seed failed (hostel=%s)", hostel.pk)
 
     # Initial audit log + activity entry.
     _audit(hostel, owner, "create", "Workspace created",

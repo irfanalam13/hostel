@@ -7,7 +7,7 @@ import { Button, Input, useToast } from "@hostel/ui";
 import { authStore, useAuth } from "@hostel/auth";
 import { isWorkspaceError } from "@hostel/api";
 import { hostelStore, workspaceFromLocation } from "@hostel/utils";
-import { normalizeRole, portalHomeForRole } from "@hostel/permissions";
+import { normalizeRole, postAuthHome } from "@hostel/permissions";
 import { authApi, type LoginResponse, type Portal } from "../api/auth.api";
 import { workspacesApi } from "@/features/tenants/api/workspaces.api";
 import type { WorkspacePublicInfo } from "@/features/tenants/types/workspaces.types";
@@ -16,9 +16,14 @@ import { WorkspaceErrorScreen } from "@/features/tenants/components/WorkspaceErr
 const HOSTEL_ID_RE = /^HTL-[A-Z0-9]{8}$/;
 
 type Props = {
-  portal: Portal;
-  title: string;
-  subtitle: string;
+  /**
+   * Legacy role-portal restriction. The unified tenant login OMITS this so the
+   * one page authenticates every role and the backend routes by role. Only the
+   * (now redirect-only) role portals ever set it; kept for backward compat.
+   */
+  portal?: Portal;
+  title?: string;
+  subtitle?: string;
   /** Show the "create account" link (staff/admin surfaces only). */
   showSignup?: boolean;
 };
@@ -48,7 +53,12 @@ function extractErrorMessage(data: unknown): string {
  * The portal determines which roles may sign in (enforced server-side) and
  * where the session lands (`redirect` from the login response).
  */
-export function WorkspaceLoginForm({ portal, title, subtitle, showSignup = false }: Props) {
+export function WorkspaceLoginForm({
+  portal,
+  title = "Sign in",
+  subtitle = "Sign in to your workspace.",
+  showSignup = false,
+}: Props) {
   const router = useRouter();
   const toast = useToast();
   const { onLoggedIn } = useAuth();
@@ -112,7 +122,9 @@ export function WorkspaceLoginForm({ portal, title, subtitle, showSignup = false
       const data: LoginResponse = await authApi.login({
         username: username.trim(),
         password,
-        portal,
+        // Unified login sends no portal (all roles admitted); only the legacy
+        // role-portal wrappers pass one.
+        ...(portal ? { portal } : {}),
         remember,
         ...(workspaceSlug ? {} : { hostel_id: code }),
       });
@@ -128,9 +140,20 @@ export function WorkspaceLoginForm({ portal, title, subtitle, showSignup = false
         branding?.name ? `Welcome back to ${branding.name}!` : "Welcome back!",
         "Login successful",
       );
-      // The backend's role-based redirect is authoritative; fall back to the
-      // client-side portal map. replace() avoids a back-button bounce.
-      router.replace(data?.redirect || portalHomeForRole(normalizeRole(data?.role)));
+      // Phase 6 — owner login. On the platform (root) domain an owner/admin may
+      // belong to more than one workspace, so route through the selector, which
+      // loads their organizations and auto-forwards when there is exactly one
+      // (showing the picker only when there are several). A workspace-host login
+      // is already bound to a single workspace, so it lands directly.
+      // Otherwise the backend's role-based redirect is authoritative, falling
+      // back to the client-side role map. replace() avoids a back-button bounce.
+      const role = normalizeRole(data?.role);
+      const mayOwnMultipleWorkspaces = role === "OWNER" || role === "ADMIN";
+      if (!workspaceSlug && mayOwnMultipleWorkspaces) {
+        router.replace("/select-workspace");
+      } else {
+        router.replace(postAuthHome(role, data?.redirect));
+      }
     } catch (e: unknown) {
       if (isWorkspaceError(e)) {
         setWorkspaceError(e.code);

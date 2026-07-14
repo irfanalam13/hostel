@@ -153,3 +153,16 @@ export function portalHomeForRole(role: Role): string {
   if (role === "PARENT" || role === "GUARDIAN") return "/parent/dashboard";
   return "/dashboard";
 }
+
+/**
+ * The single source of truth for "where does an authenticated user land".
+ *
+ * Every post-auth redirect surface (login form, public layout, logout, the
+ * admin root, the marketing navbar) MUST route through this so a session never
+ * lands somewhere its role can't open. The backend's `redirect` field is
+ * authoritative when present (e.g. straight from the login response); the
+ * role-based `portalHomeForRole` is the client-side fallback.
+ */
+export function postAuthHome(role: Role, backendRedirect?: string | null): string {
+  return backendRedirect || portalHomeForRole(role);
+}
