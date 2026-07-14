@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Button, EmptyState, Input, Modal, Select, Table, useConfirm, useToast } from "@hostel/ui";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 import { inventoryApi } from "../api/inventory.api";
 import type { Brand, ItemCategory, UnitOfMeasure } from "../types/inventory.types";
@@ -21,7 +21,6 @@ export function CategoryManager() {
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<ItemCategory | Brand | null>(null);
   const [form, setForm] = useState({ name: "", parent: "", manufacturer: "", symbol: "" });
   const [busy, setBusy] = useState(false);
 
@@ -48,7 +47,6 @@ export function CategoryManager() {
   }, [load]);
 
   const startCreate = () => {
-    setEditing(null);
     setForm({ name: "", parent: "", manufacturer: "", symbol: "" });
     setOpen(true);
   };

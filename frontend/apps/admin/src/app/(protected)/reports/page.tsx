@@ -11,11 +11,10 @@ import { dailyCollections, sumPayments, sumExpenses } from "@hostel/utils";
 import { downloadCSV } from "@hostel/utils";
 
 export default function ReportsPage() {
-  const [tick, setTick] = useState(0);
   const [month, setMonth] = useState(ymToday());
   const [date, setDate] = useState(isoToday());
 
-  const state = useMemo(() => loadState(), [tick]);
+  const state = useMemo(() => loadState(), []);
 
   const monthCollections = sumPayments(state.payments, month, false);
   const monthExpenses = sumExpenses(state.expenses, month);

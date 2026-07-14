@@ -127,6 +127,8 @@ export default function DashboardPage() {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
+  // `tick` is a deliberate invalidation signal: bumping it re-reads localStorage.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const state = useMemo(() => loadState(), [tick]);
 
   const dateCardInfo = useMemo(() => {

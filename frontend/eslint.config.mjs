@@ -9,6 +9,17 @@ const eslintConfig = defineConfig([
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "react-hooks/set-state-in-effect": "off",
+      // Honour the `_`-prefix convention for intentionally-unused bindings
+      // (back-compat shim args, ignored destructure slots, swallowed errors).
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
     },
   },
   // E2E / Cypress test tooling is not React app code: Playwright fixtures take a

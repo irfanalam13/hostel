@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { listAttendance, markAttendance, type Attendance } from "@/features/attendance/api";
 import { OfflineQueuedError } from "@hostel/api";
 import { listResidents } from "@/features/residents/residents.api";
@@ -21,7 +21,7 @@ export default function AttendancePage() {
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setError("");
     try {
       const [residentRows, attendanceRows] = await Promise.all([
@@ -33,11 +33,11 @@ export default function AttendancePage() {
     } catch (err: any) {
       setError(err?.message || "Failed to load attendance.");
     }
-  }
+  }, [date]);
 
   useEffect(() => {
-    refresh();
-  }, [date]);
+    void refresh();
+  }, [refresh]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();

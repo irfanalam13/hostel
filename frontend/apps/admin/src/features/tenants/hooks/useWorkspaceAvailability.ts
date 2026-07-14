@@ -66,7 +66,7 @@ export function useWorkspaceAvailability(username: string, debounceMs = 400): Av
             suggestions: result.suggestions || [],
           });
         }
-      } catch (err) {
+      } catch {
         if (controller.signal.aborted) return;
         setState({
           status: "error",

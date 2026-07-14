@@ -22,6 +22,8 @@ export default function PaymentsPage() {
   const [amount, setAmount] = useState<number>(0);
   const [note, setNote] = useState("");
 
+  // `tick` is a deliberate invalidation signal: bumping it re-reads localStorage.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const state = useMemo(() => loadState(), [tick]);
   const activeStudents = state.students.filter(s => s.status === "active");
 

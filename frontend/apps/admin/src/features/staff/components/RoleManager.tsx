@@ -97,7 +97,8 @@ export function RoleManager() {
   const toggle = (perm: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(perm) ? next.delete(perm) : next.add(perm);
+      if (next.has(perm)) next.delete(perm);
+      else next.add(perm);
       return next;
     });
 

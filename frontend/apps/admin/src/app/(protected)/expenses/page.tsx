@@ -28,6 +28,8 @@ export default function ExpensesPage() {
   const [amount, setAmount] = useState<number>(0);
   const [note, setNote] = useState("");
 
+  // `tick` is a deliberate invalidation signal: bumping it re-reads localStorage.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const state = useMemo(() => loadState(), [tick]);
   const expenses = state.expenses.filter(e => e.date.startsWith(month));
   const total = sumExpenses(state.expenses, month);

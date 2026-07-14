@@ -17,6 +17,8 @@ export default function VacatePage() {
   const [tick, setTick] = useState(0);
   const [month, setMonth] = useState(ymToday());
 
+  // `tick` is a deliberate invalidation signal: bumping it re-reads localStorage.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const state = useMemo(() => loadState(), [tick]);
   const active = state.students.filter(s => s.status === "active");
   const { dues } = computeDues(active, state.payments, month);
