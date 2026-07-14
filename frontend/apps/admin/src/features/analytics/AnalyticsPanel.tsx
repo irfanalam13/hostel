@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   AlertTriangle,
   Bell,
@@ -12,6 +13,12 @@ import {
 } from "lucide-react";
 import { getAnalyticsReport } from "./api";
 import type { AnalyticsReport } from "./types";
+
+// recharts is heavy; keep it out of the initial dashboard bundle. The chart
+// self-hides on 403, so this is a no-op for non-super-admins.
+const TrendsChart = dynamic(() => import("./TrendsChart").then((m) => m.TrendsChart), {
+  ssr: false,
+});
 
 const WINDOWS = [7, 30, 90];
 const pct = (rate: number) => `${Math.round((rate || 0) * 100)}%`;
@@ -213,6 +220,8 @@ export function AnalyticsPanel() {
           )}
         </div>
       </div>
+
+      <TrendsChart />
     </section>
   );
 }

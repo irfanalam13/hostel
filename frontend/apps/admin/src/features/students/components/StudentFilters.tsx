@@ -6,8 +6,8 @@ export default function StudentFilters({
   onChange,
 }: {
   search: string
-  status: "" | "ACTIVE" | "INACTIVE"
-  onChange: (next: { search: string; status: "" | "ACTIVE" | "INACTIVE" }) => void
+  status: "" | "ACTIVE" | "LEFT"
+  onChange: (next: { search: string; status: "" | "ACTIVE" | "LEFT" }) => void
 }) {
   return (
     <div className="flex flex-col md:flex-row gap-3 mb-4">
@@ -23,9 +23,9 @@ export default function StudentFilters({
         value={status}
         onChange={(e) => onChange({ search, status: e.target.value as any })}
       >
-        <option value="">All status</option>
-        <option value="ACTIVE">ACTIVE</option>
-        <option value="INACTIVE">INACTIVE</option>
+        <option value="ACTIVE">Current</option>
+        <option value="LEFT">Former</option>
+        <option value="">All</option>
       </select>
     </div>
   )

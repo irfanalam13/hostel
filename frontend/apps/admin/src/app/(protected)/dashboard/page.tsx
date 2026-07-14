@@ -175,7 +175,6 @@ export default function DashboardPage() {
     { name: "Students", href: "/students", icon: Users },
     { name: "Residents", href: "/residents", icon: UserCheck },
     { name: "Rooms", href: "/rooms", icon: Home },
-    { name: "Beds", href: "/beds", icon: Bed },
     { name: "Fees", href: "/fees", icon: Receipt },
     { name: "Payments", href: "/payments", icon: CreditCard },
     { name: "Attendance", href: "/attendance", icon: CheckSquare },

@@ -1,11 +1,10 @@
 // src/features/students/api/student.api.ts
 import { apiFetch } from "@hostel/api";
-import { offlineWrite } from "@hostel/api";
 import type { Student } from "../types/student.types";
 
 export type StudentListParams = {
   search?: string;
-  status?: "ACTIVE" | "INACTIVE" | "LEFT" | "";
+  status?: "ACTIVE" | "LEFT" | "";
   ordering?: string;
 };
 
@@ -24,13 +23,8 @@ export function getStudent(id: number | string) {
   return apiFetch<Student>(`/students/students/${id}/`);
 }
 
-export function createStudent(data: Partial<Student>) {
-  // Offline-capable: queued + replayed with an idempotency key when offline.
-  return offlineWrite<Student>(`/students/students/`, data, {
-    label: `Register student${data.full_name ? `: ${data.full_name}` : ""}`,
-    entity: "student",
-  });
-}
+// Note: students are created only via admission approval (backend blocks
+// direct POST /students/students/ with 405). No createStudent() here by design.
 
 export function updateStudentPartial(id: string, data: Partial<Student>) {
   return apiFetch<Student>(`/students/students/${id}/`, {

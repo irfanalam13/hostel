@@ -9,6 +9,13 @@ class Student(HostelScopedModel):
         ("OTHER", "Other"),
     ]
 
+    # ACTIVE = current resident; LEFT = former resident (checked out / vacated).
+    # Single "former" state — legacy INACTIVE rows are migrated to LEFT.
+    STATUS_CHOICES = [
+        ("ACTIVE", "Active"),
+        ("LEFT", "Left"),
+    ]
+
     full_name = models.CharField(max_length=120)
     name_nepali = models.CharField(max_length=120, blank=True, default="")
     phone = models.CharField(max_length=30)
@@ -18,7 +25,7 @@ class Student(HostelScopedModel):
     guardian_phone = models.CharField(max_length=30, blank=True, default="")
     
     join_date = models.DateField()
-    status = models.CharField(max_length=20, default="ACTIVE")  # ACTIVE/LEFT
+    status = models.CharField(max_length=20, default="ACTIVE", choices=STATUS_CHOICES)
 
     # Extended profile details matching Admission Form
     date_of_birth = models.DateField(null=True, blank=True)

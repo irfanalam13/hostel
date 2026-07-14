@@ -50,5 +50,14 @@ export interface BedAssignment {
   start_date: string;
   end_date?: string | null;
   is_active: boolean;
+  reason?: "INITIAL" | "TRANSFER" | string;
+  note?: string;
+  created_by?: string | null;
+  previous_assignment?: string | null;
+  // Read-only display fields from the API
+  student_name?: string;
+  bed_code?: string;
+  room_no?: string;
+  created_by_name?: string;
   created_at?: string;
 }

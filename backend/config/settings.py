@@ -96,7 +96,11 @@ INSTALLED_APPS = [
     "apps.staff",
     "apps.finance",
     "apps.accounting",
+    "apps.inventory",
     "apps.security",
+    "apps.platformops",
+    "apps.assistant",
+    "apps.aiknowledge",
 ]
 
 MIDDLEWARE = [
@@ -476,6 +480,33 @@ CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=REDIS_URL)
 
 # ---------------------------------------------------------------------------
+# AI assistant (apps.assistant BFF <-> ML_hostel microservice)
+#
+# All AI/LLM logic lives in the separate ML_hostel service; Django only mints a
+# short-lived, HMAC-signed context token (tenant + user + permissions) that the
+# service verifies, then calls back to Django's real REST/tool endpoints so the
+# assistant only ever sees data the caller is already allowed to see. Every knob
+# is env-driven and the feature stays behind the ``ai_chat`` plan entitlement, so
+# a workspace with no ML service configured simply has no AI surface.
+# ---------------------------------------------------------------------------
+ML_SERVICE_URL = env("ML_SERVICE_URL", default="http://ml_hostel:9000")
+# Browser-facing base for SSE streams (through the gateway/proxy). Defaults to
+# the API origin's sibling ``/ai`` path; overridden per-deploy.
+ML_PUBLIC_URL = env("ML_PUBLIC_URL", default="")
+# Shared secret used to sign/verify the context token. MUST be set in prod;
+# falls back to the Django SECRET_KEY in dev so the stack boots without config.
+ML_SHARED_SECRET = env("ML_SHARED_SECRET", default="")
+# Context token lifetime (seconds) — long enough for a streamed answer + its
+# tool round-trips, short enough to be low-value if leaked.
+ML_TOKEN_TTL = env.int("ML_TOKEN_TTL", default=900)
+# Wall-clock ceiling for a single tool callback the service makes into Django.
+ML_TOOL_TIMEOUT = env.float("ML_TOOL_TIMEOUT", default=15.0)
+# Wall-clock ceiling for the ingestion embed call (chunk+embed a whole document).
+ML_INGEST_TIMEOUT = env.float("ML_INGEST_TIMEOUT", default=120.0)
+# Top-K knowledge chunks returned to the assistant per retrieval.
+ML_RAG_TOP_K = env.int("ML_RAG_TOP_K", default=5)
+
+# ---------------------------------------------------------------------------
 # Cache — Redis-backed (tenant resolution runs on every request, so cached
 # tenant lookups must be sub-millisecond). apps.tenants.cache degrades to a
 # direct DB lookup if Redis is unreachable, so a cache outage never 500s.
@@ -506,6 +537,12 @@ SLOW_REQUEST_MS = env.int("SLOW_REQUEST_MS", default=300)
 # Audit events are inserted by a Celery worker (sync fallback if the broker is
 # down) so the request never waits on the audit INSERT.
 AUDIT_LOG_ASYNC = env.bool("AUDIT_LOG_ASYNC", default=True)
+
+# Audit retention: events older than this are archived to JSONL then pruned
+# (chain checkpoint advances so the surviving tail stays verifiable). 0 = keep
+# forever. Archives are written under AUDIT_ARCHIVE_DIR.
+AUDIT_RETENTION_DAYS = env.int("AUDIT_RETENTION_DAYS", default=365)
+AUDIT_ARCHIVE_DIR = env.str("AUDIT_ARCHIVE_DIR", default=str(BASE_DIR / "audit-archive"))
 
 # Membership (user↔hostel) checks are cached this many seconds; entries are
 # also invalidated by UserHostel save/delete signals.
@@ -650,6 +687,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.notifications.tasks.prune_expired_subscriptions",
         "schedule": crontab(hour=4, minute=30),  # daily 04:30
     },
+    # Analytics aggregation pipeline: build durable rollups BEFORE pruning raw.
+    "analytics-rollup": {
+        "task": "apps.analytics.tasks.rollup_analytics",
+        "schedule": crontab(hour=4, minute=35),  # daily 04:35 (before prune)
+    },
     # PWA analytics retention.
     "analytics-prune-old": {
         "task": "apps.analytics.tasks.prune_old_analytics",
@@ -659,6 +701,21 @@ CELERY_BEAT_SCHEDULE = {
     "security-prune-events": {
         "task": "apps.security.tasks.prune_security_events",
         "schedule": crontab(hour=5, minute=0),  # daily 05:00
+    },
+    # Audit-trail retention: archive-then-prune events beyond AUDIT_RETENTION_DAYS.
+    "auditlog-prune-events": {
+        "task": "apps.auditlog.tasks.prune_audit_events",
+        "schedule": crontab(hour=5, minute=15),  # daily 05:15
+    },
+    # Ops governance: auto start/complete maintenance windows at their times.
+    "platformops-transition-maintenance": {
+        "task": "apps.platformops.tasks.transition_maintenance_windows",
+        "schedule": crontab(minute="*/1"),  # every minute
+    },
+    # Ops governance: reap expired feature-flag overrides.
+    "platformops-reap-overrides": {
+        "task": "apps.platformops.tasks.reap_feature_overrides",
+        "schedule": crontab(minute=20),  # hourly at :20
     },
 }
 

@@ -13,9 +13,9 @@ const ROUTE_POLICY: ReadonlyArray<{ prefix: string; permission: Permission }> = 
   { prefix: "/students", permission: "students:manage" },
   { prefix: "/residents", permission: "residents:manage" },
   { prefix: "/rooms", permission: "rooms:manage" },
-  { prefix: "/beds", permission: "rooms:manage" },
   { prefix: "/finance", permission: "finance:manage" },
   { prefix: "/accounting", permission: "accounting:manage" },
+  { prefix: "/inventory", permission: "inventory:manage" },
   { prefix: "/fees", permission: "finance:manage" },
   { prefix: "/payments", permission: "finance:manage" },
   { prefix: "/billing", permission: "finance:manage" },
@@ -30,6 +30,10 @@ const ROUTE_POLICY: ReadonlyArray<{ prefix: string; permission: Permission }> = 
   { prefix: "/notifications", permission: "communications:manage" },
   { prefix: "/reports", permission: "reports:view" },
   { prefix: "/exports", permission: "reports:view" },
+  // AI assistant + AI dashboard.
+  { prefix: "/ai", permission: "ai:view" },
+  // Immutable, hash-chained audit trail (owners/admins).
+  { prefix: "/audit", permission: "settings:manage" },
   { prefix: "/settings", permission: "settings:manage" },
   { prefix: "/backup", permission: "backups:manage" },
   // Cross-tenant hostel / plan / subscription console — a platform-operator

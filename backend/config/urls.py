@@ -61,9 +61,18 @@ urlpatterns = [
     path("api/platform/", include("apps.subscriptions.platform_urls")),
     # 🛡️ Super-Admin security operations (dashboard, rules, kill switch)
     path("api/platform/security/", include("apps.security.urls")),
+    # 🛠️ Super-Admin operations governance (announcements, maintenance, incidents, flags)
+    path("api/platform/ops/", include("apps.platformops.urls")),
+    # Authenticated ops status feed (banners / maintenance / incidents / flags)
+    path("api/ops/", include("apps.platformops.status_urls")),
     path("api/staff/", include("apps.staff.urls")),
     path("api/finance/", include("apps.finance.urls")),
     path("api/accounting/", include("apps.accounting.urls")),
+    path("api/inventory/", include("apps.inventory.urls")),
+    # 🤖 AI assistant gateway (BFF for the ML_hostel microservice)
+    path("api/ai/", include("apps.assistant.urls")),
+    # 📚 AI knowledge base (RAG documents)
+    path("api/ai/knowledge/", include("apps.aiknowledge.urls")),
 
     # 🛟 Admin disaster-recovery API (admin-only)
     path("api/admin/", include("apps.backups.admin_urls")),

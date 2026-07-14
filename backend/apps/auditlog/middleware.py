@@ -32,7 +32,8 @@ class AuditLogMiddleware(MiddlewareMixin):
                     action=AuditEvent.Action.ACCESS_DENIED,
                     entity_type=path,
                     message=f"{status} {request.method} {path}",
-                    meta={"status_code": status},
+                    result=AuditEvent.Result.DENIED,
+                    status_code=status,
                 )
             elif request.method in METHOD_ACTION:
                 record_event(
@@ -40,7 +41,12 @@ class AuditLogMiddleware(MiddlewareMixin):
                     action=METHOD_ACTION[request.method],
                     entity_type=path,
                     message=f"{request.method} {path}",
-                    meta={"status_code": status},
+                    result=(
+                        AuditEvent.Result.SUCCESS
+                        if status and status < 400
+                        else AuditEvent.Result.FAILURE
+                    ),
+                    status_code=status,
                 )
         except Exception:
             # never break the response because of audit logging

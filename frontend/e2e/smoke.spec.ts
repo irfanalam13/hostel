@@ -13,7 +13,6 @@ const ROUTES = [
   "/residents",
   "/students",
   "/rooms",
-  "/beds",
   "/admissions",
   "/payments",
   "/billing",

@@ -45,7 +45,8 @@ export default function StudentsPage() {
   const [duesLoading, setDuesLoading] = useState(false)
 
   const [search, setSearch] = useState("")
-  const [status, setStatus] = useState<"" | "ACTIVE" | "INACTIVE">("")
+  // Default to Current residents; Former (LEFT) and All are opt-in via the filter.
+  const [status, setStatus] = useState<"" | "ACTIVE" | "LEFT">("ACTIVE")
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -137,7 +138,7 @@ export default function StudentsPage() {
             {loading ? "Refreshing..." : "Refresh"}
           </button>
 
-          <Link className="border px-3 py-2 rounded" href="/students/new">
+          <Link className="border px-3 py-2 rounded" href="/admissions/new">
             + Add Student
           </Link>
         </div>

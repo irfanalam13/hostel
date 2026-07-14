@@ -41,11 +41,11 @@ export default function VacateStudentButton({
         })
       }
 
-      // 3) Mark student INACTIVE
-      await updateStudentPartial(studentId, { status: "INACTIVE" as any })
+      // 3) Mark student as former resident (LEFT)
+      await updateStudentPartial(studentId, { status: "LEFT" })
 
       onVacated()
-      toast.success("Student vacated (INACTIVE).")
+      toast.success("Student vacated (moved to Former).")
     } catch (e: any) {
       toast.error(e?.message || e?.response?.data?.detail || "Vacate failed.")
     } finally {

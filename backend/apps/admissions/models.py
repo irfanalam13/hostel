@@ -21,6 +21,8 @@ class AdmissionRequest(HostelScopedModel, SoftDeleteModel):
     STATUS_CHOICES = [
         ("PENDING", "Pending"),
         ("UNDER_REVIEW", "Under Review"),
+        ("VERIFICATION_PENDING", "Verification Pending"),
+        ("INTERVIEW_REQUIRED", "Interview Required"),
         ("APPROVED", "Approved"),
         ("REJECTED", "Rejected"),
         ("WAITLISTED", "Waitlisted"),
