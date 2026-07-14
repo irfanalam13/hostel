@@ -19,7 +19,6 @@ from .models import (
     AssetAssignment,
     AssetLifecycleEvent,
     Batch,
-    Brand,
     GoodsReceipt,
     GoodsReceiptLine,
     InventorySequence,

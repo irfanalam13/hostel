@@ -7,7 +7,6 @@ import pytest
 from apps.inventory import services
 from apps.inventory.models import (
     Asset,
-    Item,
     PurchaseOrder,
     PurchaseOrderLine,
     StockLevel,

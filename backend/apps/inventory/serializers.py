@@ -225,7 +225,6 @@ class StockCountSerializer(_HostelScopedRelationsMixin, serializers.ModelSeriali
         lines = validated_data.pop("lines", [])
         hostel = validated_data["hostel"]
         count = StockCount.objects.create(**validated_data)
-        from . import services
 
         for line in lines:
             item = line["item"]
