@@ -1,0 +1,35 @@
+# Render Blueprint (REFERENCE) for the ML_hostel AI service.
+#
+# Your Django backend is managed via the Render dashboard, so this file is not
+# meant to be auto-applied as a repo-root blueprint (Render only auto-detects
+# render.yaml at the repo root). Use it as the source of truth for the values to
+# enter when you create the service in the dashboard — see DEPLOY_RENDER.md.
+#
+# Runtime = Docker (Render builds ML_hostel/Dockerfile; it binds $PORT).
+services:
+  - type: web
+    name: hostel-ml
+    runtime: docker
+    repo: https://github.com/irfanalam13/hostel
+    branch: main
+    rootDir: ML_hostel
+    dockerfilePath: ./Dockerfile
+    plan: starter            # 'free' sleeps after inactivity (cold starts); 'starter' stays warm
+    healthCheckPath: /health/
+    autoDeploy: true
+    envVars:
+      - key: ML_PROVIDER
+        value: gemini
+      - key: ML_MODEL
+        value: gemini-flash-latest
+      - key: ML_EMBED_MODEL
+        value: gemini-embedding-001
+      - key: ML_DJANGO_API_URL
+        value: https://hostel-mwre.onrender.com/api   # your backend's public API base
+      # --- secrets: set in the dashboard, never in git (sync: false) ---
+      - key: ML_GEMINI_API_KEY
+        sync: false          # your Google Gemini API key (ROTATE the one shared in chat)
+      - key: ML_SHARED_SECRET
+        sync: false          # MUST be identical to the backend's ML_SHARED_SECRET
+      - key: ML_ALLOWED_ORIGINS
+        sync: false          # your admin app origin, e.g. https://your-admin.vercel.app

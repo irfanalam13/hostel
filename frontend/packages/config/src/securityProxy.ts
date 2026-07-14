@@ -36,6 +36,20 @@ function apiOrigin(): string {
   }
 }
 
+// The AI (ML_hostel) service origin, when it is hosted on its own domain (prod).
+// The admin app opens the assistant's SSE stream directly against it, so its
+// origin must be allowed in connect-src. Empty in dev (same-origin via the
+// nginx gateway at /ai), so nothing is added there.
+function mlOrigin(): string | null {
+  const url = process.env.NEXT_PUBLIC_ML_BASE_URL;
+  if (!url) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
 // Base64 nonce from the Web Crypto RNG (available on the Edge runtime).
 function makeNonce(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -76,7 +90,13 @@ function buildCsp(nonce: string, opts: { trustedTypes: boolean; https: boolean }
     "'unsafe-inline'",
   ].join(" ");
 
-  const connect = ["'self'", api, ...(isDev ? ["ws:", "wss:", "http://localhost:8000"] : [])].join(" ");
+  const ml = mlOrigin();
+  const connect = [
+    "'self'",
+    api,
+    ...(ml ? [ml] : []),
+    ...(isDev ? ["ws:", "wss:", "http://localhost:8000"] : []),
+  ].join(" ");
 
   const directives = [
     "default-src 'self'",

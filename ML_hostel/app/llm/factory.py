@@ -1,25 +1,33 @@
 """Provider selection — the single switch point for the whole service.
 
-``ML_PROVIDER`` picks the backend; everything else is config. Non-Ollama
-providers are declared here as explicit extension points so the wiring is
-obvious when they're implemented.
+``ML_PROVIDER`` picks the backend; everything else is config. Ollama is the
+self-hosted default; Gemini/OpenAI/Groq/OpenRouter all share one OpenAI-compatible
+adapter (base URL + key differ, resolved in ``settings.openai_compat``).
 """
 from ..config import settings
 from .base import LLMProvider
 from .ollama_provider import OllamaProvider
+from .openai_provider import OpenAICompatProvider
+
+_OPENAI_COMPAT = {"openai", "azure", "gemini", "groq", "openrouter", "deepseek", "mistral", "together"}
 
 
 def get_provider() -> LLMProvider:
     provider = settings.PROVIDER
+
     if provider == "ollama":
         return OllamaProvider(model=settings.MODEL, temperature=settings.TEMPERATURE)
 
-    # Extension points — implement an LLMProvider subclass and return it here.
-    # The agent loop and SSE layer need no changes; they only see `Chunk`s.
-    if provider in {"openai", "azure", "anthropic", "groq", "openrouter", "deepseek", "mistral"}:
-        raise NotImplementedError(
-            f"Provider '{provider}' is configured but not yet implemented. "
-            "Add an LLMProvider subclass in app/llm and wire it into get_provider()."
+    if provider in _OPENAI_COMPAT:
+        conf = settings.openai_compat
+        if not conf["api_key"]:
+            raise ValueError(f"Provider '{provider}' selected but no API key configured.")
+        return OpenAICompatProvider(
+            model=settings.MODEL,
+            base_url=conf["base_url"],
+            api_key=conf["api_key"],
+            temperature=settings.TEMPERATURE,
+            name=provider,
         )
 
     raise ValueError(f"Unknown ML_PROVIDER: {provider!r}")
