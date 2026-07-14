@@ -18,7 +18,7 @@ function StatusBadge({ status }: { status: Student["status"] }) {
         isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
       ].join(" ")}
     >
-      {status}
+      {isActive ? "Current" : "Former"}
     </span>
   )
 }
@@ -129,7 +129,7 @@ export default function StudentTable({
                     {/* Vacate:
                         - blocks if ledgers have DUE/PARTIAL
                         - ends active bed assignment
-                        - marks student INACTIVE
+                        - marks student LEFT (moves them to Former)
                         refreshes list after success
                     */}
                     <VacateStudentButton

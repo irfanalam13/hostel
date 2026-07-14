@@ -220,7 +220,59 @@ services:
       web:
         condition: service_started
 
+  # ---------------------------------------------------------------------------
+  # ollama — local LLM runtime (default AI provider). The image ships no models;
+  # pull one once (persisted in the ollama_data volume):
+  #   docker compose exec ollama ollama pull llama3.2:3b
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # ml_hostel — AI service (FastAPI + Uvicorn). Verifies the context token Django
+  # mints, runs the agent/LLM loop, and reaches business data ONLY back through
+  # the web gateway (apps.assistant) with that token — so tenancy + RBAC are
+  # enforced by Django, never re-implemented here.
+  # ---------------------------------------------------------------------------
+  ml_hostel:
+    build:
+      context: ./ML_hostel
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # ML_SHARED_SECRET (must match Django's) + optional provider keys come from .env
+    env_file: .env
+    environment:
+      ML_DJANGO_API_URL: ${ML_DJANGO_API_URL:-http://web:8000/api}
+      ML_OLLAMA_URL: ${ML_OLLAMA_URL:-http://ollama:11434}
+      ML_PROVIDER: ${ML_PROVIDER:-ollama}
+      ML_MODEL: ${ML_MODEL:-llama3.2:3b}
+    ports:
+      - "${ML_PORT:-9000}:9000"
+    depends_on:
+      web:
+        condition: service_started
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
 volumes:
   postgres_data:
   redis_data:
   media_data:
+  ollama_data:

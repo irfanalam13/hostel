@@ -96,8 +96,11 @@ INSTALLED_APPS = [
     "apps.staff",
     "apps.finance",
     "apps.accounting",
+    "apps.inventory",
     "apps.security",
     "apps.platformops",
+    "apps.assistant",
+    "apps.aiknowledge",
 ]
 
 MIDDLEWARE = [
@@ -475,6 +478,33 @@ BACKUP_ENCRYPTION_KEY = env("BACKUP_ENCRYPTION_KEY", default="")
 REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=REDIS_URL)
+
+# ---------------------------------------------------------------------------
+# AI assistant (apps.assistant BFF <-> ML_hostel microservice)
+#
+# All AI/LLM logic lives in the separate ML_hostel service; Django only mints a
+# short-lived, HMAC-signed context token (tenant + user + permissions) that the
+# service verifies, then calls back to Django's real REST/tool endpoints so the
+# assistant only ever sees data the caller is already allowed to see. Every knob
+# is env-driven and the feature stays behind the ``ai_chat`` plan entitlement, so
+# a workspace with no ML service configured simply has no AI surface.
+# ---------------------------------------------------------------------------
+ML_SERVICE_URL = env("ML_SERVICE_URL", default="http://ml_hostel:9000")
+# Browser-facing base for SSE streams (through the gateway/proxy). Defaults to
+# the API origin's sibling ``/ai`` path; overridden per-deploy.
+ML_PUBLIC_URL = env("ML_PUBLIC_URL", default="")
+# Shared secret used to sign/verify the context token. MUST be set in prod;
+# falls back to the Django SECRET_KEY in dev so the stack boots without config.
+ML_SHARED_SECRET = env("ML_SHARED_SECRET", default="")
+# Context token lifetime (seconds) — long enough for a streamed answer + its
+# tool round-trips, short enough to be low-value if leaked.
+ML_TOKEN_TTL = env.int("ML_TOKEN_TTL", default=900)
+# Wall-clock ceiling for a single tool callback the service makes into Django.
+ML_TOOL_TIMEOUT = env.float("ML_TOOL_TIMEOUT", default=15.0)
+# Wall-clock ceiling for the ingestion embed call (chunk+embed a whole document).
+ML_INGEST_TIMEOUT = env.float("ML_INGEST_TIMEOUT", default=120.0)
+# Top-K knowledge chunks returned to the assistant per retrieval.
+ML_RAG_TOP_K = env.int("ML_RAG_TOP_K", default=5)
 
 # ---------------------------------------------------------------------------
 # Cache — Redis-backed (tenant resolution runs on every request, so cached

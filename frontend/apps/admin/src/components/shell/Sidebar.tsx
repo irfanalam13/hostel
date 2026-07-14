@@ -9,7 +9,8 @@ import { permissionForPath, usePermissions } from "@hostel/permissions";
 import {
   AlertTriangle,
   BarChart3,
-  Bed,
+  Bot,
+  Boxes,
   Building2,
   Calculator,
   CalendarDays,
@@ -41,13 +42,14 @@ import {
 
 const MODULES = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "AI Assistant", href: "/ai", icon: Bot },
   { name: "Admissions", href: "/admissions", icon: UserPlus },
   { name: "Students", href: "/students", icon: Users },
   { name: "Residents", href: "/residents", icon: UserCheck },
-  { name: "Rooms", href: "/rooms", icon: Home },
-  { name: "Beds", href: "/beds", icon: Bed },
+  { name: "Rooms & Beds", href: "/rooms", icon: Home },
   { name: "Finance", href: "/finance", icon: Wallet },
   { name: "Accounting", href: "/accounting", icon: Calculator },
+  { name: "Inventory", href: "/inventory", icon: Boxes },
   { name: "Fees", href: "/fees", icon: Receipt },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Billing", href: "/billing", icon: FileText },

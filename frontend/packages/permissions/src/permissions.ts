@@ -13,6 +13,7 @@ export const PERMISSIONS = [
   "rooms:manage",
   "finance:manage",
   "accounting:manage",
+  "inventory:manage",
   "operations:manage",
   "complaints:manage",
   "communications:manage",
@@ -22,6 +23,9 @@ export const PERMISSIONS = [
   "settings:manage",
   "backups:manage",
   "staff:manage",
+  // AI assistant surface (chat, AI dashboard). Backend enforces the finer
+  // ai.chat / ai.reports / ai.manage grants; this is the coarse UI gate.
+  "ai:view",
   // Platform (Super Admin) surface: subscription/plan/feature management.
   // Granted ONLY to SUPER_ADMIN (is_superuser) — never to tenant OWNER/ADMIN.
   "platform:manage",
@@ -65,6 +69,7 @@ const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
     "rooms:manage",
     "finance:manage",
     "accounting:manage",
+    "inventory:manage",
     "operations:manage",
     "complaints:manage",
     "communications:manage",
@@ -73,6 +78,7 @@ const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
     "profile:view",
     "settings:manage",
     "staff:manage",
+    "ai:view",
   ],
   RECEPTIONIST: [
     "dashboard:view",
@@ -85,25 +91,30 @@ const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
     "communications:manage",
     "sync:view",
     "profile:view",
+    "ai:view",
   ],
   ACCOUNTANT: [
     "dashboard:view",
     "finance:manage",
     "accounting:manage",
+    "inventory:manage",
     "reports:view",
     "sync:view",
     "profile:view",
+    "ai:view",
   ],
   WARDEN: [
     "dashboard:view",
     "students:manage",
     "residents:manage",
     "rooms:manage",
+    "inventory:manage",
     "operations:manage",
     "complaints:manage",
     "communications:manage",
     "sync:view",
     "profile:view",
+    "ai:view",
   ],
   STAFF: [
     "dashboard:view",
@@ -111,6 +122,7 @@ const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
     "communications:manage",
     "sync:view",
     "profile:view",
+    "ai:view",
   ],
   READ_ONLY: ["dashboard:view", "reports:view", "sync:view", "profile:view"],
   STUDENT: ["student-portal:view", "profile:view"],

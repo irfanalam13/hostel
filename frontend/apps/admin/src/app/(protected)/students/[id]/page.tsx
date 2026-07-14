@@ -80,7 +80,7 @@ export default function StudentDetailPage() {
         {/* Vacate rule:
            - blocks if any ledger status = DUE or PARTIAL
            - ends active BedAssignment
-           - sets student.status = INACTIVE
+           - sets student.status = LEFT (moves them to Former)
         */}
         <VacateStudentButton
           studentId={student.id}

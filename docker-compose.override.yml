@@ -153,6 +153,22 @@ services:
     command:
       ["sh", "-c", "cd apps/admin && npx next dev -H 0.0.0.0 -p 3000"]
 
+  # ML service: bind-mount source + uvicorn --reload for live edits. The venv
+  # lives at /opt/venv (not shadowed by the /app mount), so no reinstall needed.
+  ml_hostel:
+    build:
+      context: ./ML_hostel
+      dockerfile: Dockerfile
+    environment:
+      # Same-origin through the nginx gateway (/ai) in dev — no CORS needed.
+      ML_ALLOWED_ORIGINS: ""
+    volumes:
+      - ./ML_hostel:/app
+    # NB: no --reload. The watchfiles reloader OOMs under WSL memory pressure
+    # (it crashed the server mid-stream); restart the service after edits instead:
+    #   docker compose restart ml_hostel
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 9000"]
+
   # ---------------------------------------------------------------------------
   # nginx — DEV single-origin gateway (the production mirror).
   #
@@ -177,6 +193,8 @@ services:
       frontend:
         condition: service_started
       admin:
+        condition: service_started
+      ml_hostel:
         condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]

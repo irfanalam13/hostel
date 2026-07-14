@@ -224,7 +224,9 @@ class AdmissionDecisionSerializer(serializers.Serializer):
 
 def approve_admission(admission, user, *, bed=None, join_date=None, decision_note="", **official_data):
     join_date = join_date or admission.booking_date or timezone.localdate()
-    bed = bed or admission.requested_bed or admission.preferred_bed
+    # A bed reserved pre-approval via the assign-bed action lands on approved_bed;
+    # honour it (and the applicant's requested/preferred bed) when none is passed.
+    bed = bed or admission.approved_bed or admission.requested_bed or admission.preferred_bed
 
     if bed:
         if bed.status == "MAINTENANCE":
@@ -263,7 +265,9 @@ def approve_admission(admission, user, *, bed=None, join_date=None, decision_not
             emergency_contact_relation=admission.emergency_contact_relation,
         )
 
-        # 3. Create Student Bed Assignment if bed is specified
+        # 3. Create Student Bed Assignment if bed is specified. This is the ONLY
+        #    place an initial bed assignment is created; later moves go through
+        #    the rooms bed-transfer action.
         if bed:
             BedAssignment.objects.create(
                 hostel=admission.hostel,
@@ -271,6 +275,8 @@ def approve_admission(admission, user, *, bed=None, join_date=None, decision_not
                 student=student,
                 start_date=join_date,
                 is_active=True,
+                reason="INITIAL",
+                created_by=user,
             )
             bed.status = "OCCUPIED"
             bed.save(update_fields=["status", "updated_at"])

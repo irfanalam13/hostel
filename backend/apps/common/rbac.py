@@ -89,7 +89,7 @@ MODULES = [
     "residents", "billing", "payments", "rooms", "beds", "attendance",
     "admissions", "complaints", "notices", "reports", "exports", "operations",
     "backups", "notifications", "analytics", "accounts", "workspace",
-    "website", "staff", "finance", "accounting",
+    "website", "staff", "finance", "accounting", "inventory", "ai",
 ]
 CRUD = ["view", "create", "edit", "delete"]
 
@@ -116,6 +116,13 @@ FEATURE_PERMISSIONS = [
     "accounting.reconcile",   # bank reconciliation
     "accounting.close",       # close periods / fiscal years
     "accounting.export",      # export accounting statements
+    "inventory.adjust",       # stock adjustments / write-offs / damage / loss
+    "inventory.transfer",     # move stock between warehouses/locations
+    "inventory.approve",      # approve & receive purchase orders
+    "inventory.export",       # export inventory/asset datasets
+    "ai.chat",                # converse with the AI assistant
+    "ai.reports",             # generate AI narrative reports / insights
+    "ai.manage",              # manage AI models, prompts, providers, settings
 ]
 
 
@@ -136,27 +143,34 @@ DEFAULT_ROLE_PERMISSIONS = {
         "reports.*", "exports.*", "operations.*", "notifications.*",
         "analytics.view", "accounts.view", "accounts.invite", "website.*",
         "staff.view", "staff.create", "staff.edit", "staff.invite",
-        "finance.*", "accounting.*",
+        "finance.*", "accounting.*", "inventory.*", "ai.*",
     ],
     ROLE_RECEPTIONIST: [
         "residents.view", "residents.create", "residents.edit",
         "admissions.*", "rooms.view", "beds.view", "attendance.*",
         "complaints.view", "complaints.create", "notices.view",
+        "ai.view", "ai.chat",
     ],
     ROLE_ACCOUNTANT: [
         "billing.*", "payments.*", "reports.*", "exports.*", "finance.*",
         "accounting.*",
         "residents.view", "rooms.view", "notices.view", "analytics.view",
+        "inventory.view", "inventory.export",
+        "ai.view", "ai.chat", "ai.reports",
     ],
     ROLE_WARDEN: [
         "residents.*", "rooms.*", "beds.*", "attendance.*", "complaints.*",
         "notices.*", "operations.*", "admissions.view", "reports.view",
         "billing.view", "payments.view", "finance.view",
+        "inventory.view", "inventory.create", "inventory.edit",
+        "inventory.adjust", "inventory.transfer",
+        "ai.view", "ai.chat",
     ],
     ROLE_STAFF: [
         "residents.view", "rooms.view", "beds.view", "attendance.view",
         "attendance.create", "complaints.view", "complaints.create",
-        "notices.view", "operations.view",
+        "notices.view", "operations.view", "inventory.view",
+        "ai.view", "ai.chat",
     ],
     ROLE_STUDENT: [
         "billing.view", "payments.view", "attendance.view",

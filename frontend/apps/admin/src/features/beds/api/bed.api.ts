@@ -104,3 +104,20 @@ export function endBedAssignment(assignmentId: string, payload: { is_active: fal
     body: JSON.stringify(payload),
   });
 }
+
+// Atomically move a student from their current bed to another. The backend
+// closes the active assignment and opens a new one, preserving history.
+export function transferBed(payload: { student: string; bed: string; note?: string }) {
+  return apiFetch<BedAssignment>("/rooms/bed-assignments/transfer/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// Full assignment history for a student (active + past), newest first.
+export function getAssignmentsByStudent(studentId: string) {
+  const q = new URLSearchParams();
+  q.set("student", String(studentId));
+  q.set("ordering", "-start_date");
+  return apiFetch<BedAssignment[]>(`/rooms/bed-assignments/?${q.toString()}`);
+}

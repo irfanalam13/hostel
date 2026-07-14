@@ -269,7 +269,7 @@ export function DashboardAnalytics({ state, apiData }: Props) {
         </div>
 
         <Link
-          href="/beds"
+          href="/rooms"
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--background-secondary)] py-2.5 text-xs font-semibold text-[var(--foreground-secondary)] transition hover:border-[var(--border-hover)] hover:text-[var(--foreground)]"
         >
           <span>View Details</span>

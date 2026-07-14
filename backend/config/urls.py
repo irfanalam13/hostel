@@ -68,6 +68,11 @@ urlpatterns = [
     path("api/staff/", include("apps.staff.urls")),
     path("api/finance/", include("apps.finance.urls")),
     path("api/accounting/", include("apps.accounting.urls")),
+    path("api/inventory/", include("apps.inventory.urls")),
+    # 🤖 AI assistant gateway (BFF for the ML_hostel microservice)
+    path("api/ai/", include("apps.assistant.urls")),
+    # 📚 AI knowledge base (RAG documents)
+    path("api/ai/knowledge/", include("apps.aiknowledge.urls")),
 
     # 🛟 Admin disaster-recovery API (admin-only)
     path("api/admin/", include("apps.backups.admin_urls")),

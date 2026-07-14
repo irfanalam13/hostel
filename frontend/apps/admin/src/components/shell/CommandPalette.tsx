@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { permissionForPath, usePermissions } from "@hostel/permissions";
-import { AlertCircle, BookOpen, Calendar, Clipboard, Compass, DollarSign, Search, Settings, Users, X } from "lucide-react";
+import { AlertCircle, BookOpen, Bot, Boxes, Calendar, Clipboard, Compass, DollarSign, LayoutDashboard, Package, Search, Settings, Truck, Users, X } from "lucide-react";
 
 type CommandItem = {
   name: string;
@@ -14,14 +14,21 @@ type CommandItem = {
 
 const COMMANDS: CommandItem[] = [
   { name: "Dashboard Overview", category: "Navigation", href: "/dashboard", icon: Compass },
+  { name: "AI Assistant", category: "AI", href: "/ai", icon: Bot },
+  { name: "AI Knowledge Base", category: "AI", href: "/ai/knowledge", icon: BookOpen },
+  { name: "AI Dashboard", category: "AI", href: "/ai/dashboard", icon: LayoutDashboard },
   { name: "Admissions Queue", category: "Navigation", href: "/admissions", icon: BookOpen },
   { name: "Student Directory", category: "Navigation", href: "/students", icon: Users },
   { name: "Active Residents", category: "Navigation", href: "/residents", icon: Users },
-  { name: "Rooms Management", category: "Navigation", href: "/rooms", icon: Compass },
-  { name: "Beds Allocation", category: "Navigation", href: "/beds", icon: Compass },
+  { name: "Rooms & Beds", category: "Navigation", href: "/rooms", icon: Compass },
   { name: "Fees Structure", category: "Finance", href: "/fees", icon: DollarSign },
   { name: "Payments Ledger", category: "Finance", href: "/payments", icon: DollarSign },
   { name: "Billing Invoices", category: "Finance", href: "/billing", icon: DollarSign },
+  { name: "Inventory Overview", category: "Inventory", href: "/inventory", icon: Boxes },
+  { name: "Inventory Items", category: "Inventory", href: "/inventory/items", icon: Package },
+  { name: "Purchase Orders", category: "Inventory", href: "/inventory/purchase-orders", icon: Clipboard },
+  { name: "Vendors", category: "Inventory", href: "/inventory/vendors", icon: Truck },
+  { name: "Asset Register", category: "Inventory", href: "/inventory/assets", icon: Boxes },
   { name: "Attendance Log", category: "Operations", href: "/attendance", icon: Calendar },
   { name: "Gate Register", category: "Operations", href: "/gate", icon: Clipboard },
   { name: "Leave Requests", category: "Operations", href: "/leave", icon: Calendar },

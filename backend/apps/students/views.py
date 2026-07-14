@@ -2,6 +2,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.response import Response
 from apps.common.permissions import HasHostelContext, IsStaffOrReadOnly
 from apps.rooms.models import Bed, BedAssignment
@@ -26,6 +27,11 @@ class StudentViewSet(HostelScopedViewSet):
     serializer_class = StudentSerializer
     search_fields = ["full_name","phone","guardian_phone"]
     filterset_fields = ["status"]
+
+    def create(self, request, *args, **kwargs):
+        # Students are created only via admission approval (apps.admissions.approve_admission).
+        # Direct creation is blocked so admission stays the single intake path.
+        raise MethodNotAllowed("POST", detail="Students are created via admission approval only.")
 
     @action(detail=True, methods=["post"], url_path="transfer-bed")
     def transfer_bed(self, request, pk=None):

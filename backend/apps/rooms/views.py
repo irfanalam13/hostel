@@ -1,5 +1,10 @@
-from rest_framework import viewsets
+from django.db import transaction
+from django.utils import timezone
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from apps.common.permissions import HasHostelContext, IsStaffOrReadOnly
+from apps.auditlog.services import record_event
 from .models import Block, Floor, Room, Bed, BedAssignment
 from .serializers import (
     BlockSerializer,
@@ -75,3 +80,78 @@ class BedAssignmentViewSet(HostelScopedViewSet):
         has_active = assignment.bed.assignments.filter(is_active=True).exclude(pk=assignment.pk).exists()
         assignment.bed.status = "OCCUPIED" if assignment.is_active or has_active else "AVAILABLE"
         assignment.bed.save(update_fields=["status", "updated_at"])
+
+    @action(detail=False, methods=["post"], url_path="transfer")
+    def transfer(self, request):
+        """Move a student from their current bed to another, atomically.
+
+        Closes the active assignment (freeing the old bed) and opens a new one
+        (occupying the target bed). Both rows survive as the student's history;
+        the new row links back via previous_assignment. Initial assignment is
+        NOT done here — that happens at admission approval.
+        """
+        student_id = request.data.get("student")
+        bed_id = request.data.get("bed")
+        note = (request.data.get("note") or "").strip()
+
+        if not student_id or not bed_id:
+            return Response({"detail": "student and bed are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        current = (
+            BedAssignment.objects.filter(hostel=request.hostel, student_id=student_id, is_active=True)
+            .select_related("bed", "bed__room")
+            .first()
+        )
+        if not current:
+            return Response(
+                {"detail": "Student has no active bed assignment to transfer. Assign a bed via admission approval first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target = Bed.objects.select_related("room").get(pk=bed_id, room__hostel=request.hostel)
+        except Bed.DoesNotExist:
+            return Response({"detail": "Target bed not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if target.id == current.bed_id:
+            return Response({"detail": "Student is already assigned to this bed."}, status=status.HTTP_400_BAD_REQUEST)
+        if target.status == "MAINTENANCE":
+            return Response({"detail": "Target bed is under maintenance."}, status=status.HTTP_400_BAD_REQUEST)
+        if BedAssignment.objects.filter(bed=target, is_active=True).exists():
+            return Response({"detail": "Target bed already has an active assignment."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            old_bed = current.bed
+            current.is_active = False
+            current.end_date = timezone.localdate()
+            current.save(update_fields=["is_active", "end_date", "updated_at"])
+            old_bed.status = "AVAILABLE"
+            old_bed.save(update_fields=["status", "updated_at"])
+
+            new_assignment = BedAssignment.objects.create(
+                hostel=request.hostel,
+                bed=target,
+                student_id=student_id,
+                start_date=timezone.localdate(),
+                is_active=True,
+                reason="TRANSFER",
+                note=note,
+                created_by=request.user,
+                previous_assignment=current,
+            )
+            target.status = "OCCUPIED"
+            target.save(update_fields=["status", "updated_at"])
+
+        record_event(
+            request,
+            action="update",
+            entity_type="bed_assignment",
+            entity_id=new_assignment.id,
+            message=(
+                f"Transferred student from {old_bed.room.room_no}-{old_bed.bed_no} "
+                f"to {target.room.room_no}-{target.bed_no}"
+            ),
+        )
+
+        serializer = self.get_serializer(new_assignment)
+        return Response(serializer.data, status=status.HTTP_200_OK)

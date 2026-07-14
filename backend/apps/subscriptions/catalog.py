@@ -97,6 +97,7 @@ FEATURES = [
     ("ai_reports", "AI Reports", "ai", False, False, _BETA),
     ("ai_chat", "AI Chat", "ai", False, False, _BETA),
     ("ai_assistant", "AI Assistant", "ai", False, True, _BETA),
+    ("ai_rag", "AI Knowledge Base", "ai", False, False, _BETA),
     # Analytics
     ("analytics_dashboard", "Analytics Dashboard", "analytics", True, False, _STABLE),
     ("hostel_reports", "Hostel Reports", "analytics", True, False, _STABLE),
@@ -127,6 +128,7 @@ DEPENDENCIES = [
     ("ai_reports", "analytics_dashboard"),
     ("ai_chat", "ai_dashboard"),
     ("ai_assistant", "ai_dashboard"),
+    ("ai_rag", "ai_chat"),
     ("api_access", "developer_api"),
     ("white_label", "custom_domain"),
     ("webhook", "developer_api"),

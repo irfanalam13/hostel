@@ -23,7 +23,7 @@ export interface Student {
   address?: string
   guardian_name?: string
   guardian_phone: string
-  status: "ACTIVE" | "INACTIVE" | "LEFT"
+  status: "ACTIVE" | "LEFT"
   join_date?: string
 
   // Extended profile (mirrors backend Student model — populated on admission approval)

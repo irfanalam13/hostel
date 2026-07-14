@@ -286,7 +286,11 @@ class AdmissionRequestViewSet(viewsets.ModelViewSet):
         if not ids:
             return Response({"detail": "ids list is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        admissions = AdmissionRequest.objects.filter(id__in=ids, hostel=request.hostel, status__in=["PENDING", "UNDER_REVIEW"])
+        admissions = AdmissionRequest.objects.filter(
+            id__in=ids,
+            hostel=request.hostel,
+            status__in=["PENDING", "UNDER_REVIEW", "VERIFICATION_PENDING"],
+        )
         count = 0
         errors = []
         for adm in admissions:
@@ -312,7 +316,11 @@ class AdmissionRequestViewSet(viewsets.ModelViewSet):
         if not ids:
             return Response({"detail": "ids list is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        admissions = AdmissionRequest.objects.filter(id__in=ids, hostel=request.hostel, status__in=["PENDING", "UNDER_REVIEW"])
+        admissions = AdmissionRequest.objects.filter(
+            id__in=ids,
+            hostel=request.hostel,
+            status__in=["PENDING", "UNDER_REVIEW", "VERIFICATION_PENDING"],
+        )
         count = admissions.update(
             status="REJECTED",
             decision_note="Bulk rejected by administrator.",

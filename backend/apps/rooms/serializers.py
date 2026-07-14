@@ -43,9 +43,18 @@ class RoomDetailSerializer(RoomSerializer):
         fields = "__all__"
 
 class BedAssignmentSerializer(HostelScopedSerializer):
+    student_name = serializers.CharField(source="student.full_name", read_only=True)
+    bed_code = serializers.SerializerMethodField()
+    room_no = serializers.CharField(source="bed.room.room_no", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.username", read_only=True)
+
     class Meta:
         model = BedAssignment
         fields = "__all__"
+
+    def get_bed_code(self, obj):
+        room_no = getattr(obj.bed.room, "room_no", obj.bed.room_id)
+        return f"{room_no}-{obj.bed.bed_no}"
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)

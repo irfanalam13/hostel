@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from apps.common.models import HostelScopedModel
 
@@ -53,11 +54,35 @@ class Bed(HostelScopedModel):
         unique_together = ("room", "bed_no")
 
 class BedAssignment(HostelScopedModel):
+    REASON_CHOICES = [
+        ("INITIAL", "Initial Assignment"),  # created at admission approval
+        ("TRANSFER", "Bed Transfer"),       # created by a room/bed change
+    ]
+
     bed = models.ForeignKey(Bed, on_delete=models.PROTECT, related_name="assignments")
     student = models.ForeignKey("students.Student", on_delete=models.PROTECT, related_name="bed_assignments")
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+
+    # Transfer metadata: the chain of a student's assignments (linked by
+    # previous_assignment) is the authoritative room/bed history.
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES, default="INITIAL")
+    note = models.CharField(max_length=255, blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    previous_assignment = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     class Meta:
         indexes = [models.Index(fields=["hostel","is_active"])]
