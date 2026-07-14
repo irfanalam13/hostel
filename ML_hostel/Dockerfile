@@ -49,10 +49,11 @@ USER app
 
 EXPOSE 9000
 
+# Host platforms (e.g. Render) inject $PORT; fall back to 9000 locally/compose.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:9000/health/ || exit 1
+    CMD curl -fsS "http://127.0.0.1:${PORT:-9000}/health/" || exit 1
 
 CMD ["sh", "-c", "uvicorn app.main:app \
     --host 0.0.0.0 \
-    --port 9000 \
+    --port ${PORT:-9000} \
     --workers ${ML_WORKERS:-2}"]
