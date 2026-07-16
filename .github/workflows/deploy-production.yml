@@ -47,10 +47,10 @@ jobs:
       contents: read
       deployments: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Record deployment (in_progress)
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         id: deployment
         with:
           script: |
@@ -62,7 +62,7 @@ jobs:
             return dep.data.id;
 
       - name: Copy deploy files to VPS
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
           username: ${{ secrets.PROD_SSH_USER }}
@@ -117,7 +117,7 @@ jobs:
 
       - name: Finalize deployment status
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';

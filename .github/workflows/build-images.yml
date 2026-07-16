@@ -59,8 +59,8 @@ jobs:
       client_image: ${{ steps.refs.outputs.client_image }}
       admin_image: ${{ steps.refs.outputs.admin_image }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
       - name: Install Trivy
@@ -69,7 +69,7 @@ jobs:
             | sh -s -- -b /usr/local/bin
           trivy --version
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -86,7 +86,7 @@ jobs:
 
       - name: Build & push backend
         id: build_backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           push: true
@@ -100,7 +100,7 @@ jobs:
 
       - name: Build & push client (marketing zone)
         id: build_client
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/apps/client/Dockerfile
@@ -118,7 +118,7 @@ jobs:
 
       - name: Build & push admin zone
         id: build_admin
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/apps/admin/Dockerfile
@@ -167,19 +167,19 @@ jobs:
 
       # --- GitHub-native build provenance attestation (SLSA) ------------------
       - name: Attest backend provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ steps.refs.outputs.prefix }}/hostel-backend
           subject-digest: ${{ steps.build_backend.outputs.digest }}
           push-to-registry: true
       - name: Attest client provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ steps.refs.outputs.prefix }}/hostel-client
           subject-digest: ${{ steps.build_client.outputs.digest }}
           push-to-registry: true
       - name: Attest admin provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ steps.refs.outputs.prefix }}/hostel-admin
           subject-digest: ${{ steps.build_admin.outputs.digest }}

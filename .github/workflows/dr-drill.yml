@@ -41,7 +41,7 @@ jobs:
       DJANGO_SECRET_KEY: ci-dr-drill-secret
       DATABASE_URL: postgres://hostel:hostel@localhost:5432/hostel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-backend
         with:
           python-version: "3.13"
