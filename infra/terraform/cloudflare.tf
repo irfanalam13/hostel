@@ -121,8 +121,8 @@ resource "cloudflare_ruleset" "rate_limit" {
 
   rules = [{
     action      = "block"
-    description  = "Throttle auth endpoints at the edge"
-    expression   = "(http.request.uri.path contains \"/api/auth/\")"
+    description = "Throttle auth endpoints at the edge"
+    expression  = "(http.request.uri.path contains \"/api/auth/\")"
     ratelimit = {
       characteristics     = ["ip.src", "cf.colo.id"]
       period              = 60

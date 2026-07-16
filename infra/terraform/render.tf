@@ -30,9 +30,9 @@ resource "render_postgres" "db" {
 }
 
 resource "render_redis" "cache" {
-  name       = "hostel-redis-${var.environment}"
-  plan       = "starter"
-  region     = var.render_region
+  name              = "hostel-redis-${var.environment}"
+  plan              = "starter"
+  region            = var.render_region
   max_memory_policy = "noeviction" # broker must not silently drop queued tasks
 }
 
@@ -91,8 +91,8 @@ resource "render_web_service" "ml" {
   health_check_path = "/health/"
   auto_deploy       = var.render_auto_deploy
   env_vars = {
-    ML_PROVIDER      = { value = "gemini" }
-    ML_MODEL         = { value = "gemini-flash-latest" }
+    ML_PROVIDER       = { value = "gemini" }
+    ML_MODEL          = { value = "gemini-flash-latest" }
     ML_DJANGO_API_URL = { value = var.api_base_url }
     # ML_SHARED_SECRET MUST equal the backend's — keep them in lockstep.
     ML_SHARED_SECRET = { value = var.ml_shared_secret }

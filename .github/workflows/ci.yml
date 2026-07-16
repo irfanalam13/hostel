@@ -211,7 +211,9 @@ jobs:
           pip install pytest pytest-asyncio
       - name: Run ML tests + AI eval gate
         working-directory: ML_hostel
-        run: pytest -q
+        # `python -m pytest` puts the service root on sys.path (so `import app`
+        # resolves); pytest.ini also sets pythonpath for bare invocations.
+        run: python -m pytest -q
 
   # ===========================================================================
   # 4. BUILD — Docker images for both services. Matrix = parallel, fail-fast off
