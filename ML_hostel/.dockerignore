@@ -1,0 +1,38 @@
+# Mirrors backend/.dockerignore conventions (Phase 1/2, §1). Keeps the build
+# context small and secrets/artefacts out of the AI-service image.
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtualenvs — rebuilt inside the image
+.venv/
+venv/
+env/
+
+# Secrets & local config — NEVER bake into an image
+.env
+*.env
+.env.*
+!.env.example
+
+# Local vector/index data & model caches (may be large; rebuilt at runtime)
+*.sqlite3
+data/
+.cache/
+models/
+
+# Logs
+logs/
+*.log
+
+# Build artifacts / VCS / editor / docs
+.git/
+.gitignore
+Dockerfile
+.dockerignore
+*.md

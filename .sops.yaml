@@ -1,0 +1,31 @@
+# SOPS configuration (Phase 1, §9 secrets management).
+#
+# SOPS lets us commit secret material to git ENCRYPTED (values encrypted with
+# age; structure/keys stay readable for clean diffs). The canonical runtime
+# secret store remains the Render/Vercel dashboards (see docs/CD_STRATEGY.md);
+# SOPS is for secrets that must live in the repo — e.g. encrypted env templates,
+# and the Kubernetes/Terraform secret files arriving in the Phase 2 IaC work.
+#
+# One-time setup (see docs/SECRETS.md):
+#   age-keygen -o ~/.config/sops/age/keys.txt   # prints the PUBLIC key
+#   → paste that public key as the `age:` recipient below.
+# The PRIVATE key never enters git (see .gitignore); it lives at
+# ~/.config/sops/age/keys.txt locally and as the SOPS_AGE_KEY secret in CI.
+#
+# Encrypt:  sops --encrypt --in-place secrets/prod.enc.env
+# Edit:     sops secrets/prod.enc.env      (decrypts in your editor, re-encrypts on save)
+# Decrypt:  sops --decrypt secrets/prod.enc.env
+
+creation_rules:
+  # Encrypted env files (SOPS encrypts the values, leaves keys readable).
+  - path_regex: secrets/.*\.enc\.env$
+    age: >-
+      age1REPLACEME000000000000000000000000000000000000000000000000000
+
+  # Encrypted YAML/JSON (e.g. future k8s Secret manifests, Terraform tfvars).
+  - path_regex: (secrets/.*|.*\.sops)\.(ya?ml|json)$
+    # Encrypt only the sensitive values, not every field, so manifests stay
+    # reviewable. Adjust the pattern as new secret keys appear.
+    encrypted_regex: "^(data|stringData|password|secret|token|key|api[_-]?key|.*_SECRET|.*_KEY|.*_TOKEN|.*_PASSWORD)$"
+    age: >-
+      age1REPLACEME000000000000000000000000000000000000000000000000000

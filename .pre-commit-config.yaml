@@ -1,0 +1,33 @@
+# Local pre-commit hooks (Phase 1, §9). Complements the CI gitleaks job in
+# .github/workflows/security.yml by catching secrets BEFORE they ever leave a
+# developer machine — the CI scan is the backstop, this is the first line.
+#
+# Install once per clone:
+#   pip install pre-commit && pre-commit install
+# Run against everything on demand:
+#   pre-commit run --all-files
+repos:
+  # --- Secret detection (mirrors the CI gitleaks gate) ----------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  # --- Belt-and-braces secret/hygiene checks --------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+
+  # --- Block committing a PLAINTEXT secret that should be SOPS-encrypted -----
+  # Fails if a file under secrets/ that is meant to be encrypted isn't.
+  - repo: https://github.com/yuvipanda/pre-commit-hook-ensure-sops
+    rev: v1.1
+    hooks:
+      - id: sops-encryption
+        files: ^secrets/.*\.(enc\.env|sops\.(ya?ml|json))$

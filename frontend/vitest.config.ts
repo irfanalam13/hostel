@@ -14,6 +14,23 @@ const shared = {
 
 export default defineConfig({
   test: {
+    // Coverage gate (Phase 0, §2 CI / DEVOPS_AUDIT #9). Enabled only when the
+    // runner passes `--coverage` (CI's test:coverage script). Thresholds are a
+    // regression FLOOR set just under the current measured baseline — they stop
+    // coverage sliding backwards without blocking today's build. Ratchet these
+    // up as meaningful suites are added.
+    coverage: {
+      provider: "v8",
+      reporter: ["text-summary", "json-summary", "lcov"],
+      // Only files exercised by tests are measured (no `all: true`), matching
+      // how the baseline floor below was established.
+      thresholds: {
+        statements: 48,
+        branches: 38,
+        functions: 35,
+        lines: 50,
+      },
+    },
     projects: [
       {
         plugins: [react()],

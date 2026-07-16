@@ -10,7 +10,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1 — deps: install workspace node_modules from a clean lockfile
 # -----------------------------------------------------------------------------
-FROM node:22-alpine AS deps
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS deps
 WORKDIR /app
 # npm ci needs every workspace manifest to resolve the tree.
 COPY package.json package-lock.json ./
@@ -37,7 +37,7 @@ RUN npm ci --no-audit --no-fund \
 # -----------------------------------------------------------------------------
 # Stage 2 — builder: compile the client app (standalone output)
 # -----------------------------------------------------------------------------
-FROM node:22-alpine AS builder
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -62,7 +62,7 @@ RUN npm run build --workspace @hostel/client
 # -----------------------------------------------------------------------------
 # Stage 3 — runner: minimal runtime, non-root
 # -----------------------------------------------------------------------------
-FROM node:22-alpine AS runner
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \

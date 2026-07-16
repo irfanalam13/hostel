@@ -1,0 +1,31 @@
+# AI-layer alerts (Phase 4, §4 AI overlay). Backed by the hostel_ai_* series
+# emitted from apps.assistant.metrics on every completion.
+groups:
+  - name: ai
+    rules:
+      - alert: AiErrorRateHigh
+        expr: |
+          sum(rate(hostel_ai_requests_total{success="false"}[10m]))
+          / clamp_min(sum(rate(hostel_ai_requests_total[10m])), 1) > 0.10
+        for: 10m
+        labels: {severity: high}
+        annotations:
+          summary: "AI completion error rate >10%"
+          description: "More than 10% of AI completions failed over 10m — check the ML service, provider quota/keys, and gateway logs."
+
+      - alert: AiLatencyP95High
+        expr: histogram_quantile(0.95, sum(rate(hostel_ai_latency_seconds_bucket[10m])) by (le)) > 20
+        for: 10m
+        labels: {severity: medium}
+        annotations:
+          summary: "AI p95 latency >20s"
+          description: "95th percentile AI completion latency exceeds 20s for 10m — provider slowness or oversized context/tool loops."
+
+      # Cost guardrail: rolling 24h estimated spend. Tune the threshold to budget.
+      - alert: AiDailyCostGuardrail
+        expr: increase(hostel_ai_cost_usd_total[24h]) > 25
+        for: 5m
+        labels: {severity: high}
+        annotations:
+          summary: "AI spend exceeded $25 in 24h"
+          description: "Estimated AI cost crossed the daily guardrail. Review usage by model on the AI dashboard; consider a rollout/kill on the AI feature flag."

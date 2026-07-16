@@ -4,6 +4,17 @@ name: Build & push images
 # and pushes them to GHCR under the repository owner. Called by the
 # staging/production deploy workflows. Outputs the fully-qualified image refs
 # so callers pass them straight to the deploy script.
+#
+# Supply-chain hardening (Phase 1, §8):
+#   • Each image carries BuildKit SLSA provenance (`provenance: mode=max`) and a
+#     CycloneDX SBOM (`sbom: true`), pushed to GHCR as OCI attestations.
+#   • Every pushed image is scanned by Trivy — a CRITICAL vuln FAILS this
+#     workflow, so the dependent deploy job (needs: build) never runs.
+#   • Every clean image digest is signed keyless with cosign (Sigstore/OIDC) —
+#     no long-lived keys. Verify with:
+#       cosign verify <ref> \
+#         --certificate-identity-regexp '^https://github.com/<owner>/hostel/' \
+#         --certificate-oidc-issuer https://token.actions.githubusercontent.com
 on:
   workflow_call:
     inputs:
@@ -36,10 +47,12 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write        # keyless cosign signing via the ambient OIDC token
+  attestations: write    # GitHub build-provenance attestation
 
 jobs:
   build:
-    name: Build & push
+    name: Build, scan & sign
     runs-on: ubuntu-latest
     outputs:
       backend_image: ${{ steps.refs.outputs.backend_image }}
@@ -48,6 +61,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+          trivy --version
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -65,10 +85,13 @@ jobs:
           echo "admin_image=${prefix}/hostel-admin:${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push backend
+        id: build_backend
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
+          provenance: mode=max
+          sbom: true
           tags: |
             ${{ steps.refs.outputs.prefix }}/hostel-backend:${{ inputs.tag }}
             ${{ steps.refs.outputs.prefix }}/hostel-backend:${{ github.sha }}
@@ -76,11 +99,14 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend
 
       - name: Build & push client (marketing zone)
+        id: build_client
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/apps/client/Dockerfile
           push: true
+          provenance: mode=max
+          sbom: true
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=${{ inputs.api_base_url }}
             NEXT_PUBLIC_TENANT_BASE_DOMAIN=${{ inputs.tenant_base_domain }}
@@ -91,11 +117,14 @@ jobs:
           cache-to: type=gha,mode=max,scope=client
 
       - name: Build & push admin zone
+        id: build_admin
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/apps/admin/Dockerfile
           push: true
+          provenance: mode=max
+          sbom: true
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=${{ inputs.api_base_url }}
             NEXT_PUBLIC_TENANT_BASE_DOMAIN=${{ inputs.tenant_base_domain }}
@@ -104,3 +133,68 @@ jobs:
             ${{ steps.refs.outputs.prefix }}/hostel-admin:${{ github.sha }}
           cache-from: type=gha,scope=admin
           cache-to: type=gha,mode=max,scope=admin
+
+      # --- Release-time vulnerability gate (Phase 1, §8) ----------------------
+      # Scan the *pushed* images by digest. A CRITICAL, fixed vuln fails the job;
+      # because the deploy jobs `needs: build`, a failed scan blocks the release.
+      - name: Trivy scan pushed images (CRITICAL blocks release)
+        env:
+          BACKEND: ${{ steps.refs.outputs.prefix }}/hostel-backend@${{ steps.build_backend.outputs.digest }}
+          CLIENT: ${{ steps.refs.outputs.prefix }}/hostel-client@${{ steps.build_client.outputs.digest }}
+          ADMIN: ${{ steps.refs.outputs.prefix }}/hostel-admin@${{ steps.build_admin.outputs.digest }}
+        run: |
+          set -euo pipefail
+          for ref in "$BACKEND" "$CLIENT" "$ADMIN"; do
+            echo "::group::Trivy $ref"
+            trivy image --scanners vuln --severity CRITICAL \
+              --ignore-unfixed --exit-code 1 --no-progress "$ref"
+            echo "::endgroup::"
+          done
+
+      # --- Sign the clean image digests keyless (Phase 1, §8) -----------------
+      - name: Cosign sign image digests
+        env:
+          COSIGN_YES: "true"
+          BACKEND: ${{ steps.refs.outputs.prefix }}/hostel-backend@${{ steps.build_backend.outputs.digest }}
+          CLIENT: ${{ steps.refs.outputs.prefix }}/hostel-client@${{ steps.build_client.outputs.digest }}
+          ADMIN: ${{ steps.refs.outputs.prefix }}/hostel-admin@${{ steps.build_admin.outputs.digest }}
+        run: |
+          set -euo pipefail
+          for ref in "$BACKEND" "$CLIENT" "$ADMIN"; do
+            echo "Signing $ref"
+            cosign sign "$ref"
+          done
+
+      # --- GitHub-native build provenance attestation (SLSA) ------------------
+      - name: Attest backend provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.refs.outputs.prefix }}/hostel-backend
+          subject-digest: ${{ steps.build_backend.outputs.digest }}
+          push-to-registry: true
+      - name: Attest client provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.refs.outputs.prefix }}/hostel-client
+          subject-digest: ${{ steps.build_client.outputs.digest }}
+          push-to-registry: true
+      - name: Attest admin provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.refs.outputs.prefix }}/hostel-admin
+          subject-digest: ${{ steps.build_admin.outputs.digest }}
+          push-to-registry: true
+
+      - name: Supply-chain summary
+        run: |
+          {
+            echo "### 🔏 Signed & attested images";
+            echo "";
+            echo "| Service | Digest |";
+            echo "| --- | --- |";
+            echo "| backend | \`${{ steps.build_backend.outputs.digest }}\` |";
+            echo "| client  | \`${{ steps.build_client.outputs.digest }}\` |";
+            echo "| admin   | \`${{ steps.build_admin.outputs.digest }}\` |";
+            echo "";
+            echo "Each image: BuildKit SLSA provenance + CycloneDX SBOM (OCI attestations), Trivy CRITICAL gate, cosign keyless signature, and a GitHub build-provenance attestation.";
+          } >> "$GITHUB_STEP_SUMMARY"
