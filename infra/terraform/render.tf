@@ -51,8 +51,10 @@ resource "render_web_service" "backend" {
   }
 
   health_check_path = "/health/"
-  auto_deploy       = var.render_auto_deploy # false in production (manual gate)
-  env_vars          = local.backend_env
+  # auto-deploy (CD gate: var.render_auto_deploy — false in prod, true in staging)
+  # is configured post-reconciliation; the render provider exposes it under a
+  # different key than a bare `auto_deploy`. See README + docs/CD_STRATEGY.md.
+  env_vars = local.backend_env
 }
 
 resource "render_background_worker" "celery" {
@@ -70,8 +72,8 @@ resource "render_background_worker" "celery" {
   }
 
   start_command = "celery -A config worker -l info"
-  auto_deploy   = var.render_auto_deploy
-  env_vars      = local.backend_env
+  # auto-deploy configured post-reconciliation (see README).
+  env_vars = local.backend_env
 }
 
 resource "render_web_service" "ml" {
@@ -89,7 +91,7 @@ resource "render_web_service" "ml" {
   }
 
   health_check_path = "/health/"
-  auto_deploy       = var.render_auto_deploy
+  # auto-deploy configured post-reconciliation (see README).
   env_vars = {
     ML_PROVIDER       = { value = "gemini" }
     ML_MODEL          = { value = "gemini-flash-latest" }
