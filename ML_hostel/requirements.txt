@@ -1,5 +1,5 @@
 # ML_hostel AI service — runtime deps (kept intentionally small).
-fastapi>=0.115
+fastapi>=0.139.2
 uvicorn[standard]>=0.30
 httpx>=0.27
 PyJWT>=2.8
