@@ -29,6 +29,11 @@ app.include_router(health.router, tags=["health"])
 app.include_router(chat.router, tags=["chat"])
 app.include_router(knowledge.router, tags=["knowledge"])
 
+# Opt-in OpenTelemetry tracing (no-op unless OTEL_ENABLED + deps present).
+from .observability import init_tracing  # noqa: E402
+
+init_tracing(app)
+
 
 @app.get("/")
 async def root():

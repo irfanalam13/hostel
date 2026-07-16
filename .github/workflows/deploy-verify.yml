@@ -1,0 +1,47 @@
+name: Post-promotion metric gate
+
+# Phase 3, §3 — run AFTER a production promotion (Render/Vercel manual promote,
+# see docs/CD_STRATEGY.md). Watches the Prometheus SLOs for a bake window and
+# auto-rolls-back the Render service if the error-rate/latency budget is breached.
+# Trigger manually right after promoting, or call from a promotion automation.
+on:
+  workflow_dispatch:
+    inputs:
+      bake_seconds:
+        description: How long to watch the SLOs after promotion.
+        type: string
+        default: "600"
+      dry_run:
+        description: Report only — do not actually roll back.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-verify
+  cancel-in-progress: false
+
+jobs:
+  metric-gate:
+    name: SLO bake + auto-rollback
+    runs-on: ubuntu-latest
+    environment: production   # scopes the secrets below
+    steps:
+      - uses: actions/checkout@v4
+      - name: Watch SLOs and roll back on breach
+        env:
+          PROM_URL: ${{ secrets.PROM_URL }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
+        run: |
+          python3 deploy/scripts/metric_gate.py \
+            --prom-url "$PROM_URL" \
+            --bake-seconds "${{ inputs.bake_seconds }}" \
+            --interval 30 \
+            --max-error-rate 0.05 \
+            --max-p95 1.0 \
+            --breach-threshold 3 \
+            --rollback-cmd 'bash deploy/scripts/rollback_render.sh' \
+            ${{ inputs.dry_run && '--dry-run' || '' }}

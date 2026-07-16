@@ -63,6 +63,43 @@ def test_tampered_token_rejected(hostel, warden):
         verify_context_token(token + "x")
 
 
+# The claims the standalone ML_hostel service reads in
+# ``ML_hostel/app/security.py::decode_context``. It uses ``claims.get(...)`` with
+# empty defaults, so a silent rename here would NOT raise on the service side —
+# it would quietly drop tenant/permission context and break RBAC/tenant
+# isolation. This contract test fails fast on any such drift. Keep it in lockstep
+# with the ML service's ``Context`` dataclass. (Phase 0, §2 AI overlay.)
+ML_CONSUMED_CLAIMS = {"tid", "tname", "uid", "role", "perms", "conv"}
+# The full payload Django mints (superset of what the ML service consumes today).
+CONTEXT_TOKEN_CLAIMS = ML_CONSUMED_CLAIMS | {"tslug", "scope", "iat", "exp"}
+
+
+def test_context_token_claim_contract(hostel, warden):
+    """Pin the context-token payload shape against the ML service contract."""
+    conv = Conversation.objects.create(hostel=hostel, user=warden, title="t")
+    claims = verify_context_token(
+        mint_context_token(
+            hostel=hostel, user=warden, perms=["ai.chat"], conversation_id=conv.id
+        )
+    )
+    # Every claim the ML service depends on must be present and non-null.
+    missing = ML_CONSUMED_CLAIMS - claims.keys()
+    assert not missing, f"context token dropped ML-consumed claims: {missing}"
+    # And the minted set must match the documented contract exactly (catches both
+    # silent additions and removals — either side of the contract can drift).
+    assert set(claims) == CONTEXT_TOKEN_CLAIMS
+
+
+def test_system_token_claim_contract(hostel):
+    """The system/ingest token must satisfy the same ML-consumed claim set."""
+    from .tokens import mint_system_token
+
+    claims = verify_context_token(mint_system_token(hostel=hostel))
+    missing = ML_CONSUMED_CLAIMS - claims.keys()
+    assert not missing, f"system token dropped ML-consumed claims: {missing}"
+    assert claims["role"] == "SYSTEM" and claims["perms"] == []
+
+
 # --------------------------------------------------------------------------- #
 # Browser-facing chat (session cookie + RBAC + plan)
 # --------------------------------------------------------------------------- #

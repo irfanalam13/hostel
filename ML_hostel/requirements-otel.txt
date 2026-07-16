@@ -1,0 +1,7 @@
+# Optional OpenTelemetry tracing deps for the ML service (Phase 4, §4).
+#   pip install -r requirements-otel.txt   (then set OTEL_ENABLED=true)
+# app/observability.py no-ops when these are absent, so tracing is opt-in.
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-httpx
