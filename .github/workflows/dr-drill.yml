@@ -1,0 +1,51 @@
+name: DR restore drill
+
+# Phase 5, §6 — prove the restore engine still works on a schedule, not just when
+# app code changes. Runs against an ISOLATED ephemeral Postgres (never prod):
+# seeds canonical rows, backs them up, restores end-to-end, and grades
+# integrity + RTO. This catches restore-breaking drift (a schema/dep change that
+# a normal PR wouldn't surface) even in weeks with no relevant PRs.
+#
+# The drill itself is the verified pytest in apps/backups/tests_drill.py (real
+# engine, real rows, on Postgres). Measuring true production RPO is a separate
+# STAGING exercise against a real offsite backup — see docs/DR_RUNBOOK.md.
+on:
+  schedule:
+    - cron: "17 5 * * 1"   # 05:17 UTC Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dr-drill
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    name: Restore drill (isolated Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: hostel
+          POSTGRES_USER: hostel
+          POSTGRES_PASSWORD: hostel
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U hostel" --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    env:
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: ci-dr-drill-secret
+      DATABASE_URL: postgres://hostel:hostel@localhost:5432/hostel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-backend
+        with:
+          python-version: "3.13"
+          install-dev: "true"
+      - name: Run restore drill (engine + RTO/RPO/integrity)
+        working-directory: backend
+        run: pytest apps/backups/tests_drill.py -v

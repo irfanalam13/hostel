@@ -1,0 +1,19 @@
+# Terraform working files — never commit state or provider binaries.
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Secret var files (our environments/*.tfvars hold only non-secret ids and ARE
+# committed; anything matching the patterns below is treated as secret).
+*.auto.tfvars
+secrets.tfvars
+*.secret.tfvars
+
+# Plan output artifacts
+*.tfplan
+plan.out
+
+# Keep the dependency lock file committed:
+!.terraform.lock.hcl

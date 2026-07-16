@@ -1,0 +1,10 @@
+# Optional OpenTelemetry tracing deps (Phase 4, §4). Install to enable tracing:
+#   pip install -r requirements-otel.txt   (then set OTEL_ENABLED=true)
+# Kept out of the base image so tracing is strictly opt-in (config/otel.py no-ops
+# when these are absent).
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-django
+opentelemetry-instrumentation-requests
+opentelemetry-instrumentation-httpx
+opentelemetry-instrumentation-psycopg

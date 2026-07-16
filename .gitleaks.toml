@@ -1,0 +1,20 @@
+# Gitleaks config (Phase 1, §9). Shared by the local pre-commit hook and the CI
+# secret-scan job (.github/workflows/security.yml). Extends the maintained
+# default ruleset and only adds an allowlist for known-safe, non-secret content.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Encrypted secrets and example/template files are not leaks."
+paths = [
+  # SOPS-encrypted material — ciphertext is safe to commit and would otherwise
+  # trip high-entropy rules.
+  '''secrets/.*\.enc\.env$''',
+  '''.*\.sops\.(ya?ml|json)$''',
+  # Templates / examples carry placeholders, not real secrets.
+  '''\.env\.example$''',
+  '''\.env\..*\.example$''',
+  '''.*\.sample$''',
+  # Docs describe secret NAMES and rotation, not values.
+  '''docs/SECRETS\.md$''',
+]

@@ -3,9 +3,24 @@
 # =============================================================================
 
 # --- Secrets & local config — NEVER commit -------------------------------
+# Broadened (Phase 1, §9): `*.env` did NOT match `.env.local` / `.env.production`
+# (they don't end in `.env`), so those leaked past the filter. `.env.*` closes it;
+# the `!` negations keep the committed *templates* only.
 .env
 *.env
+.env.*
 !.env.example
+!.env.*.example
+!.env.sample
+
+# SOPS-encrypted secrets ARE safe to commit; plaintext age private keys are NOT.
+*.agekey
+age.key
+age-key.txt
+keys.txt
+*.dec
+*.decrypted
+secrets/**/*.plain.*
 
 # --- Python -----------------------------------------------------------------
 __pycache__/

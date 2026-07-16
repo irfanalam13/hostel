@@ -166,11 +166,12 @@ jobs:
       - uses: ./.github/actions/setup-frontend
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Run tests (vitest + JUnit)
+      - name: Run tests (vitest + coverage gate + JUnit)
         working-directory: frontend
+        # --coverage enforces the regression-floor thresholds in vitest.config.ts.
         # vitest exits 0 when there are no test files, so this stays green until
-        # suites are added while still failing on a real test regression.
-        run: npm run test -- --reporter=default --reporter=junit --outputFile=test-results/junit.xml
+        # suites are added while still failing on a real test/coverage regression.
+        run: npm run test -- --coverage --reporter=default --reporter=junit --outputFile=test-results/junit.xml
       - name: Publish test report
         uses: dorny/test-reporter@v1
         if: always()
@@ -179,13 +180,38 @@ jobs:
           path: frontend/test-results/junit.xml
           reporter: java-junit
           fail-on-error: false
-      - name: Upload test results
+      - name: Upload test + coverage results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-test-results
-          path: frontend/test-results/junit.xml
+          path: |
+            frontend/test-results/junit.xml
+            frontend/coverage
           retention-days: 14
+
+  # ===========================================================================
+  # 3b. TEST (ML service) + AI eval gate — deterministic prompt-contract checks
+  #     (ML_hostel/tests). Fast, no LLM/network; blocks a prompt-safety regression.
+  # ===========================================================================
+  test-ml:
+    name: Test + AI eval gate (ML service)
+    runs-on: ubuntu-latest
+    env:
+      ML_SHARED_SECRET: ci-test-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install ML deps + pytest
+        working-directory: ML_hostel
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Run ML tests + AI eval gate
+        working-directory: ML_hostel
+        run: pytest -q
 
   # ===========================================================================
   # 4. BUILD — Docker images for both services. Matrix = parallel, fail-fast off
@@ -198,19 +224,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # max-mb = image-size budget (§1). Generous ceilings that catch silent
+          # bloat (a stray dependency, a leaked build artifact) without flapping;
+          # ratchet down toward the observed size once CI reports steady numbers.
           - service: backend
             context: ./backend
             build-args: ""
+            max-mb: 1200
           - service: client
             context: ./frontend
             dockerfile: ./frontend/apps/client/Dockerfile
             build-args: |
               NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+            max-mb: 600
           - service: admin
             context: ./frontend
             dockerfile: ./frontend/apps/admin/Dockerfile
             build-args: |
               NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+            max-mb: 600
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -228,14 +260,22 @@ jobs:
           build-args: ${{ matrix.build-args }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
-      - name: Build summary
+      - name: Build summary + size budget
+        env:
+          BUDGET: ${{ matrix.max-mb }}
         run: |
-          SIZE=$(docker image inspect hostel-${{ matrix.service }}:ci --format '{{.Size}}' \
-            | awk '{printf "%.1f MB", $1/1024/1024}')
+          BYTES=$(docker image inspect hostel-${{ matrix.service }}:ci --format '{{.Size}}')
+          MB=$(awk "BEGIN{printf \"%.1f\", ${BYTES}/1048576}")
           {
             echo "### 🐳 ${{ matrix.service }} image built";
             echo "";
-            echo "| Image | Size |";
-            echo "| --- | --- |";
-            echo "| \`hostel-${{ matrix.service }}:ci\` | ${SIZE} |";
+            echo "| Image | Size | Budget |";
+            echo "| --- | --- | --- |";
+            echo "| \`hostel-${{ matrix.service }}:ci\` | ${MB} MB | ${BUDGET} MB |";
           } >> "$GITHUB_STEP_SUMMARY"
+          # Fail the build if the image blew past its budget (silent-bloat guard).
+          if awk "BEGIN{exit !(${MB} > ${BUDGET})}"; then
+            echo "::error::hostel-${{ matrix.service }} image is ${MB} MB, over the ${BUDGET} MB budget"
+            exit 1
+          fi
+          echo "✓ hostel-${{ matrix.service }} ${MB} MB within ${BUDGET} MB budget"

@@ -11,6 +11,8 @@ Two audiences, two auth models:
 
 No LLM logic lives here — this module only authorises, persists, and audits.
 """
+from decimal import Decimal
+
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -25,7 +27,7 @@ from apps.common.permissions import IsHostelResolved
 from apps.common.rbac import ActionPermissions, user_permissions
 from apps.subscriptions.gates import RequiresFeature
 
-from . import tools
+from . import guardrails, metrics, tools
 from .models import AiUsage, Conversation, Message
 from .permissions import IsMlContext
 from .serializers import ConversationDetailSerializer, ConversationSerializer
@@ -85,6 +87,8 @@ class ChatSessionView(APIView):
 
         hostel = request.hostel
         _check_quota(hostel)
+        # AI/MLOps guardrails: input size cap + per-tenant daily cost budget.
+        guardrails.enforce_pre_chat(message=message, hostel=hostel)
 
         conv_id = request.data.get("conversation_id")
         if conv_id:
@@ -128,6 +132,38 @@ class ChatSessionView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class AiFeedbackView(APIView):
+    """Capture 👍/👎 feedback on a conversation's latest answer (Phase 6 drift loop).
+
+    Stored on the answer's AiUsage.meta (no schema change) so `ai_eval_export`
+    can turn thumbs-down answers into eval cases — closing the quality-drift loop.
+    """
+
+    permission_classes = [IsHostelResolved, ActionPermissions, CHAT_FEATURE]
+    permission_map = {"post": ["ai.chat"]}
+
+    def post(self, request, pk):
+        hostel = request.hostel
+        conv = get_object_or_404(Conversation, pk=pk, hostel=hostel, user=request.user)
+        rating = (request.data.get("rating") or "").lower()
+        if rating not in ("up", "down"):
+            raise ValidationError({"rating": "Must be 'up' or 'down'."})
+        note = (request.data.get("note") or "")[:500]
+
+        usage = (
+            AiUsage.objects.filter(hostel=hostel, conversation=conv)
+            .order_by("-created_at")
+            .first()
+        )
+        if usage is None:
+            raise ValidationError({"detail": "No AI answer to rate yet."})
+        meta = usage.meta or {}
+        meta["feedback"] = {"rating": rating, "note": note, "at": timezone.now().isoformat()}
+        usage.meta = meta
+        usage.save(update_fields=["meta"])
+        return Response({"ok": True}, status=status.HTTP_200_OK)
 
 
 class ConversationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -274,6 +310,7 @@ class ConversationCompleteView(_MlContextMixin, APIView):
         tool_calls = data.get("tool_calls") or []
         sources = data.get("sources") or []
         error = data.get("error") or ""
+        prompt_version = data.get("prompt_version") or ""
 
         msg = Message.objects.create(
             conversation=conv,
@@ -293,6 +330,15 @@ class ConversationCompleteView(_MlContextMixin, APIView):
             provider=provider,
             model=model,
         )
+        # Estimate spend for paid providers (self-hosted stays 0); prefer an
+        # explicit cost from the service if it sent one.
+        incoming_cost = data.get("cost_usd")
+        cost_usd = (
+            Decimal(str(incoming_cost)) if incoming_cost not in (None, "")
+            else metrics.estimate_cost(provider, model, tokens_prompt, tokens_completion)
+        )
+        success = not error
+
         AiUsage.objects.create(
             hostel=hostel,
             user_id=ctx.get("uid"),
@@ -304,11 +350,19 @@ class ConversationCompleteView(_MlContextMixin, APIView):
             tokens_completion=tokens_completion,
             tokens_total=tokens_prompt + tokens_completion,
             latency_ms=latency_ms,
-            success=not error,
+            cost_usd=cost_usd,
+            success=success,
             meta={
                 "tool_calls": [t.get("name") for t in tool_calls if isinstance(t, dict)],
                 "sources": sources,
+                "prompt_version": prompt_version,  # AI/MLOps attribution (Phase 6)
             },
+        )
+        # First-class Prometheus series for the AI layer (no-op if unavailable).
+        metrics.record_ai_usage(
+            provider=provider, model=model, kind=AiUsage.Kind.CHAT, success=success,
+            tokens_prompt=tokens_prompt, tokens_completion=tokens_completion,
+            cost_usd=cost_usd, latency_ms=latency_ms,
         )
         return Response({"message_id": str(msg.id)}, status=status.HTTP_201_CREATED)
 

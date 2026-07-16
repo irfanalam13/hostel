@@ -1,5 +1,12 @@
 """System prompt construction. Role- and tenant-aware, tool-grounded."""
 
+# Version of the system-prompt contract. BUMP THIS whenever the prompt below
+# changes (Phase 6 AI/MLOps): it is recorded on each AiUsage via the completion
+# callback so quality/cost can be attributed to a prompt version, and the eval
+# gate (ML_hostel/tests/test_eval_prompts.py) asserts it stays set. Date-based:
+# YYYY.MM.<n>.
+PROMPT_VERSION = "2026.07.1"
+
 
 def build_system_prompt(ctx: dict) -> str:
     hostel = (ctx.get("hostel") or {}).get("name") or "this hostel"

@@ -10,6 +10,8 @@ global:
 
 rule_files:
   - /etc/prometheus/alerts.yml
+  - /etc/prometheus/slo-rules.yml   # SLI recording rules + error-budget burn-rate alerts
+  - /etc/prometheus/ai-alerts.yml   # AI error-rate / latency / cost guardrails
 
 alerting:
   alertmanagers:

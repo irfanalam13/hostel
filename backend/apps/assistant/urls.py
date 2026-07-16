@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AiConfigView,
     AiDashboardView,
+    AiFeedbackView,
     ChatSessionView,
     ConversationCompleteView,
     ConversationContextView,
@@ -20,6 +21,7 @@ urlpatterns = [
     path("chat/", ChatSessionView.as_view(), name="ai-chat"),
     path("config/", AiConfigView.as_view(), name="ai-config"),
     path("dashboard/", AiDashboardView.as_view(), name="ai-dashboard"),
+    path("conversations/<uuid:pk>/feedback/", AiFeedbackView.as_view(), name="ai-conv-feedback"),
     # Service-facing (Bearer context token) — called by the ML_hostel service
     path("conversations/<uuid:pk>/context/", ConversationContextView.as_view(), name="ai-conv-context"),
     path("conversations/<uuid:pk>/complete/", ConversationCompleteView.as_view(), name="ai-conv-complete"),
