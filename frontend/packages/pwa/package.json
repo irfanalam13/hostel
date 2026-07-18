@@ -17,6 +17,6 @@
     "@hostel/utils": "*"
   },
   "peerDependencies": {
-    "react": "*"
+    "react": "^19.2.7"
   }
 }
