@@ -8,6 +8,6 @@
     "@hostel/auth": "*"
   },
   "peerDependencies": {
-    "react": "*"
+    "react": "^19.2.7"
   }
 }
