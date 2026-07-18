@@ -454,7 +454,7 @@ class SignupOTPRequestView(APIView):
         from apps.common.tasking import dispatch_task
 
         try:
-            dispatch_task(send_signup_otp_email, email, otp_code, local=True)
+            dispatch_task(send_signup_otp_email, email, otp_code)
         except Exception:
             return Response(
                 {"detail": "Could not send the verification email. Please try again later."},
@@ -506,7 +506,7 @@ class SignupView(APIView):
             from apps.common.tasking import dispatch_task
 
             try:
-                dispatch_task(send_hostel_id_email, user.email, user.username, hostel.name, hostel.code, local=True)
+                dispatch_task(send_hostel_id_email, user.email, user.username, hostel.name, hostel.code)
             except Exception:
                 logger.warning("Could not enqueue Hostel ID email for %s", user.email)
 
@@ -887,7 +887,7 @@ class PasswordResetRequestView(APIView):
             from apps.common.tasking import dispatch_task
 
             try:
-                dispatch_task(send_password_reset_otp_email, user.email, otp_code, local=True)
+                dispatch_task(send_password_reset_otp_email, user.email, otp_code)
             except Exception:
                 try:
                     send_mail(
@@ -1009,7 +1009,7 @@ class ForgotHostelIDView(APIView):
                 from apps.common.tasking import dispatch_task
 
                 try:
-                    dispatch_task(send_hostel_id_list_email, user.email, user.username, hostels_info, local=True)
+                    dispatch_task(send_hostel_id_list_email, user.email, user.username, hostels_info)
                 except Exception:
                     try:
                         send_mail(

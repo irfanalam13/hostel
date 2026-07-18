@@ -1,24 +1,25 @@
 """Dispatch Celery tasks off the request cycle — via a worker, a thread, or inline.
 
-Some tasks are latency-sensitive and reliability-critical (transactional OTP /
-password-reset email). In the split deployment — Django on Render, a Celery
-worker on a free Oracle VM — those emails must stay on the *web* host: their
-delivery can't depend on a separate free-tier worker being up, and running them
-inline would block the HTTP response past the SPA/gunicorn timeout (the ~41s
-request-otp incident). Heavy, infrequent work (backups, AI ingestion, push
-fan-out) is what rides the broker to the Oracle worker instead.
+Transactional email (OTP / password-reset / Hostel-ID) is latency-sensitive and
+reliability-critical. In the split deployment — Django on Render (free tier),
+a Celery worker on a free Oracle VM — the worker is the *preferred* sender:
+Render's free tier blocks outbound SMTP, so a send attempted on the web host
+just times out, whereas the Oracle worker's egress can reach the SMTP relay.
 
-``dispatch_task`` implements that policy for the email tasks:
+``dispatch_task`` implements that policy:
 
-    * Keep-local (``EMAIL_TASKS_STAY_LOCAL`` True, e.g. Render + remote worker) →
+    * Forced local (``local=True``) or no worker (``CELERY_TASK_ALWAYS_EAGER``
+      True) or told to keep on this host (``EMAIL_TASKS_STAY_LOCAL`` True) →
       run on THIS process, off-request: a daemon thread when
-      ``EMAIL_SEND_IN_THREAD`` is on, else inline. Never touches the broker, so
-      OTP delivery is independent of the worker.
-    * Worker present (``CELERY_TASK_ALWAYS_EAGER`` False) and NOT kept local →
-      ``task.delay`` as before: the broker/worker own it.
-    * No worker (``CELERY_TASK_ALWAYS_EAGER`` True) → the same local path: a
-      daemon thread when ``EMAIL_SEND_IN_THREAD``, else inline (deterministic
-      for tests, and it re-raises so callers like the OTP views can 502).
+      ``EMAIL_SEND_IN_THREAD`` is on, else inline (deterministic for tests, and
+      it re-raises so callers like the OTP views can 502).
+    * Otherwise → **broker-first**: publish to the broker (``apply_async``) so
+      the Oracle worker sends it, but fail-fast (``retry=False`` + the broker
+      socket timeout in settings) and fall back to the local path if the broker
+      is unreachable. So a broker outage degrades to an on-host attempt instead
+      of hanging the request for ~20s and 502-ing it (the request-otp incident),
+      and delivery automatically moves to the worker the moment the broker is
+      healthy — no code change, no flag flip.
 
 Every call site and the Celery task definitions stay unchanged, so the routing
 is a pure configuration decision.
@@ -60,27 +61,29 @@ def _run_local(task, args, kwargs):
 def dispatch_task(task, *args, local=False, **kwargs):
     """Run ``task`` off the request cycle, per the module-level policy.
 
-    ``local=True`` forces the on-host path (thread/inline) unconditionally,
-    bypassing the broker even when a worker is configured (eager off,
-    ``EMAIL_TASKS_STAY_LOCAL`` off). Use it for latency-critical, user-facing
-    transactional email — signup/password-reset OTP, Hostel-ID — whose delivery
-    must never *depend on* or *block on* the broker/worker being reachable.
-
-    This is the guard against the request-otp 502: with a worker configured
-    (eager off) but the broker unreachable/misconfigured, ``task.delay`` blocks
-    while it retries the broker connection — long past gunicorn's/the SPA's
-    timeout — before it can even raise, so the user only sees a Bad Gateway.
-    ``local=True`` never opens a broker connection, so the request returns
-    immediately regardless of broker health or the per-deployment
-    ``CELERY_TASK_ALWAYS_EAGER`` / ``EMAIL_TASKS_STAY_LOCAL`` env values.
+    ``local=True`` forces the on-host path (thread/inline), bypassing the broker
+    even when a worker is configured. Otherwise the broker/worker is preferred
+    (so a worker whose egress can send SMTP delivers transactional email), with a
+    fail-fast publish and a local fallback so an unreachable broker can never
+    hang or 502 the request.
     """
     eager = getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False)
     stay_local = getattr(settings, "EMAIL_TASKS_STAY_LOCAL", False)
 
-    # Offload to the broker/worker only when a worker is expected (eager off),
-    # we haven't been told to keep these user-facing emails on the web host, and
-    # this specific call didn't demand the local path.
-    if not local and not eager and not stay_local:
-        return task.delay(*args, **kwargs)
+    # Forced local, no worker (eager), or told to keep on this host → run here.
+    if local or eager or stay_local:
+        return _run_local(task, args, kwargs)
 
-    return _run_local(task, args, kwargs)
+    # Broker-first: hand off to the worker, but publish fail-fast (retry=False +
+    # the broker socket timeout in settings) so an unreachable/misconfigured
+    # broker raises in ~seconds instead of retrying the connection until gunicorn
+    # kills the request. Fall back to the on-host path so the request still
+    # succeeds (and the send is at least attempted) during a broker outage.
+    try:
+        return task.apply_async(args, kwargs, retry=False)
+    except Exception:
+        logger.warning(
+            "broker publish failed for %s; falling back to local execution",
+            task.name, exc_info=True,
+        )
+        return _run_local(task, args, kwargs)
