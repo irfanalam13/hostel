@@ -28,12 +28,20 @@ Work top to bottom. Full walkthrough: [`docs/deployment/oracle-worker.md`](../de
 ## Render side (producer / task routing)
 
 - [ ] Render shares the same `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` as this VM
-- [ ] `CELERY_TASK_ALWAYS_EAGER=False` (offload heavy tasks to Oracle)
-- [ ] `EMAIL_TASKS_STAY_LOCAL=True` + `EMAIL_SEND_IN_THREAD=True` (OTP stays on Render)
+- [ ] `CELERY_TASK_ALWAYS_EAGER=False` (offload email + backups + AI + push to Oracle)
+- [ ] `EMAIL_TASKS_STAY_LOCAL` **unset / False** (OTP email rides the broker to Oracle)
 - [ ] `AUDIT_LOG_ASYNC=False` (audit writes inline on Render)
 - [ ] `SECURITY_EVENTS_PERSIST_ASYNC=False` (security writes inline on Render)
-- [ ] Confirm only backups / AI ingestion / push fan-out reach the Oracle worker
-      (watch `./scripts/logs_worker.sh` — you should NOT see per-request audit tasks)
+- [ ] Confirm audit/security stay inline (watch `./scripts/logs_worker.sh` — you
+      should NOT see per-request audit tasks, only email/backup/AI/push)
+
+## Email delivery (fixes the signup 502)
+
+- [ ] Oracle VM public IP obtained (`curl ifconfig.me`)
+- [ ] That IP added to **Brevo → Authorized IPs**
+- [ ] `EMAIL_HOST` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` set in `backend/.env.production`
+- [ ] Test: request a signup OTP → `logs_worker.sh` shows `send_signup_otp_email … succeeded`
+- [ ] Test email actually arrives in the inbox
 
 ## Deploy
 

@@ -114,32 +114,33 @@ chmod 600 backend/.env.production
 
 The Render web service currently runs in **eager mode** (`CELERY_TASK_ALWAYS_EAGER`
 defaults to `True` when `DEBUG=False`) — it runs every task inline and never uses
-the broker, so the Oracle worker sits idle.
+the broker, so the Oracle worker sits idle. Worse, the signup **OTP email is sent
+inside the request**: a slow/failing SMTP send (with `max_retries=3`) blocks the
+HTTP response for tens of seconds and then the view returns **502** ("Could not
+send the verification email"). Offloading email to the worker fixes both.
 
-We deliberately **do not** offload *everything* to the free Oracle VM. Only the
-heavy, infrequent work goes there; latency-sensitive and per-request tasks stay
-on Render so they neither depend on the free VM being up nor add a remote-broker
-round-trip (and Upstash command cost) to the hot path.
+We still don't offload *everything* to the free Oracle VM — per-request bookkeeping
+(audit / security writes) stays on Render so it neither depends on the VM nor adds
+a remote-broker round-trip (and Upstash command cost) to the hot path.
 
 | Task | Runs on | Why |
 | --- | --- | --- |
-| OTP / transactional email | **Render** (local thread) | Delivery must not depend on the free VM; reliability-critical |
-| Audit event writes | **Render** (inline) | Fires per mutating request — a remote publish would add latency + burn Upstash commands |
-| Security event writes | **Render** (inline) | Same — per auth-event, high frequency |
+| OTP / transactional email | **Oracle** (broker) | Async send → signup returns instantly; the VM's **static IP** can be authorized in Brevo (Render's dynamic IPs can't) |
 | DR backups + retention | **Oracle** (broker) | Heavy, infrequent |
 | AI document ingestion | **Oracle** (broker) | Heavy CPU, infrequent |
 | Push-notification fan-out | **Oracle** (broker) | I/O-heavy background, non-critical |
+| Audit event writes | **Render** (inline) | Fires per mutating request — a remote publish would add latency + burn Upstash commands |
+| Security event writes | **Render** (inline) | Same — per auth-event, high frequency |
 
 Set these environment variables on the **Render web service**:
 
 ```
-# Offload heavy background tasks to the broker → Oracle worker.
+# Offload background work (email, backups, AI, push) to the broker → Oracle worker.
 CELERY_TASK_ALWAYS_EAGER=False
 
-# Keep user-facing OTP/transactional email ON Render (runs in a daemon thread,
-# never the broker) so delivery doesn't depend on the Oracle VM.
-EMAIL_TASKS_STAY_LOCAL=True
-EMAIL_SEND_IN_THREAD=True          # already the prod default; set explicitly
+# Do NOT set EMAIL_TASKS_STAY_LOCAL (leave unset/False) so OTP email rides the
+# broker to the Oracle worker instead of being sent inline on Render.
+# EMAIL_TASKS_STAY_LOCAL=False
 
 # Keep per-request audit + security event writes local (inline) instead of
 # publishing them to the remote broker on every request.
@@ -151,9 +152,32 @@ Leave `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` pointing at the **same** Red
 as the Oracle worker. No code changes are needed — routing is entirely driven by
 these env vars, and every `.delay()` call site is unchanged.
 
-> If you'd rather send *all* tasks to Oracle, set only `CELERY_TASK_ALWAYS_EAGER=False`
-> and omit the other four. Then OTP/audit/security ride the broker too — simpler,
-> but OTP delivery and per-request latency now depend on the free VM + remote Redis.
+> **Trade-off:** once email is async, the signup view returns `200` immediately
+> and can no longer surface a send failure (it only 502s if it can't even *enqueue*
+> the job — i.e. the broker is unreachable). A failed delivery becomes silent to
+> the user, so watch the worker logs / Sentry. The task still retries 3×.
+
+#### Authorize the Oracle VM's IP in Brevo (fixes the 502)
+
+The likely root cause of the signup 502 is **Brevo rejecting the send because the
+sending IP isn't authorized**. Render's outbound IPs are dynamic and can't be
+reliably whitelisted; the Oracle VM has a **stable public IP** that can:
+
+1. Get the VM's public IP: `curl ifconfig.me` on the VM.
+2. Brevo → **SMTP & API → Authorized IPs** (or *Senders, Domains & Dedicated IPs*)
+   → add that IP.
+3. Confirm the same `EMAIL_HOST` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD`
+   (Brevo SMTP key) are set in `backend/.env.production` on the VM.
+
+Verify end-to-end after deploying: request a signup OTP, then
+`./scripts/logs_worker.sh` should show `send_signup_otp_email … succeeded` and the
+email should arrive.
+
+> **Alternative (only if Render itself can send email):** if you instead fix
+> Render's outbound email (e.g. switch to Brevo's HTTP API, or a provider without
+> IP allow-listing), you can keep OTP on Render with `EMAIL_TASKS_STAY_LOCAL=True`
+> + `EMAIL_SEND_IN_THREAD=True` (async on Render, no VM dependency). With Brevo
+> SMTP + Render's dynamic IPs, sending from the Oracle VM is the reliable path.
 
 ---
 
