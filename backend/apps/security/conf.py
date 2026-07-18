@@ -119,6 +119,10 @@ _ENV_OVERRIDES = {
     "SECURITY_RATE_TENANT_LIMIT": "rate_limits.tenant_global.limit",
     "SECURITY_RATE_TENANT_WINDOW": "rate_limits.tenant_global.window_seconds",
     "SECURITY_EVENTS_PERSIST": "events.persist",
+    # False = write SecurityEvent rows inline (no broker) instead of via Celery.
+    # Set False on a Render + remote-worker split so per-request security events
+    # don't publish to the remote broker on the hot path.
+    "SECURITY_EVENTS_PERSIST_ASYNC": "events.persist_async",
     "SECURITY_EVENTS_RETENTION_DAYS": "events.retention_days",
     # Auth protection (Prompt 08)
     "SECURITY_AUTH_ENABLED": "auth.enabled",

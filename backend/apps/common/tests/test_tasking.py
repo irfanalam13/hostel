@@ -57,6 +57,21 @@ def test_runs_inline_and_raises_on_failure_in_test_mode():
     assert raised, "inline dispatch must surface the failure to the caller"
 
 
+@override_settings(
+    CELERY_TASK_ALWAYS_EAGER=False,
+    EMAIL_TASKS_STAY_LOCAL=True,
+    EMAIL_SEND_IN_THREAD=True,
+)
+def test_stays_local_even_when_a_worker_is_present():
+    # Split deploy: a worker exists (eager off) but email must stay on this host.
+    # It must NOT hit the broker; it runs in a local thread instead.
+    task = _FakeTask()
+    assert dispatch_task(task, "x") is None
+    assert task.delay_args is None, "must not publish email to the broker"
+    assert task.ran.wait(timeout=5), "task should run locally, off-thread"
+    assert task.apply_calls[0][0] == ("x",)
+
+
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True, EMAIL_SEND_IN_THREAD=True)
 def test_runs_in_background_thread_without_blocking_or_raising():
     task = _FakeTask()

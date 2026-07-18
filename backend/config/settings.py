@@ -1,3 +1,4 @@
+import ssl
 from pathlib import Path
 from datetime import timedelta
 
@@ -502,6 +503,15 @@ CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=
 # Off in dev/tests: dev has a real worker, and tests want deterministic inline
 # delivery into mail.outbox.
 EMAIL_SEND_IN_THREAD = env.bool("EMAIL_SEND_IN_THREAD", default=not DEBUG)
+# Split deploy (Django on Render + a Celery worker on a separate/free host):
+# even with a worker (CELERY_TASK_ALWAYS_EAGER=False) keep user-facing OTP /
+# transactional email on THIS host so delivery never depends on that worker
+# being up. dispatch_task then runs those tasks in a local daemon thread
+# (see apps.common.tasking) instead of publishing them to the broker. Only the
+# heavy/background tasks (backups, AI ingestion, push fan-out) ride the broker
+# to the worker. Off by default: a single-service or co-located-worker deploy
+# keeps the previous behaviour.
+EMAIL_TASKS_STAY_LOCAL = env.bool("EMAIL_TASKS_STAY_LOCAL", default=False)
 
 # ---------------------------------------------------------------------------
 # AI assistant (apps.assistant BFF <-> ML_hostel microservice)
@@ -649,6 +659,83 @@ for _pair in _domain_limits_raw.split(","):
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = False
 CELERY_TASK_ACKS_LATE = True
+
+# ---------------------------------------------------------------------------
+# Celery worker / broker hardening (Oracle worker deployment)
+#
+# These knobs are consumed by a *real* worker/producer; the eager Render
+# deploy (CELERY_TASK_ALWAYS_EAGER=True) runs tasks inline and never touches
+# the broker, so nothing here changes its behaviour. Everything is env-driven
+# so the dedicated Oracle Celery VM can be tuned without a code change.
+# See docs/deployment/oracle-worker.md.
+# ---------------------------------------------------------------------------
+# JSON-only wire format (safe; no pickle). These match Celery's own defaults
+# but are pinned explicitly so the contract is visible in production.
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+
+# Survive a broker (Redis) blip: keep retrying the connection at startup and at
+# runtime instead of crashing the worker. 0 = retry forever.
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = env.int(
+    "CELERY_BROKER_CONNECTION_MAX_RETRIES", default=0
+)
+
+# Redis transport options. `visibility_timeout` is how long a task reserved by a
+# worker may run before Redis assumes it was lost and redelivers it — it MUST
+# exceed the longest-running task (backups can take a while), or that task gets
+# duplicated. `socket_keepalive` lets a dead TCP connection be noticed promptly.
+_celery_visibility_timeout = env.int("CELERY_VISIBILITY_TIMEOUT", default=3600)
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "visibility_timeout": _celery_visibility_timeout,
+    "socket_keepalive": True,
+}
+CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
+    "visibility_timeout": _celery_visibility_timeout,
+}
+
+# Fair dispatch: with long tasks, prefetch=1 stops one worker hogging the queue.
+CELERY_WORKER_PREFETCH_MULTIPLIER = env.int(
+    "CELERY_WORKER_PREFETCH_MULTIPLIER", default=1
+)
+# Recycle each worker process after N tasks / M kilobytes of RSS to cap slow
+# memory growth on the small Oracle Free-tier VM (max_memory is in KB).
+CELERY_WORKER_MAX_TASKS_PER_CHILD = env.int(
+    "CELERY_WORKER_MAX_TASKS_PER_CHILD", default=1000
+)
+CELERY_WORKER_MAX_MEMORY_PER_CHILD = env.int(
+    "CELERY_WORKER_MAX_MEMORY_PER_CHILD", default=300_000
+)
+
+# Publish-side retry policy (used by .delay()/apply_async on the producer): retry
+# a few times if the broker is momentarily unreachable rather than raising.
+CELERY_TASK_PUBLISH_RETRY = True
+CELERY_TASK_PUBLISH_RETRY_POLICY = {
+    "max_retries": env.int("CELERY_PUBLISH_MAX_RETRIES", default=3),
+    "interval_start": 0,
+    "interval_step": 0.5,
+    "interval_max": 3,
+}
+
+# TLS for a rediss:// broker / result backend (e.g. Upstash, Redis Cloud TLS).
+# Kombu warns "Secure redis scheme specified (rediss) with no ssl options" when
+# a rediss:// URL is used without ssl options — supplying them silences it and
+# actually verifies the certificate. Only set when the URL really is rediss://:
+# passing ssl options with a plain redis:// URL raises ValueError at startup.
+# CELERY_SSL_CERT_REQS: CERT_REQUIRED (default, verify the cert — correct for
+# Upstash/Redis-Cloud which present valid certs), CERT_OPTIONAL, or CERT_NONE
+# (only for providers with self-signed certs).
+_celery_ssl_cert_reqs = {
+    "CERT_NONE": ssl.CERT_NONE,
+    "CERT_OPTIONAL": ssl.CERT_OPTIONAL,
+    "CERT_REQUIRED": ssl.CERT_REQUIRED,
+}.get(env("CELERY_SSL_CERT_REQS", default="CERT_REQUIRED").upper(), ssl.CERT_REQUIRED)
+
+if CELERY_BROKER_URL.startswith("rediss://"):
+    CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": _celery_ssl_cert_reqs}
+if CELERY_RESULT_BACKEND.startswith("rediss://"):
+    CELERY_REDIS_BACKEND_USE_SSL = {"ssl_cert_reqs": _celery_ssl_cert_reqs}
 
 # ---------------------------------------------------------------------------
 # Disaster recovery (Phase 4)
