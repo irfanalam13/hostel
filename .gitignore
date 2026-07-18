@@ -12,6 +12,14 @@
 !.env.example
 !.env.*.example
 !.env.sample
+# Production worker env (Oracle VM) — explicit, though covered by .env.* above.
+.env.production
+backend/.env.production
+
+# --- Keys & certificates — NEVER commit ------------------------------------
+# SSH/TLS private keys, PEM bundles (e.g. the Oracle VM key pair).
+*.pem
+*.key
 
 # SOPS-encrypted secrets ARE safe to commit; plaintext age private keys are NOT.
 *.agekey

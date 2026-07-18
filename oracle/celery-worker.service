@@ -1,0 +1,40 @@
+# =============================================================================
+# systemd unit — run the Hostel Celery worker on boot and keep it alive.
+#
+# Install on the Oracle Ubuntu 24.04 VM:
+#   sudo cp oracle/celery-worker.service /etc/systemd/system/celery-worker.service
+#   # edit WorkingDirectory below to your clone path if it is not /opt/hostel
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now celery-worker.service
+#   sudo systemctl status celery-worker.service
+#
+# This runs `docker compose ... up` in the FOREGROUND so systemd supervises the
+# compose lifecycle (Docker's own `restart: unless-stopped` still restarts an
+# individual crashed container; systemd restarts the whole stack on host reboot).
+#
+# NOTE: choose ONE supervisor. If you deploy with ./scripts/deploy_worker.sh
+# (detached `up -d`), Docker's restart policy already survives reboots when the
+# docker service is enabled — you do not also need this unit. Use this unit when
+# you prefer systemd to own start-on-boot.
+# =============================================================================
+[Unit]
+Description=Hostel Celery Worker (Docker Compose)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Absolute path to the repository clone on the VM (edit if different).
+WorkingDirectory=/opt/hostel
+# Bring the stack up attached; add `--profile beat` to also run the scheduler.
+ExecStartPre=-/usr/bin/docker compose -f backend/docker-compose.worker.yml down
+ExecStart=/usr/bin/docker compose -f backend/docker-compose.worker.yml up
+ExecStop=/usr/bin/docker compose -f backend/docker-compose.worker.yml down
+Restart=always
+RestartSec=10
+# Docker pulls/builds can be slow on the first boot — don't time out the start.
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

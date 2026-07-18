@@ -1,0 +1,93 @@
+# =============================================================================
+# Hostel SaaS — dedicated Celery Worker stack for an Oracle Cloud Ubuntu VM.
+#
+# The Django API stays on Render. This host runs ONLY the background worker
+# (and optionally Beat). There is NO database and NO Redis container here —
+# both are external and reached over the network via the .env.production URLs.
+#
+#   Deploy / update:  ../scripts/deploy_worker.sh   (build + recreate)
+#   Logs:             ../scripts/logs_worker.sh
+#   Status:           ../scripts/status_worker.sh
+#
+# Config comes entirely from `.env.production`, which lives NEXT TO this file
+# (backend/.env.production). Copy backend/.env.production.example to start.
+# =============================================================================
+
+# Shared build + env for every service in this file. Anchors keep the worker and
+# the optional beat service byte-for-byte identical except for their command.
+x-worker-base: &worker-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: hostel-worker:latest
+  restart: unless-stopped
+  env_file: .env.production
+  # This host never owns the schema — Render's web service runs migrations.
+  # Sidecars skipping migrate avoids racing on the same database.
+  environment:
+    RUN_MIGRATIONS: "0"
+  # Cap resources so the worker can't exhaust the Oracle Free-tier VM (1 OCPU /
+  # 1 GB on the smallest shape). Tune WORKER_* in .env.production if you resize.
+  mem_limit: ${WORKER_MEM_LIMIT:-512m}
+  cpus: ${WORKER_CPUS:-1.0}
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  # ---------------------------------------------------------------------------
+  # worker — executes tasks pushed to Redis by the Render Django API.
+  #
+  # --concurrency=1  one child process (Oracle Free VM has a single OCPU).
+  # --without-gossip/--without-mingle  skip the multi-worker coordination
+  #     chatter that's pure overhead for a single-worker deployment.
+  # ---------------------------------------------------------------------------
+  worker:
+    <<: *worker-base
+    command:
+      - celery
+      - -A
+      - config
+      - worker
+      - --loglevel=info
+      - --concurrency=1
+      - --without-gossip
+      - --without-mingle
+    healthcheck:
+      # `inspect ping` exits 0 when at least one worker replies.
+      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-t", "10"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 40s
+
+  # ---------------------------------------------------------------------------
+  # beat — periodic scheduler (backups, retention, domain re-validation).
+  #
+  # OPTIONAL. Only ONE Beat may run across the whole deployment or schedules
+  # fire twice. Enable with the "beat" profile:
+  #     docker compose -f docker-compose.worker.yml --profile beat up -d
+  # Leave it off if Beat already runs elsewhere (e.g. on Render).
+  # ---------------------------------------------------------------------------
+  beat:
+    <<: *worker-base
+    profiles: ["beat"]
+    command:
+      - celery
+      - -A
+      - config
+      - beat
+      - --loglevel=info
+      - --schedule
+      - /tmp/celerybeat-schedule
+      - --pidfile=/tmp/celerybeat.pid
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "python -c \"import os; os.kill(int(open('/tmp/celerybeat.pid').read()), 0)\""
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
