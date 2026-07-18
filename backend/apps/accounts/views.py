@@ -451,9 +451,10 @@ class SignupOTPRequestView(APIView):
         # i.e. we can't even queue the work — surfaces as 502, so misconfig stays
         # visible instead of being hidden.
         from .tasks import send_signup_otp_email
+        from apps.common.tasking import dispatch_task
 
         try:
-            send_signup_otp_email.delay(email, otp_code)
+            dispatch_task(send_signup_otp_email, email, otp_code)
         except Exception:
             return Response(
                 {"detail": "Could not send the verification email. Please try again later."},
@@ -502,9 +503,10 @@ class SignupView(APIView):
         # enqueue best-effort and let the account creation stand regardless.
         if hostel and user.email:
             from .tasks import send_hostel_id_email
+            from apps.common.tasking import dispatch_task
 
             try:
-                send_hostel_id_email.delay(user.email, user.username, hostel.name, hostel.code)
+                dispatch_task(send_hostel_id_email, user.email, user.username, hostel.name, hostel.code)
             except Exception:
                 logger.warning("Could not enqueue Hostel ID email for %s", user.email)
 
@@ -882,9 +884,10 @@ class PasswordResetRequestView(APIView):
             # silent send — never an error response here, or the different
             # status would leak whether the account exists.
             from .tasks import send_password_reset_otp_email
+            from apps.common.tasking import dispatch_task
 
             try:
-                send_password_reset_otp_email.delay(user.email, otp_code)
+                dispatch_task(send_password_reset_otp_email, user.email, otp_code)
             except Exception:
                 try:
                     send_mail(
@@ -1003,9 +1006,10 @@ class ForgotHostelIDView(APIView):
                 # fall back to the old synchronous silent send on a broker
                 # failure — the response must stay uniform (no enumeration).
                 from .tasks import send_hostel_id_list_email
+                from apps.common.tasking import dispatch_task
 
                 try:
-                    send_hostel_id_list_email.delay(user.email, user.username, hostels_info)
+                    dispatch_task(send_hostel_id_list_email, user.email, user.username, hostels_info)
                 except Exception:
                     try:
                         send_mail(
