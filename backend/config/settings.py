@@ -482,6 +482,20 @@ REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=REDIS_URL)
 
+# Run tasks inline in the web process when no Celery worker is deployed. On a
+# single-service deploy (e.g. Render without a background worker) transactional
+# emails (signup / password-reset OTPs) and audit/security event writes then
+# complete in-request instead of piling up in a broker nothing drains. Defaults
+# to eager whenever DEBUG is off; dev keeps its real worker + beat (DEBUG=True).
+# Set CELERY_TASK_ALWAYS_EAGER=False on a worker-backed deployment to offload
+# tasks again — the Celery code and every .delay() call site stay unchanged.
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=not DEBUG)
+# A background task that fails is captured on its result rather than raised, so
+# it can never 500 an unrelated request. The OTP views still surface delivery
+# failures: their tasks call self.retry(), which raises even in eager mode, and
+# the view maps it to a 502.
+CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=False)
+
 # ---------------------------------------------------------------------------
 # AI assistant (apps.assistant BFF <-> ML_hostel microservice)
 #

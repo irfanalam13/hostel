@@ -55,6 +55,19 @@ def test_request_otp_requires_valid_email(api):
     assert api.post(REQUEST_OTP, {"email": "not-an-email"}).status_code == 400
 
 
+def test_request_otp_returns_502_when_delivery_fails(api):
+    """No-worker (eager) mode: a real delivery failure must surface as 502, not
+    a silent 200 — otherwise the user waits for a code that was never sent. The
+    task's self.retry() raises even under eager execution and the view maps it
+    to 502."""
+    from unittest import mock
+
+    with mock.patch("apps.accounts.tasks.send_mail", side_effect=Exception("smtp down")):
+        resp = api.post(REQUEST_OTP, {"email": "owner@example.com"})
+    assert resp.status_code == 502
+    assert not mail.outbox
+
+
 # --- step 2: signup ---------------------------------------------------------
 def test_signup_creates_owner_hostel_and_link(api):
     resp = api.post(SIGNUP, _verified_payload(api))
