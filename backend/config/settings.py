@@ -405,7 +405,12 @@ EMAIL_BACKEND = env(
     else "django.core.mail.backends.smtp.EmailBackend",
 )
 EMAIL_HOST = env("EMAIL_HOST", default="")
-EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+# Default to Brevo's alternate submission port 2525, not the conventional 587.
+# Render (and many PaaS) filter outbound SMTP on 25/465/587 — a connect to those
+# times out — but leave 2525 open, and Brevo listens on 2525 for exactly this
+# case. Confirmed from the Render host: 587 -> TimeoutError, 2525 -> OK. Override
+# with EMAIL_PORT for a host/relay that wants a different port.
+EMAIL_PORT = env.int("EMAIL_PORT", default=2525)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
