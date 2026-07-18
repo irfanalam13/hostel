@@ -44,9 +44,9 @@ jobs:
           - image: admin
             dockerfile: frontend/apps/admin/Dockerfile
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: hadolint (${{ matrix.image }})
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: ${{ matrix.dockerfile }}
           # DL3008 (pin apt versions) is intentionally relaxed — base images are
@@ -73,7 +73,7 @@ jobs:
       DATABASE_URL: "postgres://hostel:hostel@localhost:5432/hostel"
       REDIS_URL: "redis://localhost:6379/0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-backend
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -109,7 +109,7 @@ jobs:
     env:
       COMPOSE_FILE: docker-compose.yml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # ---- Production-shaped environment ------------------------------------
       # DEBUG=False everywhere, a freshly generated SECRET_KEY, explicit hosts /

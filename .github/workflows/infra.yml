@@ -36,8 +36,8 @@ jobs:
     name: fmt + validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
       - name: Format check
         run: terraform fmt -check -recursive
       - name: Init (no backend)
@@ -61,8 +61,8 @@ jobs:
       TF_VAR_django_secret_key: ${{ secrets.DJANGO_SECRET_KEY }}
       TF_VAR_ml_shared_secret: ${{ secrets.ML_SHARED_SECRET }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
       - name: Init
         run: terraform init -backend-config=environments/backend-${{ inputs.environment }}.hcl
       - name: Select workspace
