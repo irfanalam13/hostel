@@ -10,6 +10,7 @@ from drf_spectacular.views import (
 
 from apps.common import health, views as common_views
 
+
 urlpatterns = [
     # 🏠 Root status / landing page (proves the backend is up; links to docs)
     path("", common_views.index, name="index"),
