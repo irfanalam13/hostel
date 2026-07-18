@@ -253,12 +253,15 @@ REST_FRAMEWORK = {
     # tenant-aware, monitor-mode-aware. It's config-gated (role_limits.enabled,
     # off in dev) so it's a no-op until switched on. The built-in Anon/User
     # throttles stay for backward compatibility; ScopedRateThrottle still
-    # serves any view using the legacy `throttle_scope`.
+    # serves any view using the legacy `throttle_scope`. We use cache-resilient
+    # subclasses: DRF's built-ins keep their history in the Django cache and a
+    # Redis outage would otherwise 500 every anonymous endpoint that reaches
+    # the throttle stage (e.g. /api/auth/csrf/) — these fail open instead.
     "DEFAULT_THROTTLE_CLASSES": (
         "apps.security.throttles.RoleRateThrottle",
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
-        "rest_framework.throttling.ScopedRateThrottle",
+        "apps.security.throttles.ResilientAnonRateThrottle",
+        "apps.security.throttles.ResilientUserRateThrottle",
+        "apps.security.throttles.ResilientScopedRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
         "anon": env("THROTTLE_ANON", default="60/min"),

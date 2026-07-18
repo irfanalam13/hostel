@@ -17,9 +17,72 @@ Two families:
   expensive surfaces (exports, analytics, search, AI, notifications, payments,
   uploads).
 """
+import logging
+
+from rest_framework.throttling import (
+    AnonRateThrottle,
+    ScopedRateThrottle,
+    UserRateThrottle,
+)
+
 from .throttling import IPScopedThrottle, SecurityScopedThrottle, TenantScopedThrottle
 from . import engine
 from .conf import get_config
+
+logger = logging.getLogger("apps.security")
+
+
+# --------------------------------------------------------------------------- #
+# Cache-resilient wrappers for DRF's built-in throttles
+# --------------------------------------------------------------------------- #
+# DRF's built-in throttles (Anon/User/Scoped) keep their history in the Django
+# cache and call ``cache.get``/``cache.set`` directly, with no error handling.
+# When the cache backend (Redis) is unreachable, that call raises and turns
+# EVERY anonymous endpoint that reaches the throttle stage — most visibly
+# ``/api/auth/csrf/``, which the SPA hits before it can do anything — into a
+# 500. The platform's own engine-backed throttles already degrade to an
+# in-process window on a Redis outage (see ``engine.check``); these wrappers
+# give the built-ins the same contract so a cache outage never 500s, matching
+# the promise in the ``CACHES`` note in settings.
+try:  # redis-py errors don't subclass builtin ConnectionError, so name them.
+    from redis.exceptions import RedisError as _RedisError
+
+    _CACHE_ERRORS = (_RedisError, ConnectionError, TimeoutError, OSError)
+except Exception:  # pragma: no cover - redis always present in this stack
+    _CACHE_ERRORS = (ConnectionError, TimeoutError, OSError)
+
+
+class CacheResilientThrottleMixin:
+    """Fail open (allow the request) when the throttle's cache is unreachable.
+
+    Availability first: the edge/tenant rate limiters and ``RoleRateThrottle``
+    still apply, so failing this redundant layer open during a cache outage is
+    the right trade-off — and it stops a Redis outage from 500-ing the auth
+    handshake.
+    """
+
+    def allow_request(self, request, view):
+        try:
+            return super().allow_request(request, view)
+        except _CACHE_ERRORS:
+            logger.warning(
+                "throttle cache unavailable; failing open for %s",
+                getattr(self, "scope", type(self).__name__),
+                exc_info=True,
+            )
+            return True
+
+
+class ResilientAnonRateThrottle(CacheResilientThrottleMixin, AnonRateThrottle):
+    pass
+
+
+class ResilientUserRateThrottle(CacheResilientThrottleMixin, UserRateThrottle):
+    pass
+
+
+class ResilientScopedRateThrottle(CacheResilientThrottleMixin, ScopedRateThrottle):
+    pass
 
 
 # --------------------------------------------------------------------------- #
