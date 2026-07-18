@@ -9,7 +9,7 @@ python-dateutil
 weasyprint
 # PDF text extraction for the AI knowledge base (apps.aiknowledge ingestion)
 pypdf>=4.0
-psycopg[binary]>=3.2
+psycopg[binary]>=3.3.4
 Pillow>=10.0
 celery
 redis
