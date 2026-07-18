@@ -702,6 +702,25 @@ CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
     "visibility_timeout": _celery_visibility_timeout,
 }
 
+# Every task in this project is fire-and-forget — nothing ever reads an
+# AsyncResult — so don't store results at all. This keeps task execution
+# (and, crucially, a producer's apply_async in a web request) from ever
+# touching the result backend. Without it, a broken/unreachable result-store
+# Redis makes Celery run a ~20×1s reconnect loop ("Connection to Redis lost:
+# Retry N/20" → "Retry limit exceeded while trying to reconnect to the Celery
+# result store backend") that blocked request-otp for ~20s even after the OTP
+# itself was moved off the broker. Re-enable per-task with ignore_result=False
+# if a task ever needs its return value.
+CELERY_TASK_IGNORE_RESULT = env.bool("CELERY_TASK_IGNORE_RESULT", default=True)
+# Belt-and-suspenders: if the result backend is ever contacted anyway, fail fast
+# instead of the long reconnect loop above.
+CELERY_RESULT_BACKEND_ALWAYS_RETRY = env.bool(
+    "CELERY_RESULT_BACKEND_ALWAYS_RETRY", default=False
+)
+CELERY_RESULT_BACKEND_MAX_RETRIES = env.int(
+    "CELERY_RESULT_BACKEND_MAX_RETRIES", default=1
+)
+
 # Fair dispatch: with long tasks, prefetch=1 stops one worker hogging the queue.
 CELERY_WORKER_PREFETCH_MULTIPLIER = env.int(
     "CELERY_WORKER_PREFETCH_MULTIPLIER", default=1
