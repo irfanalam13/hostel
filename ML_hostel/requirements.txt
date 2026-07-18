@@ -1,6 +1,6 @@
 # ML_hostel AI service — runtime deps (kept intentionally small).
 fastapi>=0.139.2
-uvicorn[standard]>=0.30
+uvicorn[standard]>=0.51.0
 httpx>=0.28.1
 PyJWT>=2.13.0
 # pydantic ships with fastapi; pinned major here for clarity.
