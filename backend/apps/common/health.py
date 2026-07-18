@@ -88,6 +88,57 @@ def health_cache(request):
 @csrf_exempt
 @never_cache
 @require_GET
+def health_email_egress(request):
+    """TEMPORARY diagnostic: can this host reach the configured SMTP relay?
+
+    Reports the configured EMAIL_HOST/PORT (not secrets — no username/password)
+    and TCP-connect results to the configured port plus the common Brevo ports,
+    so we can tell a port misconfig (e.g. 25) from an egress block from a DNS
+    problem. Remove once the OTP-delivery cause is confirmed.
+    """
+    import socket
+
+    host = getattr(settings, "EMAIL_HOST", "") or "smtp-relay.brevo.com"
+    configured_port = int(getattr(settings, "EMAIL_PORT", 587) or 587)
+
+    def probe(port):
+        try:
+            infos = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+        except Exception as exc:
+            return {"dns": "FAIL", "error": type(exc).__name__, "detail": str(exc)}
+        fam, _, _, _, sa = infos[0]
+        family = "IPv6" if fam == socket.AF_INET6 else "IPv4"
+        s = socket.socket(fam, socket.SOCK_STREAM)
+        s.settimeout(6)
+        try:
+            s.connect(sa)
+            return {"connect": "OK", "ip": sa[0], "family": family}
+        except Exception as exc:
+            return {"connect": "FAIL", "ip": sa[0], "family": family,
+                    "error": type(exc).__name__}
+        finally:
+            s.close()
+
+    ports = sorted({configured_port, 587, 465, 2525, 25})
+    return _json(
+        {
+            "status": "ok",
+            "component": "email-egress",
+            "email_host": host,
+            "email_port": configured_port,
+            "use_tls": getattr(settings, "EMAIL_USE_TLS", None),
+            "use_ssl": getattr(settings, "EMAIL_USE_SSL", None),
+            "email_timeout": getattr(settings, "EMAIL_TIMEOUT", None),
+            "backend": getattr(settings, "EMAIL_BACKEND", ""),
+            "probes": {str(p): probe(p) for p in ports},
+        },
+        healthy=True,
+    )
+
+
+@csrf_exempt
+@never_cache
+@require_GET
 def health_celery(request):
     """Readiness probe for Celery workers (broadcast ping)."""
     try:
