@@ -1,4 +1,4 @@
-import { apiFetch } from "@hostel/api";
+import { apiFetch, AUTH_TIMEOUT_MS } from "@hostel/api";
 
 export type SignupPayload = {
   username: string;
@@ -110,6 +110,7 @@ export const authApi = {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
+      timeoutMs: AUTH_TIMEOUT_MS,
     });
   },
 
@@ -143,6 +144,7 @@ export const authApi = {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
+      timeoutMs: AUTH_TIMEOUT_MS,
     });
   },
 
@@ -152,6 +154,7 @@ export const authApi = {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
+      timeoutMs: AUTH_TIMEOUT_MS,
     });
   },
 
@@ -203,6 +206,7 @@ export const authApi = {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
+      timeoutMs: AUTH_TIMEOUT_MS,
     });
   },
 
@@ -211,6 +215,7 @@ export const authApi = {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
+      timeoutMs: AUTH_TIMEOUT_MS,
     });
   },
 
@@ -219,6 +224,7 @@ export const authApi = {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
+      timeoutMs: AUTH_TIMEOUT_MS,
     });
   },
 };
