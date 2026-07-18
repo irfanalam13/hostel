@@ -24,7 +24,7 @@ from django.db.utils import OperationalError
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_safe
 
 
 def _json(payload, *, healthy):
@@ -33,7 +33,7 @@ def _json(payload, *, healthy):
 
 @csrf_exempt
 @never_cache
-@require_GET
+@require_safe
 def health(request):
     """Liveness probe — cheap, touches no external dependency."""
     return _json({"status": "ok"}, healthy=True)
