@@ -33,7 +33,17 @@ type ApiOptions = RequestInit & {
 // can show an error state) instead of leaving the app on a skeleton forever.
 export const API_TIMEOUT_MS = (() => {
   const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
-  return Number.isFinite(raw) && raw > 0 ? raw : 20_000;
+  return Number.isFinite(raw) && raw > 0 ? raw : 30_000;
+})();
+
+// Auth-handshake calls (csrf, login, signup, OTP, password reset) get a longer
+// budget than data calls: they hit endpoints that can cold-start the backend
+// (a spun-down host takes ~30-60s to wake) and do slow work (DB writes + email),
+// so a 20-30s ceiling would abort a request that's actually progressing
+// ("signal is aborted without reason"). Overridable via NEXT_PUBLIC_AUTH_TIMEOUT_MS.
+export const AUTH_TIMEOUT_MS = (() => {
+  const raw = Number(process.env.NEXT_PUBLIC_AUTH_TIMEOUT_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : 60_000;
 })();
 
 function fetchWithTimeout(
@@ -134,7 +144,11 @@ async function ensureCsrf(force = false): Promise<string | null> {
     }
   }
   try {
-    const res = await fetchWithTimeout(apiUrl("/auth/csrf/"), { credentials: "include", cache: "no-store" });
+    const res = await fetchWithTimeout(
+      apiUrl("/auth/csrf/"),
+      { credentials: "include", cache: "no-store" },
+      AUTH_TIMEOUT_MS,
+    );
     const body = (await res.json().catch(() => null)) as { csrftoken?: string } | null;
     csrfToken = body?.csrftoken || readCookie("csrftoken") || null;
   } catch {

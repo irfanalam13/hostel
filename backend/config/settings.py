@@ -495,6 +495,13 @@ CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=not DEBU
 # failures: their tasks call self.retry(), which raises even in eager mode, and
 # the view maps it to a 502.
 CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=False)
+# With no worker, an email would otherwise send INLINE and block the HTTP
+# response on the SMTP round-trip (seconds — enough to trip the SPA's ~20s
+# request timeout and gunicorn's worker timeout). Dispatch it to a short-lived
+# daemon thread instead so the request returns immediately (apps.common.tasking).
+# Off in dev/tests: dev has a real worker, and tests want deterministic inline
+# delivery into mail.outbox.
+EMAIL_SEND_IN_THREAD = env.bool("EMAIL_SEND_IN_THREAD", default=not DEBUG)
 
 # ---------------------------------------------------------------------------
 # AI assistant (apps.assistant BFF <-> ML_hostel microservice)

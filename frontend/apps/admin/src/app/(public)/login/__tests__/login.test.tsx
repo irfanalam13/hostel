@@ -13,6 +13,7 @@ vi.mock("@hostel/api", () => ({
   // Workspace-level failures aren't exercised here (jsdom host is localhost,
   // so no workspace is resolved and no branding fetch happens).
   isWorkspaceError: () => false,
+  AUTH_TIMEOUT_MS: 60_000,
 }));
 
 import LoginPage from "@/app/(public)/login/page";
