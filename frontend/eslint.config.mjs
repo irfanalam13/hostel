@@ -42,6 +42,11 @@ const eslintConfig = defineConfig([
     "apps/*/.next/**",
     "apps/*/out/**",
     "apps/*/next-env.d.ts",
+    // Generated artifacts — never lint these.
+    "coverage/**",
+    "apps/*/coverage/**",
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

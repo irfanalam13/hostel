@@ -48,12 +48,17 @@ export function useApi<T>(
   const [error, setError] = useState<string | null>(null);
 
   // Keep latest callbacks/fetcher without forcing refetch identity churn.
+  // useRef seeds the initial value, and this effect keeps it fresh on later
+  // renders — synced post-commit (never mutated during render) so refetch, which
+  // reads these refs, always sees the current fetcher/options.
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
   const optsRef = useRef(options);
-  optsRef.current = options;
   const inFlight = useRef(false);
   const mounted = useRef(true);
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+    optsRef.current = options;
+  });
 
   useEffect(() => {
     mounted.current = true;

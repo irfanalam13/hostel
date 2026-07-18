@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -153,21 +153,28 @@ function useReport<T>(fetcher: () => Promise<T>, deps: React.DependencyList) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Keep the latest fetcher in a ref so `load` can have a literal (stable) dep
+  // list; the caller-provided `deps` drives the re-run via the effect below.
+  const fetcherRef = useRef(fetcher);
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  });
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setData(await fetcher());
+      setData(await fetcherRef.current());
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [toast]);
 
   useEffect(() => {
     load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
 
   return { data, loading };
 }
