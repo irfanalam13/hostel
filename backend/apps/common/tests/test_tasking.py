@@ -72,6 +72,24 @@ def test_stays_local_even_when_a_worker_is_present():
     assert task.apply_calls[0][0] == ("x",)
 
 
+@override_settings(
+    CELERY_TASK_ALWAYS_EAGER=False,
+    EMAIL_TASKS_STAY_LOCAL=False,
+    EMAIL_SEND_IN_THREAD=True,
+)
+def test_local_override_never_hits_the_broker():
+    # Regression for the request-otp 502: a worker is configured (eager off) and
+    # EMAIL_TASKS_STAY_LOCAL is off, so the default policy would .delay() to the
+    # broker. On a broken/unreachable broker that publish blocks and 502s the
+    # request. local=True must force the on-host path and NEVER call .delay(),
+    # regardless of the eager/stay-local config.
+    task = _FakeTask()
+    assert dispatch_task(task, "x", local=True) is None
+    assert task.delay_args is None, "local=True must not publish to the broker"
+    assert task.ran.wait(timeout=5), "task should run locally, off-thread"
+    assert task.apply_calls[0][0] == ("x",)
+
+
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True, EMAIL_SEND_IN_THREAD=True)
 def test_runs_in_background_thread_without_blocking_or_raising():
     task = _FakeTask()

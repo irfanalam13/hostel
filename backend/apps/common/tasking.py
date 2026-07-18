@@ -57,14 +57,30 @@ def _run_local(task, args, kwargs):
     return task.apply(args=args, kwargs=kwargs, throw=True)
 
 
-def dispatch_task(task, *args, **kwargs):
-    """Run ``task`` off the request cycle, per the module-level policy."""
+def dispatch_task(task, *args, local=False, **kwargs):
+    """Run ``task`` off the request cycle, per the module-level policy.
+
+    ``local=True`` forces the on-host path (thread/inline) unconditionally,
+    bypassing the broker even when a worker is configured (eager off,
+    ``EMAIL_TASKS_STAY_LOCAL`` off). Use it for latency-critical, user-facing
+    transactional email — signup/password-reset OTP, Hostel-ID — whose delivery
+    must never *depend on* or *block on* the broker/worker being reachable.
+
+    This is the guard against the request-otp 502: with a worker configured
+    (eager off) but the broker unreachable/misconfigured, ``task.delay`` blocks
+    while it retries the broker connection — long past gunicorn's/the SPA's
+    timeout — before it can even raise, so the user only sees a Bad Gateway.
+    ``local=True`` never opens a broker connection, so the request returns
+    immediately regardless of broker health or the per-deployment
+    ``CELERY_TASK_ALWAYS_EAGER`` / ``EMAIL_TASKS_STAY_LOCAL`` env values.
+    """
     eager = getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False)
     stay_local = getattr(settings, "EMAIL_TASKS_STAY_LOCAL", False)
 
-    # Offload to the broker/worker only when a worker is expected (eager off)
-    # AND we haven't been told to keep these user-facing emails on the web host.
-    if not eager and not stay_local:
+    # Offload to the broker/worker only when a worker is expected (eager off),
+    # we haven't been told to keep these user-facing emails on the web host, and
+    # this specific call didn't demand the local path.
+    if not local and not eager and not stay_local:
         return task.delay(*args, **kwargs)
 
     return _run_local(task, args, kwargs)

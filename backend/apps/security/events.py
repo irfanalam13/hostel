@@ -95,7 +95,11 @@ def _persist(payload: dict, use_async: bool) -> None:
         try:
             from .tasks import persist_security_event
 
-            persist_security_event.delay(payload)
+            # retry=False: this runs inside the request. If the broker is
+            # unreachable/misconfigured, fail immediately and fall through to the
+            # inline write — never retry the broker connection, which would block
+            # the request for seconds (and can 502 it).
+            persist_security_event.apply_async((payload,), retry=False)
             return
         except Exception:
             pass  # broker down — fall through to the inline write

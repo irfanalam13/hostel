@@ -117,7 +117,11 @@ def record_event(
             try:
                 from .tasks import persist_audit_event
 
-                persist_audit_event.delay(payload)
+                # retry=False: this runs inside the request. If the broker is
+                # unreachable/misconfigured, fail immediately and fall back to
+                # the synchronous write below — never retry the broker connection
+                # (that would block the request for seconds and can 502 it).
+                persist_audit_event.apply_async((payload,), retry=False)
                 return
             except Exception:
                 pass

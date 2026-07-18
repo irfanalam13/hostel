@@ -690,6 +690,13 @@ _celery_visibility_timeout = env.int("CELERY_VISIBILITY_TIMEOUT", default=3600)
 CELERY_BROKER_TRANSPORT_OPTIONS = {
     "visibility_timeout": _celery_visibility_timeout,
     "socket_keepalive": True,
+    # Bound the broker connection so an unreachable/misconfigured broker can't
+    # stall a producer (a web request doing .delay()/apply_async) on the OS TCP
+    # timeout. A healthy broker connects in <10ms, so this only bites during an
+    # outage — where failing fast lets the in-request sync fallbacks (audit /
+    # security events) run instead of the request hanging and 502-ing.
+    "socket_connect_timeout": env.float("CELERY_BROKER_CONNECT_TIMEOUT", default=2.0),
+    "socket_timeout": env.float("CELERY_BROKER_SOCKET_TIMEOUT", default=2.0),
 }
 CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
     "visibility_timeout": _celery_visibility_timeout,
