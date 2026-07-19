@@ -43,7 +43,7 @@ def dr_alert(event: str, message: str, *, level=logging.ERROR, hostel=None, meta
     # Email (best-effort).
     try:
         recipients = getattr(settings, "DR_ALERT_EMAILS", []) or []
-        if recipients and getattr(settings, "EMAIL_HOST", ""):
+        if recipients and getattr(settings, "BREVO_API_KEY", ""):
             send_mail(
                 subject=f"[Hostel DR] {event}",
                 message=text,

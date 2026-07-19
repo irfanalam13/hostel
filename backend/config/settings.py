@@ -396,26 +396,25 @@ if not DEBUG:
     X_FRAME_OPTIONS = "DENY"
 
 # ---------------------------------------------------------------------------
-# Email (password reset). Console backend in dev; SMTP via env in prod.
+# Email — Brevo transactional HTTP API only (no SMTP).
+#
+# PaaS egress firewalls (Render's free/starter tiers included) filter outbound
+# SMTP on every port — 25/465/587 and even 2525 aren't reliable — so a send just
+# hangs until timeout. Brevo's HTTP API goes over plain HTTPS/443, which is never
+# blocked. In prod we send exclusively through it; dev uses the console backend
+# so no key is needed locally.
 # ---------------------------------------------------------------------------
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend"
     if DEBUG
-    else "django.core.mail.backends.smtp.EmailBackend",
+    else "apps.common.email_backends.BrevoAPIEmailBackend",
 )
-EMAIL_HOST = env("EMAIL_HOST", default="")
-# Default to Brevo's alternate submission port 2525, not the conventional 587.
-# Render (and many PaaS) filter outbound SMTP on 25/465/587 — a connect to those
-# times out — but leave 2525 open, and Brevo listens on 2525 for exactly this
-# case. Confirmed from the Render host: 587 -> TimeoutError, 2525 -> OK. Override
-# with EMAIL_PORT for a host/relay that wants a different port.
-EMAIL_PORT = env.int("EMAIL_PORT", default=2525)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
-EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+# Brevo → SMTP & API → API Keys. The only credential email needs now.
+BREVO_API_KEY = env("BREVO_API_KEY", default="")
+BREVO_API_URL = env("BREVO_API_URL", default="https://api.brevo.com/v3/smtp/email")
 EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
+# Must be a verified sender in Brevo (Senders, Domains & Dedicated IPs).
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@hostel.local")
 FRONTEND_URL = env("FRONTEND_URL", default="https://hostel-ten-hazel.vercel.app/")
 

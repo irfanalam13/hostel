@@ -24,7 +24,6 @@ urlpatterns = [
     path("health/celery/", health.health_celery, name="health-celery"),
     path("health/storage/", health.health_storage, name="health-storage"),
     path("health/queue/", health.health_queue, name="health-queue"),
-    path("health/email-egress/", health.health_email_egress, name="health-email-egress"),
 
     # 📄 API Schema & Docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

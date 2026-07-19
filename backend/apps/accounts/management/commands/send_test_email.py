@@ -27,10 +27,8 @@ class Command(BaseCommand):
 
         self.stdout.write("Email configuration:")
         self.stdout.write(f"  EMAIL_BACKEND      = {settings.EMAIL_BACKEND}")
-        self.stdout.write(f"  EMAIL_HOST         = {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
-        self.stdout.write(f"  EMAIL_USE_TLS/SSL  = {settings.EMAIL_USE_TLS}/{settings.EMAIL_USE_SSL}")
-        self.stdout.write(f"  EMAIL_HOST_USER    = {settings.EMAIL_HOST_USER or '(empty)'}")
-        self.stdout.write(f"  password set       = {bool(settings.EMAIL_HOST_PASSWORD)}")
+        self.stdout.write(f"  BREVO_API_KEY set  = {bool(getattr(settings, 'BREVO_API_KEY', ''))}")
+        self.stdout.write(f"  BREVO_API_URL      = {getattr(settings, 'BREVO_API_URL', '')}")
         self.stdout.write(f"  DEFAULT_FROM_EMAIL = {settings.DEFAULT_FROM_EMAIL}")
         self.stdout.write(f"Sending test email to {recipient} ...")
 
