@@ -1,10 +1,12 @@
 """Dispatch Celery tasks off the request cycle — via a worker, a thread, or inline.
 
 Transactional email (OTP / password-reset / Hostel-ID) is latency-sensitive and
-reliability-critical. In the split deployment — Django on Render (free tier),
-a Celery worker on a free Oracle VM — the worker is the *preferred* sender:
-Render's free tier blocks outbound SMTP, so a send attempted on the web host
-just times out, whereas the Oracle worker's egress can reach the SMTP relay.
+reliability-critical. It now goes out via Brevo's HTTP API over HTTPS/443
+(apps.common.email_backends), which works from any host — so it is sent on THIS
+process (see EMAIL_TASKS_STAY_LOCAL), never routed to a separate worker. Only
+heavy/background tasks ride the broker. (Historically the web host couldn't send
+because Render blocks outbound SMTP, so email was pushed to an Oracle worker
+whose egress could reach the SMTP relay; the HTTP API made that detour obsolete.)
 
 ``dispatch_task`` implements that policy:
 

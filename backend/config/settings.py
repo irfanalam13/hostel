@@ -507,15 +507,16 @@ CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=
 # Off in dev/tests: dev has a real worker, and tests want deterministic inline
 # delivery into mail.outbox.
 EMAIL_SEND_IN_THREAD = env.bool("EMAIL_SEND_IN_THREAD", default=not DEBUG)
-# Split deploy (Django on Render + a Celery worker on a separate/free host):
-# even with a worker (CELERY_TASK_ALWAYS_EAGER=False) keep user-facing OTP /
-# transactional email on THIS host so delivery never depends on that worker
-# being up. dispatch_task then runs those tasks in a local daemon thread
-# (see apps.common.tasking) instead of publishing them to the broker. Only the
-# heavy/background tasks (backups, AI ingestion, push fan-out) ride the broker
-# to the worker. Off by default: a single-service or co-located-worker deploy
-# keeps the previous behaviour.
-EMAIL_TASKS_STAY_LOCAL = env.bool("EMAIL_TASKS_STAY_LOCAL", default=False)
+# Keep user-facing OTP / transactional email on THIS host. Email now goes out
+# via Brevo's HTTP API over HTTPS/443 (apps.common.email_backends), which works
+# from any host — the old reason to offload it to a separate Celery worker (that
+# worker's egress could reach SMTP while Render's couldn't) is gone. So delivery
+# must NOT depend on a broker/worker being up: dispatch_task runs these tasks in
+# a local daemon thread (see apps.common.tasking) instead of publishing to the
+# broker. Only heavy/background tasks (backups, AI ingestion, push fan-out) ride
+# the broker to a worker. Default ON — a broker/worker outage can no longer
+# stall or silently drop OTP delivery. Set False only to restore broker routing.
+EMAIL_TASKS_STAY_LOCAL = env.bool("EMAIL_TASKS_STAY_LOCAL", default=True)
 
 # ---------------------------------------------------------------------------
 # AI assistant (apps.assistant BFF <-> ML_hostel microservice)
