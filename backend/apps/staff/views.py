@@ -218,6 +218,7 @@ class StaffViewSet(ModelViewSet):
             username=profile.user.username,
             email=profile.user.email,
             temp_password=temp_password,
+            role_label=profile.user.get_role_display() or "Staff",
         )
         record_event(
             request, action=AuditEvent.Action.CREATE, actor=request.user,

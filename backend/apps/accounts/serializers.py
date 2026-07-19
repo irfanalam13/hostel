@@ -182,6 +182,8 @@ class MeSerializer(serializers.ModelSerializer):
             "is_active",
             "date_joined",
             "last_login",
+            # Drives the frontend first-login forced-password-change gate.
+            "must_change_password",
         )
         read_only_fields = fields
 

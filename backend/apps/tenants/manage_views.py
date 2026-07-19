@@ -256,7 +256,8 @@ class TeamView(APIView):
             raise ValidationError({"email": "This email is already in use."})
 
         temp_password = secrets.token_urlsafe(9)
-        user = User(username=username, email=email, role=role)
+        # Provisioned with a temporary password — force a change on first login.
+        user = User(username=username, email=email, role=role, must_change_password=True)
         user.set_password(temp_password)
         user.save()
         UserHostel.objects.create(user=user, hostel=request.hostel, is_active=True)
@@ -267,27 +268,37 @@ class TeamView(APIView):
 
         if email:
             try:
-                from django.core.mail import send_mail
+                from apps.common.emails import (
+                    send_account_welcome,
+                    welcome_context_from_branding,
+                )
 
                 from .branding import email_branding
 
+                # Tenant-branded (white-label aware): the hostel's own platform
+                # name and URL, never the SaaS brand.
                 brand = email_branding(request.hostel)
-                send_mail(
-                    # Tenant-branded (white-label aware): the hostel's own
-                    # platform name and URL, never the SaaS brand.
-                    subject=f"You've been invited to {brand['sender_name']}",
-                    message=(
-                        f"Hello {username},\n\n"
-                        f"You've been added to {brand['sender_name']}.\n\n"
-                        f"Sign in: {brand['site_url']}\n"
-                        f"Hostel ID: {request.hostel.code}\n"
-                        f"Username: {username}\n"
-                        f"Temporary password: {temp_password}\n\n"
-                        "Please sign in and change your password immediately.\n\n"
-                        f"{brand['footer_text']}"
+                context = welcome_context_from_branding(brand)
+                context.update({
+                    "recipient_name": username,
+                    "workspace_name": request.hostel.name,
+                    "hostel_code": request.hostel.code,
+                    "login_identity": email or username,
+                    "role_label": role.replace("_", " ").title(),
+                    "credential_note": (
+                        f"Your temporary password is: {temp_password}\n"
+                        "You'll be asked to set a new password the first time you sign in."
                     ),
+                    "first_login_note": (
+                        f"Sign in with your email ({email}) or username ({username}) and "
+                        "the temporary password above."
+                    ),
+                })
+                send_account_welcome(
+                    to=email,
+                    subject=f"You've been invited to {brand['sender_name']}",
                     from_email=brand["from_email"],
-                    recipient_list=[email],
+                    context=context,
                     fail_silently=True,
                 )
             except Exception:

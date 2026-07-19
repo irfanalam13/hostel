@@ -140,7 +140,8 @@ def create_staff(*, hostel, actor, validated: dict):
             raise ValidationError({"email": "A member with this email already exists in this workspace."})
 
     temp_password = _temp_password()
-    user = User(username=username, email=email, role=account_role)
+    # Provisioned with a temporary password — force a change on first login.
+    user = User(username=username, email=email, role=account_role, must_change_password=True)
     if validated.get("first_name"):
         user.first_name = validated["first_name"][:150]
     if validated.get("last_name"):
@@ -160,30 +161,36 @@ def create_staff(*, hostel, actor, validated: dict):
     return profile, temp_password
 
 
-def send_invite_email(hostel, *, username, email, temp_password):
-    """Best-effort tenant-branded invite email (never raises)."""
+def send_invite_email(hostel, *, username, email, temp_password, role_label="Staff"):
+    """Best-effort tenant-branded staff invite email (never raises)."""
     if not email:
         return
     try:
-        from django.core.mail import send_mail
-
+        from apps.common.emails import send_account_welcome, welcome_context_from_branding
         from apps.tenants.branding import email_branding
 
         brand = email_branding(hostel)
-        send_mail(
-            subject=f"You've been added to {brand['sender_name']}",
-            message=(
-                f"Hello {username},\n\n"
-                f"A staff account has been created for you at {brand['sender_name']}.\n\n"
-                f"Sign in: {brand['site_url']}\n"
-                f"Workspace ID: {hostel.code}\n"
-                f"Username: {username}\n"
-                f"Temporary password: {temp_password}\n\n"
-                "Please sign in and change your password immediately.\n\n"
-                f"{brand['footer_text']}"
+        context = welcome_context_from_branding(brand)
+        context.update({
+            "recipient_name": username,
+            "workspace_name": hostel.name,
+            "hostel_code": hostel.code,
+            "login_identity": email or username,
+            "role_label": role_label,
+            "credential_note": (
+                f"Your temporary password is: {temp_password}\n"
+                "You'll be asked to set a new password the first time you sign in."
             ),
+            "first_login_note": (
+                f"Sign in with your email ({email}) or username ({username}) and the "
+                "temporary password above."
+            ),
+        })
+        send_account_welcome(
+            to=email,
+            subject=f"You've been added to {brand['sender_name']}",
             from_email=brand["from_email"],
-            recipient_list=[email],
+            context=context,
             fail_silently=True,
         )
     except Exception:
@@ -218,7 +225,10 @@ def reset_password(profile: StaffProfile, *, force_change: bool = True) -> str:
     """Set a fresh temporary password on the staff account. Returns it once."""
     temp = _temp_password()
     profile.user.set_password(temp)
-    profile.user.save(update_fields=["password"])
+    # Mirror the force-change flag onto the User account — the login gate reads
+    # User.must_change_password (works for every role), not the staff profile.
+    profile.user.must_change_password = bool(force_change)
+    profile.user.save(update_fields=["password", "must_change_password"])
     if force_change and not profile.must_change_password:
         profile.must_change_password = True
         profile.save(update_fields=["must_change_password", "updated_at"])

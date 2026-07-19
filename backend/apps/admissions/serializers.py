@@ -222,6 +222,48 @@ class AdmissionDecisionSerializer(serializers.Serializer):
         return bed
 
 
+def send_student_welcome_email(hostel, *, email, student_name, workspace_url_hint=None):
+    """Best-effort tenant-branded welcome email for a newly-approved student.
+
+    Only meaningful when the applicant supplied a real email at admission time
+    (the caller guards on that). The initial password value is NOT printed — the
+    student is told it's their registered phone number and is forced to change it
+    on first login (User.must_change_password=True). Never raises.
+    """
+    if not email:
+        return
+    try:
+        from apps.common.emails import send_account_welcome, welcome_context_from_branding
+        from apps.tenants.branding import email_branding
+
+        brand = email_branding(hostel)
+        context = welcome_context_from_branding(brand)
+        context.update({
+            "recipient_name": student_name,
+            "workspace_name": hostel.name,
+            "hostel_code": hostel.code,
+            "login_identity": email,
+            "role_label": "Resident",
+            "credential_note": (
+                "Your initial password is your registered phone number.\n"
+                "You'll be asked to set a new password the first time you sign in."
+            ),
+            "first_login_note": (
+                f"Your admission to {hostel.name} is approved. Sign in with your "
+                f"email ({email}) at your workspace address above."
+            ),
+        })
+        send_account_welcome(
+            to=email,
+            subject=f"Welcome to {brand['sender_name']} — your admission is approved",
+            from_email=brand["from_email"],
+            context=context,
+            fail_silently=True,
+        )
+    except Exception:
+        pass
+
+
 def approve_admission(admission, user, *, bed=None, join_date=None, decision_note="", **official_data):
     join_date = join_date or admission.booking_date or timezone.localdate()
     # A bed reserved pre-approval via the assign-bed action lands on approved_bed;
@@ -300,6 +342,8 @@ def approve_admission(admission, user, *, bed=None, join_date=None, decision_not
             last_name=" ".join(admission.full_name.split()[1:]) if len(admission.full_name.split()) > 1 else "",
             role="RESIDENT",
             is_active=True,
+            # Default password is their phone number — force a change on first login.
+            must_change_password=True,
         )
         resident_user.set_password(admission.phone)  # Default password is their phone number
         resident_user.save()
@@ -334,5 +378,18 @@ def approve_admission(admission, user, *, bed=None, join_date=None, decision_not
         # Mock Notifications (Log & print)
         bed_label = f"{bed.room.room_no}-{bed.bed_no}" if bed else "None"
         logger.info(f"NOTIFICATION [Email/SMS] to student {student.full_name} ({student.phone}): Your admission request {admission.application_number} is APPROVED. Bed assigned: {bed_label}. Credentials: Username={username}, Password={student.phone}")
+
+        # Welcome email with the workspace URL + login details — only when the
+        # applicant gave a real email (skip the synthetic @hostel.local fallback).
+        # Sent after the approval commits so a rollback never emails the student.
+        if admission.email:
+            hostel = admission.hostel
+            student_email = admission.email
+            student_name = student.full_name
+            transaction.on_commit(
+                lambda: send_student_welcome_email(
+                    hostel, email=student_email, student_name=student_name
+                )
+            )
 
         return admission

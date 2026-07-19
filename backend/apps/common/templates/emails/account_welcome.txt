@@ -1,0 +1,21 @@
+{% autoescape off %}Hello{% if recipient_name %} {{ recipient_name }}{% endif %},
+
+{% if role_label %}Your {{ role_label }} account{% else %}Your account{% endif %}{% if workspace_name %} at {{ workspace_name }}{% endif %} is ready. This is your own private workspace — bookmark the address below and sign in there from now on.
+
+{% if workspace_url %}YOUR WORKSPACE ADDRESS
+{{ workspace_url }}
+
+{% endif %}Sign-in details:
+{% if workspace_name %}- Workspace: {{ workspace_name }}
+{% endif %}{% if login_identity %}- Sign in with: {{ login_identity }}
+{% endif %}{% if hostel_code %}- Hostel ID: {{ hostel_code }}
+{% endif %}{% if role_label %}- Your role: {{ role_label }}
+{% endif %}
+{% if credential_note %}{{ credential_note }}
+
+{% endif %}{% if first_login_note %}{{ first_login_note }}
+
+{% endif %}For your security, choose a strong password and never share it. If you did not expect this email, please contact your hostel administrator{% if support_email %} at {{ support_email }}{% endif %}.
+
+{{ footer_text|default:sender_name }}
+{% endautoescape %}

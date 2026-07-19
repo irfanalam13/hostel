@@ -1,0 +1,115 @@
+{% autoescape on %}<!-- Branded account-welcome email. Table-based, inline styles for
+     email-client compatibility. Driven by apps.common.emails.send_account_welcome.
+     Every field is optional and guarded so one template serves owner, staff,
+     student and team-member onboarding. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0;padding:0;background:#f1f5f9;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <!-- Header -->
+        <tr>
+          <td style="padding:28px 32px 20px;border-bottom:1px solid #eef2f7;">
+            {% if logo %}
+              <img src="{{ logo }}" alt="{{ sender_name }}" height="40" style="height:40px;max-width:200px;display:block;border:0;" />
+            {% else %}
+              <span style="font-size:20px;font-weight:700;color:#0f172a;">{{ sender_name|default:"Your Hostel" }}</span>
+            {% endif %}
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 32px 8px;color:#0f172a;">
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.5;">
+              Hello{% if recipient_name %} {{ recipient_name }}{% endif %},
+            </p>
+            <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#334155;">
+              {% if role_label %}Your <strong>{{ role_label }}</strong> account{% else %}Your account{% endif %}
+              {% if workspace_name %} at <strong>{{ workspace_name }}</strong>{% endif %} is ready.
+              This is your own private workspace — bookmark the address below and sign in there from now on.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Workspace URL card -->
+        {% if workspace_url %}
+        <tr>
+          <td style="padding:0 32px 8px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">
+              <tr>
+                <td style="padding:20px 20px 22px;text-align:center;">
+                  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#64748b;font-weight:600;">Your workspace address</p>
+                  <p style="margin:0 0 16px;font-size:16px;font-weight:600;color:#1d4ed8;word-break:break-all;">{{ workspace_url }}</p>
+                  <a href="{{ workspace_url }}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 28px;border-radius:8px;">Open my workspace &amp; sign in</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        {% endif %}
+
+        <!-- Login details -->
+        <tr>
+          <td style="padding:16px 32px 4px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#334155;">
+              {% if workspace_name %}
+              <tr>
+                <td style="padding:6px 0;color:#64748b;width:150px;">Workspace</td>
+                <td style="padding:6px 0;font-weight:600;color:#0f172a;">{{ workspace_name }}</td>
+              </tr>
+              {% endif %}
+              {% if login_identity %}
+              <tr>
+                <td style="padding:6px 0;color:#64748b;">Sign in with</td>
+                <td style="padding:6px 0;font-weight:600;color:#0f172a;word-break:break-all;">{{ login_identity }}</td>
+              </tr>
+              {% endif %}
+              {% if hostel_code %}
+              <tr>
+                <td style="padding:6px 0;color:#64748b;">Hostel ID</td>
+                <td style="padding:6px 0;font-weight:600;color:#0f172a;letter-spacing:.02em;">{{ hostel_code }}</td>
+              </tr>
+              {% endif %}
+              {% if role_label %}
+              <tr>
+                <td style="padding:6px 0;color:#64748b;">Your role</td>
+                <td style="padding:6px 0;font-weight:600;color:#0f172a;">{{ role_label }}</td>
+              </tr>
+              {% endif %}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Credentials note -->
+        {% if credential_note %}
+        <tr>
+          <td style="padding:16px 32px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
+              <tr>
+                <td style="padding:14px 16px;font-size:14px;line-height:1.55;color:#92400e;">
+                  {{ credential_note|linebreaksbr }}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        {% endif %}
+
+        <!-- First-login instructions + security reminder -->
+        <tr>
+          <td style="padding:20px 32px 4px;color:#334155;font-size:14px;line-height:1.6;">
+            {% if first_login_note %}<p style="margin:0 0 12px;">{{ first_login_note }}</p>{% endif %}
+            <p style="margin:0 0 4px;color:#64748b;">For your security, choose a strong password and never share it. If you did not expect this email, please contact your hostel administrator{% if support_email %} at <a href="mailto:{{ support_email }}" style="color:#1d4ed8;">{{ support_email }}</a>{% endif %}.</p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:24px 32px 28px;border-top:1px solid #eef2f7;color:#94a3b8;font-size:12px;line-height:1.5;">
+            {{ footer_text|default:sender_name }}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>{% endautoescape %}
