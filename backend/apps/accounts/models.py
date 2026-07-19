@@ -22,6 +22,12 @@ class User(AbstractUser):
     # second factor later is additive (verification flow only), not structural.
     # Login responses already advertise `mfa_required` based on this.
     mfa_enabled = models.BooleanField(default=False)
+    # Set True when an account is provisioned with a temporary / known-default
+    # password (staff & team invites, student admission). The login gate reads
+    # this (surfaced via /auth/me) and forces a password change on first sign-in;
+    # PasswordChangeView / password-reset clear it. Owners pick their own
+    # password at signup, so they are never flagged.
+    must_change_password = models.BooleanField(default=False)
 
     @property
     def password_version(self) -> str:

@@ -31,6 +31,8 @@ export type AuthUser = {
   last_login?: string | null;
   hostel_code?: string | null;
   hostel_id?: string | null;
+  /** When true, the account must set a new password before using the app. */
+  must_change_password?: boolean;
 };
 
 export type ProfileUpdatePayload = {
@@ -101,6 +103,8 @@ export type LoginResponse = {
   /** Role-based dashboard the backend wants this session to land on. */
   redirect?: string;
   mfa_required?: boolean;
+  /** First-login gate: redirect to /change-password before anything else. */
+  must_change_password?: boolean;
 };
 
 export const authApi = {

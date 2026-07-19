@@ -263,6 +263,8 @@ class CookieTokenObtainPairSerializer(SecureLoginSerializer):
             "redirect": rbac.default_route_for_role(authenticated.role),
             # MFA architecture prep: flows key off this once a factor ships.
             "mfa_required": bool(getattr(authenticated, "mfa_enabled", False)),
+            # First-login gate: frontend redirects to /change-password when set.
+            "must_change_password": bool(getattr(authenticated, "must_change_password", False)),
             "user": MeSerializer(authenticated).data,
         }
 
@@ -313,6 +315,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 "role": response.data.get("role"),
                 "redirect": response.data.get("redirect"),
                 "mfa_required": response.data.get("mfa_required", False),
+                "must_change_password": response.data.get("must_change_password", False),
             }
             success_hostel = Hostel.objects.filter(code=hostel_code).first() if hostel_code else None
             success_user = User.objects.filter(id=user_data.get("id")).first() if user_data.get("id") else None
@@ -506,7 +509,11 @@ class SignupView(APIView):
             from apps.common.tasking import dispatch_task
 
             try:
-                dispatch_task(send_hostel_id_email, user.email, user.username, hostel.name, hostel.code)
+                dispatch_task(
+                    send_hostel_id_email,
+                    user.email, user.username, hostel.name, hostel.code,
+                    hostel.workspace_url, getattr(hostel, "owner_name", "") or user.username,
+                )
             except Exception:
                 logger.warning("Could not enqueue Hostel ID email for %s", user.email)
 
@@ -599,7 +606,9 @@ class PasswordChangeView(APIView):
         serializer.is_valid(raise_exception=True)
         user = request.user
         user.set_password(serializer.validated_data["new_password"])
-        user.save(update_fields=["password"])
+        # Clear any forced-change flag: the user just chose their own password.
+        user.must_change_password = False
+        user.save(update_fields=["password", "must_change_password"])
         record_event(request, action=AuditEvent.Action.UPDATE, actor=user,
                      message="Password changed (other sessions invalidated)")
 
@@ -966,7 +975,9 @@ class PasswordResetConfirmView(APIView):
         otp_obj.save(update_fields=["is_used"])
 
         user.set_password(serializer.validated_data["new_password"])
-        user.save(update_fields=["password"])
+        # The user just chose a new password — clear any forced-change flag.
+        user.must_change_password = False
+        user.save(update_fields=["password", "must_change_password"])
         auth_guard.register_success("otp_verify", request, identity)
         record_event(request, action=AuditEvent.Action.UPDATE, actor=user,
                      message="Password reset completed via OTP")

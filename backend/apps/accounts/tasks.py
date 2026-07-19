@@ -41,26 +41,37 @@ def send_signup_otp_email(self, email, otp_code):
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def send_hostel_id_email(self, email, username, hostel_name, hostel_code):
-    """Email the newly created Hostel ID once an account is verified & created.
+def send_hostel_id_email(self, email, username, hostel_name, hostel_code,
+                         workspace_url="", owner_name=""):
+    """Welcome the new owner: Hostel ID + their private workspace URL.
 
     Sent off the request cycle (like the signup OTP) so SMTP latency never blocks
-    the signup response. Retries on transient SMTP failures.
+    the signup response. Retries on transient delivery failures. Sent from the
+    platform sender (not tenant-branded) — this is the "welcome to the platform"
+    email; the owner chose their own password at signup, so no forced change.
     """
+    from apps.common.emails import send_account_welcome
+
     try:
-        send_mail(
-            subject="Your Hostel ID — account created successfully",
-            message=(
-                f"Hello {username},\n\n"
-                "Your Hostel account has been created successfully.\n\n"
-                f"Hostel name: {hostel_name}\n"
-                f"Your Hostel ID is: {hostel_code}\n\n"
-                "Keep this Hostel ID safe — you will need it (along with your "
-                "username and password) every time you log in.\n\n"
-                "If you did not create this account, please contact support."
-            ),
+        send_account_welcome(
+            to=email,
+            subject="Your workspace is ready — account created successfully",
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
+            context={
+                "sender_name": hostel_name,
+                "recipient_name": owner_name or username,
+                "workspace_name": hostel_name,
+                "workspace_url": workspace_url,
+                "hostel_code": hostel_code,
+                "login_identity": username,
+                "role_label": "Owner",
+                "first_login_note": (
+                    "Sign in with the username and password you created during signup. "
+                    "Keep your Hostel ID safe — you can also use it to sign in from the main site."
+                ),
+                "footer_text": f"{hostel_name}"
+                + (f" · {workspace_url}" if workspace_url else ""),
+            },
             fail_silently=False,
         )
     except Exception as exc:  # noqa: BLE001 - retry any transient delivery error

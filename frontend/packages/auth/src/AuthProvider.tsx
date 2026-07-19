@@ -29,6 +29,9 @@ export type AuthUser = {
   last_login?: string | null;
   hostel_code?: string | null;
   hostel_id?: string | null;
+  /** When true, the account was provisioned with a temporary/default password
+   * and must set a new one before using the app (first-login gate). */
+  must_change_password?: boolean;
 };
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";

@@ -148,6 +148,13 @@ export function WorkspaceLoginForm({
       // Otherwise the backend's role-based redirect is authoritative, falling
       // back to the client-side role map. replace() avoids a back-button bounce.
       const role = normalizeRole(data?.role);
+      // First-login gate: an account created with a temporary/default password
+      // (staff, team invite, student admission) must set its own password before
+      // anything else — jump straight to the forced change-password screen.
+      if (data?.user?.must_change_password || data?.must_change_password) {
+        router.replace("/change-password");
+        return;
+      }
       const mayOwnMultipleWorkspaces = role === "OWNER" || role === "ADMIN";
       if (!workspaceSlug && mayOwnMultipleWorkspaces) {
         router.replace("/select-workspace");

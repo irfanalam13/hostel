@@ -23,8 +23,9 @@ import {
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { status, hostelCode } = useAuth();
+  const { status, hostelCode, user } = useAuth();
   const { can, role } = usePermissions();
+  const mustChangePassword = status === "authenticated" && !!user?.must_change_password;
 
   // Feature adoption: record the top-level section on each navigation.
   useEffect(() => {
@@ -42,13 +43,22 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
       router.replace("/login");
       return;
     }
+    // First-login gate: an account provisioned with a temporary/default password
+    // (staff, team invite, student admission) must set a new one before it can
+    // use anything. This funnels every authenticated route to /change-password
+    // until the flag clears; the change-password page itself is exempt.
+    if (mustChangePassword && pathname !== "/change-password") {
+      router.replace("/change-password");
+      return;
+    }
     // The workspace selector's whole job is to establish which workspace to
-    // open, so it must not itself be bounced to /select-hostel.
-    const needsHostel = pathname !== "/select-workspace";
+    // open, so it must not itself be bounced to /select-hostel. The forced
+    // change-password screen is likewise exempt.
+    const needsHostel = pathname !== "/select-workspace" && pathname !== "/change-password";
     if (needsHostel && status === "authenticated" && !hostelCode && !authStore.getHostelCode()) {
       router.replace("/select-hostel");
     }
-  }, [status, hostelCode, router, pathname]);
+  }, [status, hostelCode, mustChangePassword, router, pathname]);
 
   // While validating the session, show a skeleton instead of a blank screen.
   if (status === "loading") {
@@ -61,6 +71,15 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
 
   // Redirecting — don't flash protected content.
   if (status === "unauthenticated") return null;
+
+  // Forced password change pending: don't flash the app behind the redirect.
+  if (mustChangePassword && pathname !== "/change-password") {
+    return (
+      <div className="mx-auto max-w-6xl p-4">
+        <PageSkeleton />
+      </div>
+    );
+  }
 
   // Route-level RBAC: the same policy table that filters the sidebar, mobile
   // nav and command palette decides whether this role may open this route.
