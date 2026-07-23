@@ -283,9 +283,20 @@ class Hostel(TimeStampedModel):
 
     @property
     def workspace_url(self) -> str:
+        if not self.slug:
+            return ""
         base = getattr(settings, "TENANT_BASE_DOMAIN", "localhost")
         scheme = getattr(settings, "TENANT_URL_SCHEME", "https")
-        return f"{scheme}://{self.slug}.{base}" if self.slug else ""
+        # Wildcard subdomain tenancy (<slug>.<TENANT_BASE_DOMAIN>) only resolves
+        # once a real base domain + wildcard DNS is configured. In dev the
+        # "localhost" default is intentional (e.g. everest.localhost:8000 with
+        # zero DNS setup); in production it means no wildcard domain has been
+        # set up (e.g. a single-origin Vercel deployment), so a subdomain link
+        # would be unreachable — fall back to the platform frontend instead.
+        if settings.DEBUG or (base and base != "localhost"):
+            return f"{scheme}://{self.slug}.{base}"
+        frontend = (getattr(settings, "FRONTEND_URL", "") or "").rstrip("/")
+        return f"{frontend}/login?hostel_id={self.code}" if frontend else ""
 
     @property
     def is_archived(self) -> bool:

@@ -329,8 +329,24 @@ ENTITLEMENTS_ENFORCED = env.bool("ENTITLEMENTS_ENFORCED", default=False)
 JWT_AUTH_COOKIE = "access_token"
 JWT_AUTH_REFRESH_COOKIE = "refresh_token"
 JWT_COOKIE_SECURE = env.bool("JWT_COOKIE_SECURE", default=not DEBUG)
-JWT_COOKIE_SAMESITE = env("JWT_COOKIE_SAMESITE", default="Lax")
+# The frontend (Vercel) and the API (Render/Oracle) live on different sites in
+# every deployed environment, so every login/API call the SPA makes is a
+# cross-site request. Browsers only attach a cookie to a cross-site fetch/XHR
+# when it is SameSite=None — the safe same-site "Lax" default is silently
+# dropped on those requests, which is exactly why a session looked
+# authenticated at login but "unauthenticated" on the very next API call.
+# Local dev (frontend and API both on localhost) is same-site, so it keeps the
+# stricter Lax default there.
+JWT_COOKIE_SAMESITE = env("JWT_COOKIE_SAMESITE", default="Lax" if DEBUG else "None")
 JWT_COOKIE_DOMAIN = env("JWT_COOKIE_DOMAIN", default=None)
+
+# Browsers reject a Set-Cookie with SameSite=None unless it is also Secure —
+# fail fast at boot instead of shipping cookies the browser will just drop.
+if JWT_COOKIE_SAMESITE.lower() == "none" and not JWT_COOKIE_SECURE:
+    raise RuntimeError(
+        "JWT_COOKIE_SAMESITE=None requires JWT_COOKIE_SECURE=True — browsers "
+        "reject SameSite=None cookies that aren't Secure."
+    )
 
 # ---------------------------------------------------------------------------
 # django-axes (login brute-force lockout)
@@ -375,6 +391,12 @@ CSRF_TRUSTED_ORIGINS = env.list(
 )
 # The CSRF cookie must be readable by JS so the SPA can echo it back in X-CSRFToken.
 CSRF_COOKIE_HTTPONLY = False
+# Same cross-site reasoning as JWT_COOKIE_SAMESITE above: Django's own default
+# for this is "Lax", which the browser withholds on cross-site unsafe requests
+# (POST/PATCH/DELETE) from the Vercel frontend, so CookieJWTAuthentication's
+# CSRF check (apps/accounts/authentication.py) would 403 even once the JWT
+# cookie itself is fixed.
+CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", default="Lax" if DEBUG else "None")
 
 # Security headers that should be on in every environment (not just prod).
 SECURE_CONTENT_TYPE_NOSNIFF = True

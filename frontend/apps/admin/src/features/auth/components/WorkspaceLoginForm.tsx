@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input, useToast } from "@hostel/ui";
 import { authStore, useAuth } from "@hostel/auth";
 import { isWorkspaceError } from "@hostel/api";
@@ -60,6 +60,7 @@ export function WorkspaceLoginForm({
   showSignup = false,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const { onLoggedIn } = useAuth();
 
@@ -80,8 +81,11 @@ export function WorkspaceLoginForm({
     const slug = workspaceFromLocation();
     setWorkspaceSlug(slug);
     if (!slug) {
-      const saved = authStore.getHostelCode();
-      if (saved) setHostelCode(saved);
+      // A welcome-email link (e.g. after signup) carries ?hostel_id=HTL-XXXXXXXX
+      // so clicking it lands here with the Hostel ID already filled in.
+      const fromLink = searchParams.get("hostel_id")?.trim().toUpperCase();
+      const saved = (fromLink && fromLink.replace(/[^A-Z0-9-]/g, "")) || authStore.getHostelCode();
+      if (saved) setHostelCode(saved.slice(0, 12));
       return;
     }
     // Workspace validation before the login form renders: branding on
@@ -102,7 +106,7 @@ export function WorkspaceLoginForm({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [searchParams]);
 
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();

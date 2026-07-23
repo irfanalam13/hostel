@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { WorkspaceLoginForm } from "@/features/auth/components/WorkspaceLoginForm";
 
 /**
@@ -17,10 +18,12 @@ import { WorkspaceLoginForm } from "@/features/auth/components/WorkspaceLoginFor
  */
 export default function LoginPage() {
   return (
-    <WorkspaceLoginForm
-      title="Sign in"
-      subtitle="Sign in to your workspace."
-      showSignup
-    />
+    <Suspense fallback={<main className="min-h-screen" />}>
+      <WorkspaceLoginForm
+        title="Sign in"
+        subtitle="Sign in to your workspace."
+        showSignup
+      />
+    </Suspense>
   );
 }
