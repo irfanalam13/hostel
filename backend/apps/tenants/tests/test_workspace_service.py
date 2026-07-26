@@ -51,7 +51,9 @@ def test_provision_autogenerates_username_from_name(owner_user):
     )
     assert hostel.slug == "everest-international-hostel"
     assert hostel.workspace_url.startswith("http")
-    assert hostel.slug in hostel.workspace_url
+    # Subdomain tenancy when a wildcard domain is configured; otherwise falls
+    # back to FRONTEND_URL + ?hostel_id=<code> — see Hostel.workspace_url.
+    assert hostel.slug in hostel.workspace_url or hostel.code in hostel.workspace_url
 
 
 def test_provision_rejects_taken_username(owner_user, make_user):

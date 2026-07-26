@@ -68,7 +68,11 @@ def test_register_workspace(auth_client, owner, hostel):
     data = _data(resp)
     assert data["slug"] == "himalayan"
     assert data["status"] == WorkspaceStatus.TRIAL
-    assert "himalayan" in data["workspace_url"]
+    # Subdomain tenancy (<slug>.<TENANT_BASE_DOMAIN>) when a wildcard domain is
+    # configured; otherwise workspace_url falls back to FRONTEND_URL +
+    # ?hostel_id=<code> (e.g. this single-origin Vercel deployment) — see
+    # Hostel.workspace_url.
+    assert data["slug"] in data["workspace_url"] or data["code"] in data["workspace_url"]
     ws = Hostel.objects.get(slug="himalayan")
     assert ws.owner == owner
 
