@@ -183,7 +183,16 @@ export async function installApiMock(target: Page | BrowserContext, opts: MockOp
     }
     if (method === "DELETE") return json(route, 204, {});
 
-    return json(route, 200, envelope({ results: [], count: 0, next: null, previous: null }));
+    // Matches apps.common.renderers.StandardJSONRenderer: a paginated DRF list
+    // is flattened so `data` is the bare `results` array and the pagination
+    // cursors move to `meta.pagination` — callers (e.g. listVisitors(),
+    // getStudents()) receive a plain array, never {results, count, ...}.
+    return json(route, 200, {
+      success: true,
+      message: "",
+      data: [],
+      meta: { pagination: { count: 0, next: null, previous: null } },
+    });
   });
 }
 
