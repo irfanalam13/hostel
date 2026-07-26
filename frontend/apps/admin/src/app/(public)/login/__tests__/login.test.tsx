@@ -5,6 +5,9 @@ import userEvent from "@testing-library/user-event";
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn(), prefetch: vi.fn() }),
+  // A welcome-email link carries ?hostel_id=... (see WorkspaceLoginForm); no
+  // query params are exercised in these specs, so an empty store is enough.
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const apiFetch = vi.fn();
