@@ -175,6 +175,25 @@ export function workspaceFromLocation(): string | null {
 }
 
 /**
+ * The dedicated super-admin login host — distinct from both tenant workspace
+ * hosts and the regular platform/marketing host. Defaults to
+ * `admin.<TENANT_BASE_DOMAIN>` (override via `NEXT_PUBLIC_SUPER_ADMIN_HOST` if
+ * a wholly different host is desired). Not reachable today on a bare
+ * `*.vercel.app` deployment with no custom domain/DNS configured — see
+ * docs/AUTHENTICATION.md "Super-admin access".
+ */
+export function isSuperAdminHost(hostWithPort: string): boolean {
+  const host = (hostWithPort || "").split(":")[0].trim().toLowerCase().replace(/\.$/, "");
+  if (!host) return false;
+  const configured = (
+    process.env.NEXT_PUBLIC_SUPER_ADMIN_HOST || `admin.${tenantBaseDomain()}`
+  )
+    .trim()
+    .toLowerCase();
+  return host === configured;
+}
+
+/**
  * True when a hostname belongs to the platform itself (base domain family,
  * localhost, IP) — i.e. NOT a tenant's custom domain.
  */

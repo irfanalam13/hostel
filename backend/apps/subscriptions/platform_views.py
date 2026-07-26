@@ -5,6 +5,7 @@ supports search/filter/ordering, and audit-logs every mutation. Mounted under
 ``/api/platform/``.
 """
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, status, viewsets
@@ -14,6 +15,7 @@ from rest_framework.views import APIView
 
 from apps.auditlog.models import AuditEvent
 from apps.auditlog.services import record_event
+from apps.common.utils import month_key
 from apps.tenants.models import Hostel, Plan
 
 from . import lifecycle, services
@@ -429,7 +431,7 @@ class PlatformSubscriptionsView(APIView):
     permission_classes = [IsPlatformAdmin]
 
     def get(self, request):
-        qs = Hostel.objects.filter(is_deleted=False).select_related("plan").order_by("name")
+        qs = Hostel.objects.filter(is_deleted=False, is_platform_workspace=False).select_related("plan").order_by("name")
         search = request.query_params.get("search")
         if search:
             qs = qs.filter(name__icontains=search)
@@ -476,3 +478,58 @@ class AnalyticsView(APIView):
 
     def get(self, request):
         return Response(lifecycle.analytics())
+
+
+@extend_schema(tags=PLATFORM_TAGS)
+class PlatformHostelsOverviewView(APIView):
+    """Cross-tenant business rollup: every hostel's OWN student/revenue/dues
+    numbers (as opposed to :class:`AnalyticsView`, which is the platform's own
+    SaaS billing MRR/ARR). Super-admin only — a tenant OWNER/ADMIN must never
+    see another workspace's business data, so this is gated by
+    ``IsPlatformAdmin`` (``user.is_superuser``) exactly like every other
+    ``/api/platform/`` view, and is only ever surfaced on the platform
+    dashboard (never linked from a tenant-facing page).
+    """
+
+    permission_classes = [IsPlatformAdmin]
+
+    def get(self, request):
+        from apps.dashboard.aggregation import (
+            active_student_counts,
+            bed_occupancy,
+            month_collections,
+            month_due_totals,
+        )
+
+        today = timezone.localdate()
+        students = active_student_counts()
+        beds = bed_occupancy()
+        collections = month_collections(today.year, today.month)
+        dues = month_due_totals(month_key(today))
+
+        qs = Hostel.objects.filter(is_deleted=False, is_platform_workspace=False).select_related("plan").order_by("name")
+        search = request.query_params.get("search")
+        if search:
+            qs = qs.filter(name__icontains=search)
+
+        rows = []
+        for h in qs:
+            bed = beds.get(h.pk, {})
+            due = dues.get(h.pk, {})
+            rows.append(
+                {
+                    "id": str(h.pk),
+                    "name": h.name,
+                    "code": h.code,
+                    "status": h.status,
+                    "owner_name": h.owner_name or "",
+                    "plan_name": h.plan.name if h.plan_id else (h.plan_name or None),
+                    "active_students": students.get(h.pk, 0),
+                    "beds_total": bed.get("total", 0),
+                    "beds_occupied": bed.get("occupied", 0),
+                    "month_revenue": str(collections.get(h.pk, 0) or 0),
+                    "month_due": str(due.get("total", 0) or 0),
+                    "due_count": due.get("count", 0),
+                }
+            )
+        return Response(rows)

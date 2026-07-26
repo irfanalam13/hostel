@@ -107,10 +107,36 @@ export type LoginResponse = {
   must_change_password?: boolean;
 };
 
+export type SuperAdminLoginPayload = {
+  username: string;
+  password: string;
+  remember?: boolean;
+};
+
+export type SuperAdminLoginResponse = {
+  detail?: string;
+  user?: AuthUser;
+  hostel_code?: string | null;
+  role?: string;
+  /** Always "/platform" — this endpoint has no other destination. */
+  redirect?: string;
+};
+
 export const authApi = {
   /** Tenant-scoped login (workspace context or legacy Hostel ID). */
   login(payload: LoginPayload) {
     return apiFetch<LoginResponse>("/auth/login/", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify(payload),
+      timeoutMs: AUTH_TIMEOUT_MS,
+    });
+  },
+
+  /** Platform super-admin login — no Hostel ID, no portal. See
+   * docs/AUTHENTICATION.md "Super-admin access". */
+  superAdminLogin(payload: SuperAdminLoginPayload) {
+    return apiFetch<SuperAdminLoginResponse>("/auth/super-admin/login/", {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),

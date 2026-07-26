@@ -4,6 +4,11 @@ The frontend is an npm-workspaces monorepo with two independent Next.js
 applications composed as **multi-zones on a single public origin**, plus a set
 of shared TypeScript-source packages.
 
+> **Terminology note:** "admin" below names the `apps/admin` app/zone (the
+> whole authenticated workspace), not the tenant `ADMIN` role or the platform
+> `SUPER_ADMIN`/`is_superuser` account (`roles.ts`, §RBAC below) — see
+> `docs/AUTHENTICATION.md` for those.
+
 ```
 frontend/                      ← workspace root (lockfile, tooling, e2e)
 ├── apps/

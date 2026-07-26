@@ -5,6 +5,7 @@ import type {
   Feature,
   FeatureCategory,
   FeatureOverride,
+  HostelOverviewRow,
   HostelSubscription,
   LimitDefinition,
   LimitOverride,
@@ -96,6 +97,11 @@ export const platformApi = {
   },
 
   analytics: () => p<Analytics>("/analytics/"),
+
+  hostelsOverview: {
+    list: (search?: string) =>
+      p<HostelOverviewRow[]>(`/hostels/overview/${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+  },
 
   subscriptions: {
     list: (search?: string) =>

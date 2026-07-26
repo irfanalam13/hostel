@@ -69,7 +69,8 @@ in `apps/backups`.
 - **Temporary IP bans** — `IPRule` with `expires_at`; the daily
   `security-prune-events` task reaps expired rules.
 - **Permanent bans** — `IPRule` without expiry; created only via the audited
-  admin API (administrative approval trail).
+  Super-Admin security console (`/api/platform/security/`, `IsPlatformAdmin` —
+  platform-only, administrative approval trail).
 
 ---
 

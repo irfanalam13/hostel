@@ -11,6 +11,7 @@ from .platform_views import (
     LimitDefinitionViewSet,
     LimitOverrideViewSet,
     PlanViewSet,
+    PlatformHostelsOverviewView,
     PlatformSubscriptionsView,
     SubscriptionHistoryView,
 )
@@ -28,6 +29,7 @@ router.register("limit-overrides", LimitOverrideViewSet, basename="platform-limi
 
 urlpatterns = [
     path("analytics/", AnalyticsView.as_view(), name="platform-analytics"),
+    path("hostels/overview/", PlatformHostelsOverviewView.as_view(), name="platform-hostels-overview"),
     path("subscriptions/", PlatformSubscriptionsView.as_view(), name="platform-subscriptions"),
     path(
         "subscriptions/<uuid:hostel_id>/history/",

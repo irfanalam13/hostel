@@ -4,6 +4,15 @@ Prompt 02 — built on the workspace architecture in `MULTI_TENANCY.md`.
 Every authentication request belongs to exactly one workspace; nothing
 authenticates globally.
 
+> **Terminology, in plain terms:** "**Admin**" (the tenant `ADMIN` role,
+> alongside `OWNER`) is a **hostel owner/operator** — scoped to the one
+> hostel/workspace they run, e.g. `everest.<TENANT_BASE_DOMAIN>`. "**Super
+> Admin**" is the **SaaS platform owner** — a Django `is_superuser=True`
+> account with no hostel of its own, logging in from a separate host,
+> `admin.<TENANT_BASE_DOMAIN>` (see "Super-admin access" below). The two are
+> unrelated accounts, unrelated roles, and unrelated login URLs — never
+> confuse them.
+
 ---
 
 ## Request lifecycle (auth)
@@ -62,6 +71,35 @@ OWNER/ADMIN/staff roles → `/dashboard`, STUDENT/RESIDENT →
 `/student/dashboard`, PARENT → `/parent/dashboard`. Portal dashboards are
 role-gated stubs until their prompts ship.
 
+## Super-admin access
+
+The platform "super admin" (the SaaS owner/operator) is a **different axis
+entirely** from everything above — a Django `is_superuser=True` account, not
+a tenant role. It is never created via signup; the only way to create one is:
+
+```bash
+python manage.py createsuperuser
+```
+
+Creating the account this way automatically links it (via a `post_save`
+signal) to a single, hidden, shared "platform" workspace
+(`Hostel.is_platform_workspace=True`) — invisible to the operator and excluded
+from every cross-tenant business listing (`/platform/subscriptions`,
+`/platform/hostels`, platform analytics). This exists purely so the existing
+hostel-bound JWT/cookie machinery above needs no changes: a super-admin
+session is still, under the hood, a token bound to a workspace — just one the
+operator never sees or manages.
+
+Login is via a **separate endpoint and URL**, never the tenant `/login`:
+
+- `POST /api/auth/super-admin/login/` — username + password only (no Hostel
+  ID, no `portal`). A non-superuser account, or a wrong password, gets the
+  same generic failure either way — no account-existence/role enumeration.
+- Frontend entry point: a distinct host, `admin.<TENANT_BASE_DOMAIN>` (e.g.
+  `admin.myhostel.com` once a real custom domain + DNS is configured — see
+  `docs/CUSTOM_DOMAINS.md`; not live on a bare `*.vercel.app` deployment with
+  no wildcard DNS). Always redirects to `/platform` on success.
+
 ## JWT model
 
 Access token ~15 min; refresh 3 days (or `REMEMBER_ME_REFRESH_DAYS`, default
@@ -93,7 +131,8 @@ Enforcement in `CookieJWTAuthentication` on **every request**:
 
 * **Roles**: OWNER, ADMIN, MANAGER, RECEPTIONIST, ACCOUNTANT, WARDEN, STAFF,
   STUDENT, PARENT, RESIDENT (legacy), READ_ONLY. Platform staff =
-  `is_superuser` (bypasses checks).
+  `is_superuser` (bypasses checks) — see "Super-admin access" above for how
+  that account is created and how it logs in (never via `/login`).
 * **Permissions**: `module.action` strings (17 modules × view/create/edit/
   delete + feature permissions like `billing.collect`, `backups.restore`,
   `workspace.manage`). Wildcards `*` and `module.*` in grant lists.
@@ -118,6 +157,7 @@ The backend remains authoritative — UI gating is UX, not security.
 | Endpoint | Notes |
 | --- | --- |
 | `POST /api/auth/login/` | tenant-scoped; `portal`, `remember`; returns `redirect`, `workspace`, `mfa_required` |
+| `POST /api/auth/super-admin/login/` | super-admin only (`is_superuser`); username/password, no Hostel ID — see "Super-admin access" above |
 | `POST /api/auth/token/refresh/` | cookie rotation + blacklist |
 | `POST /api/auth/logout/` | blacklists refresh, clears cookies, audited |
 | `POST /api/auth/logout-all/` | revokes every outstanding refresh token |

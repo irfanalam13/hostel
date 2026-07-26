@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 // Pure workspace-host parsing only (edge-safe subpath — avoids pulling the
 // whole utils barrel, some of which is browser-only, into the Edge bundle).
-import { extractWorkspaceFromHost, isPlatformHost } from "@hostel/utils/workspace";
+import { extractWorkspaceFromHost, isPlatformHost, isSuperAdminHost } from "@hostel/utils/workspace";
 
 /**
  * Security proxy — Phase 10 hardening.
@@ -214,7 +214,21 @@ export function createSecurityProxy() {
       requestHeaders.set("x-tenant-host", docHost.split(":")[0].toLowerCase());
     }
 
-    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    // Super-admin login entry point: visiting the dedicated admin subdomain's
+    // root or /login transparently serves the super-admin login page — no
+    // separate deployment/basePath needed. See docs/AUTHENTICATION.md
+    // "Super-admin access". Not reachable on a bare *.vercel.app deployment
+    // with no custom domain configured (isSuperAdminHost then never matches).
+    const isSuperAdminEntry =
+      isSuperAdminHost(docHost) &&
+      (request.nextUrl.pathname === "/" || request.nextUrl.pathname === "/login");
+
+    const res = isSuperAdminEntry
+      ? NextResponse.rewrite(
+          new URL("/super-admin-login", request.url),
+          { request: { headers: requestHeaders } },
+        )
+      : NextResponse.next({ request: { headers: requestHeaders } });
 
     res.headers.set("Content-Security-Policy", csp);
     if (!enforceTT) res.headers.set("Content-Security-Policy-Report-Only", cspReportOnly);

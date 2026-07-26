@@ -228,6 +228,15 @@ class Hostel(TimeStampedModel):
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
+    # The one hidden, shared workspace every super-admin (Django
+    # ``is_superuser=True``) account is auto-linked to (see
+    # ``apps.tenants.services.get_or_create_platform_workspace`` and the
+    # ``post_save`` signal in ``apps.accounts.apps.AccountsConfig.ready``) so
+    # the existing hostel-bound JWT/cookie pipeline needs no changes for
+    # super-admin login. Never a real tenant — excluded from every
+    # cross-tenant business listing (platform subscriptions/hostels/analytics).
+    is_platform_workspace = models.BooleanField(default=False)
+
     # SaaS settings and subscription basics
     settings = models.JSONField(default=dict, blank=True)
     # Canonical current-plan pointer used by the entitlement engine. Kept

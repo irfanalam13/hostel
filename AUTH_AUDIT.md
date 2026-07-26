@@ -31,6 +31,14 @@ It needs only surgical fixes, not restructuring.
 
 ### Frontend (Next.js monorepo — client + admin zones)
 
+> **Terminology note:** "admin" appears below in three unrelated senses —
+> (1) `apps/admin`, the authenticated-workspace app/zone (as opposed to the
+> public marketing `apps/client`), (2) the tenant `ADMIN` role (a hostel
+> owner/manager), and (3) the platform "super admin" — a Django
+> `is_superuser=True` account that runs the SaaS itself (`IsSuperUser`,
+> `apps/common/permissions.py`). Each mention below is qualified explicitly
+> where it matters.
+
 | Concern | Where | Notes |
 | --- | --- | --- |
 | Zone split | `apps/client` (marketing, owns public origin) + `apps/admin` (whole app) | client fallback-rewrites all non-marketing paths to admin |
@@ -53,7 +61,8 @@ It needs only surgical fixes, not restructuring.
 
 2. **Frontend role fail-open to OWNER.** `packages/permissions/roles.ts`
    `normalizeRole()` mapped any unknown/missing role to **OWNER** (full
-   tenant-admin). The premise ("backend doesn't issue real roles yet") is
+   tenant-level access — the hostel-owner role, not the platform super-admin).
+   The premise ("backend doesn't issue real roles yet") is
    obsolete — the backend issues a real `role` on every token and `/auth/me`.
    → **FIXED**: least-privilege fallback + alias mapping (see §3). (Backend
    remains authoritative regardless; this is defense-in-depth for the UI.)
@@ -67,10 +76,11 @@ It needs only surgical fixes, not restructuring.
 ### Duplication / multiple entry points
 
 4. **Five login pages, one component.** `/login` (staff), `/staff-login`
-   (exact duplicate of `/login`), `/admin`, `/student`, `/parent` — all render
-   `WorkspaceLoginForm` differing only by a `portal` prop. → **Collapsed** to
-   one unified tenant login; the four extra routes now redirect to `/login`
-   (URLs preserved).
+   (exact duplicate of `/login`), `/admin` (a legacy portal route — not the
+   tenant `ADMIN` role, not `apps/admin`, and not Django's `/admin/`), `/student`,
+   `/parent` — all render `WorkspaceLoginForm` differing only by a `portal`
+   prop. → **Collapsed** to one unified tenant login; the four extra routes
+   now redirect to `/login` (URLs preserved).
 
 5. **Duplicate login route (backend).** `/api/auth/login/` and `/api/auth/token/`
    map to the same view. → **Kept** (documented alias) — removing either would
@@ -82,8 +92,8 @@ It needs only surgical fixes, not restructuring.
 ### Inconsistent redirects
 
 7. Post-auth redirects diverged across surfaces: the login form was role-aware
-   (uses backend `redirect`), but the public layout, `logout()`, the admin
-   root page, and the marketing Navbar all hardcoded `/dashboard`, misrouting
+   (uses backend `redirect`), but the public layout, `logout()`, the
+   `apps/admin` zone's root page, and the marketing Navbar all hardcoded `/dashboard`, misrouting
    STUDENT/PARENT sessions into an `AccessDenied`. → **Standardized** on
    `postAuthHome()` (see §3).
 

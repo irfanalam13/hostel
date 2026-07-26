@@ -59,7 +59,10 @@ docker compose up -d --build
 #    (RUN_MIGRATIONS=1). Watch it come up:
 docker compose logs -f web
 
-# 5. Create the first admin user
+# 5. Create the first Django superuser (platform operator, `is_superuser=True`
+#    — the platform "super admin" who runs the SaaS itself, NOT the same as a
+#    tenant `ADMIN` hostel role, which is created per-workspace via signup/staff
+#    invite instead). See docs/AUTHENTICATION.md "Super-admin access".
 docker compose exec web python manage.py createsuperuser
 
 # 6. Verify health
@@ -70,7 +73,7 @@ curl -fsS http://localhost:8000/health/celery/
 ```
 
 Frontend: <http://localhost:3000> · API/docs: <http://localhost:8000/api/docs/> ·
-Admin: <http://localhost:8000/admin/>
+Django admin panel (built-in, not the platform super-admin dashboard): <http://localhost:8000/admin/>
 
 ---
 

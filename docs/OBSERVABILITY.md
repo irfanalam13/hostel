@@ -164,7 +164,7 @@ rollback procedures.
 - **Super-Admin security console (backend)** — `/api/platform/security/`:
   summary, event feed, dynamic IP-rule + config-rule editors (hot reload),
   reputation control, reports, and the **emergency kill switch** (per-subsystem
-  disable + DR maintenance/emergency), all platform-admin gated and audited.
+  disable + DR maintenance/emergency), all Super-Admin (`IsPlatformAdmin`) gated and audited.
 - **Docs** — this file, `docs/OPERATIONS.md` (runbook, incident response,
   scaling, rollback, compliance).
 

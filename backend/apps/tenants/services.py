@@ -368,3 +368,26 @@ def soft_delete_workspace(hostel, actor=None):
         hostel, actor, status=WorkspaceStatus.ARCHIVED, message="Workspace deleted (soft)",
         extra_fields={"is_active": False, "is_deleted": True, "deleted_at": timezone.now()},
     )
+
+
+# --------------------------------------------------------------------------- #
+# Hidden platform workspace — see docs/AUTHENTICATION.md "Super-admin access"
+# --------------------------------------------------------------------------- #
+def get_or_create_platform_workspace() -> Hostel:
+    """The one shared, hidden workspace every super-admin account is linked to.
+
+    Exists purely so a super-admin login can reuse the existing hostel-bound
+    JWT/cookie pipeline unchanged — the operator never sees or manages this
+    workspace, and it is excluded from every cross-tenant business listing
+    (``is_platform_workspace=True``). Idempotent: always returns the same row.
+    """
+    hostel, _ = Hostel.objects.get_or_create(
+        is_platform_workspace=True,
+        defaults={
+            "name": "Platform Operations",
+            "slug": "admin",  # reserved workspace name — no tenant can ever claim it
+            "status": WorkspaceStatus.ACTIVE,
+            "plan_name": "internal",
+        },
+    )
+    return hostel

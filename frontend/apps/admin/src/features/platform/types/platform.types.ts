@@ -190,6 +190,23 @@ export type HostelSubscription = {
   subscription_active_until: string | null;
 };
 
+/** Each hostel's OWN business numbers (students, occupancy, revenue, dues) —
+ * distinct from HostelSubscription's platform-billing MRR. Super-admin only. */
+export type HostelOverviewRow = {
+  id: string;
+  name: string;
+  code: string;
+  status: string;
+  owner_name: string;
+  plan_name: string | null;
+  active_students: number;
+  beds_total: number;
+  beds_occupied: number;
+  month_revenue: string;
+  month_due: string;
+  due_count: number;
+};
+
 export type SubscriptionEvent = {
   id: string;
   hostel: string;

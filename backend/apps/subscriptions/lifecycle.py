@@ -92,7 +92,7 @@ def analytics() -> dict:
     from .models import Feature
 
     hostels = list(
-        Hostel.objects.filter(is_deleted=False).select_related("plan")
+        Hostel.objects.filter(is_deleted=False, is_platform_workspace=False).select_related("plan")
     )
 
     recurring_statuses = {WorkspaceStatus.ACTIVE, WorkspaceStatus.TRIAL}

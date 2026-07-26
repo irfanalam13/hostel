@@ -329,6 +329,126 @@ class CookieTokenObtainPairView(TokenObtainPairView):
         return response
 
 
+class SuperAdminLoginSerializer(serializers.Serializer):
+    """Platform super-admin login — no Hostel ID, no portal.
+
+    Deliberately separate from ``CookieTokenObtainPairSerializer``: this is a
+    different axis of authority (Django ``is_superuser``, not a tenant role),
+    never reachable from the regular tenant `/login` flow. See
+    docs/AUTHENTICATION.md "Super-admin access".
+    """
+
+    username = serializers.CharField(required=True, trim_whitespace=True)
+    password = serializers.CharField(required=True, write_only=True, trim_whitespace=False)
+    remember = serializers.BooleanField(required=False, default=False)
+
+    default_error_messages = {
+        "invalid_login": "Invalid username or password.",
+    }
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        generic_error = self.error_messages["invalid_login"]
+
+        # Same pre-auth abuse protection as the tenant login (progressive
+        # lockout + CAPTCHA escalation, keyed per IP and identifier).
+        from apps.security import auth_guard
+        from apps.security.exceptions import CaptchaRequired, ProgressiveLockout
+
+        identifier = attrs["username"]
+        identity = auth_guard.make_identity(request, identifier)
+        gate = auth_guard.check_gate("login", request, identity)
+        if gate.blocked:
+            raise ProgressiveLockout(wait=gate.retry_after)
+        if not auth_guard.verify_captcha_if_required(request, gate):
+            raise CaptchaRequired()
+
+        # No hostel filter at all — this is the whole point. Looked up by
+        # username/email regardless of workspace membership.
+        user = (
+            User.objects.filter(Q(username__iexact=identifier) | Q(email__iexact=identifier), is_active=True)
+            .distinct()
+            .first()
+        )
+        authenticated = None
+        if user:
+            authenticated = authenticate(request=request, username=user.username, password=attrs["password"])
+
+        # Same generic failure whether the account doesn't exist, the password
+        # is wrong, or the account simply isn't a superuser — never reveal
+        # which condition failed (no enumeration of who is/isn't platform staff).
+        if not user or authenticated is None or not authenticated.is_superuser:
+            record_event(
+                request,
+                action=AuditEvent.Action.LOGIN,
+                actor=user,
+                message="Failed super-admin login attempt",
+                meta={"identifier": identifier},
+            )
+            outcome = auth_guard.register_failure(
+                "login", request, identity, credential_stuffing=True
+            )
+            if outcome.blocked:
+                raise ProgressiveLockout(wait=outcome.retry_after)
+            raise serializers.ValidationError(
+                {"detail": generic_error, "captcha_required": outcome.captcha_required}
+            )
+
+        from apps.tenants.services import get_or_create_platform_workspace
+
+        hostel = get_or_create_platform_workspace()
+        remember = bool(attrs.get("remember"))
+        refresh, access = issue_tokens(authenticated, hostel, portal="platform", remember=remember)
+        update_last_login(None, authenticated)
+        auth_guard.register_success("login", request, identity)
+
+        self.user = authenticated
+        self.hostel = hostel
+        return {
+            "refresh": str(refresh),
+            "access": str(access),
+            "remember": remember,
+            "hostel_code": hostel.code,
+            "role": "SUPER_ADMIN",
+            # Always the platform dashboard — this endpoint has no other purpose.
+            "redirect": "/platform",
+            "user": MeSerializer(authenticated).data,
+        }
+
+
+class SuperAdminTokenObtainPairView(TokenObtainPairView):
+    serializer_class = SuperAdminLoginSerializer
+    throttle_classes = [LoginRateThrottle]
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            access = response.data.pop("access", None)
+            refresh = response.data.pop("refresh", None)
+            remember = response.data.pop("remember", False)
+            user_data = response.data.get("user", {})
+            set_auth_cookies(
+                response,
+                access=access,
+                refresh=refresh,
+                refresh_max_age=int(remember_me_lifetime().total_seconds()) if remember else None,
+            )
+            response.data = {
+                "detail": "Login successful",
+                "user": user_data,
+                "hostel_code": response.data.get("hostel_code"),
+                "role": response.data.get("role"),
+                "redirect": response.data.get("redirect"),
+            }
+            record_event(
+                request,
+                action=AuditEvent.Action.LOGIN,
+                actor=User.objects.filter(id=user_data.get("id")).first() if user_data.get("id") else None,
+                message="Super-admin login successful",
+            )
+        return response
+
+
 @extend_schema(
     tags=AUTH_TAGS,
     summary="Refresh the access token",

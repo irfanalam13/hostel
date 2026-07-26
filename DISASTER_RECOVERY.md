@@ -121,7 +121,9 @@ The engine (`apps/backups/restore.py`) always performs:
 
 ### Option A — Admin API
 ```http
-POST /api/admin/restore/        (admin only)
+POST /api/admin/restore/        (IsDRAdmin: super-admin or the hostel's own
+                                 tenant ADMIN, plus a membership check — never
+                                 another tenant's ADMIN)
 # dry run:
 { "backup_id": "<uuid>", "dry_run": true }
 # real restore:
@@ -184,17 +186,19 @@ System-wide singleton (`DRState`), enforced by `DRModeMiddleware`:
 |------|-----------|
 | **normal** | Full operation. |
 | **maintenance** | Read-only: GET/HEAD/OPTIONS pass; writes get `503`. Used automatically during a restore. |
-| **emergency** | Full lock: everything returns `503` except health checks, auth, and the admin DR API (admin-only). |
+| **emergency** | Full lock: everything returns `503` except health checks, auth, and the global DR mode API (super-admin only — see below). |
 
 ```bash
 manage.py dr_mode                          # show current mode
 manage.py dr_mode --set maintenance --reason "..."
 manage.py dr_mode --set normal
 # or via API: POST /api/admin/dr/mode/  { "mode": "maintenance", "reason": "..." }
+# ^ this global mode switch (and /api/admin/dr/status/) is IsSuperUser-only —
+#   unlike the per-hostel restore API above, a tenant ADMIN cannot call it.
 ```
 
-Health endpoints (`/health/...`) and the admin DR API are always exempt so
-operators can drive recovery even under a full lock.
+Health endpoints (`/health/...`) and the global DR mode/status API are always
+exempt so operators can drive recovery even under a full lock.
 
 ---
 

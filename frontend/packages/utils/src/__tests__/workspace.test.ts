@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   extractWorkspaceFromHost,
   isPlatformHost,
+  isSuperAdminHost,
   normalizeWorkspaceUsername,
   suggestWorkspaceUsername,
   validateWorkspaceUsername,
@@ -15,6 +16,7 @@ const ENV_KEYS = [
   "NEXT_PUBLIC_WORKSPACE_USERNAME_MIN_LENGTH",
   "NEXT_PUBLIC_WORKSPACE_USERNAME_MAX_LENGTH",
   "NEXT_PUBLIC_PLATFORM_HOSTS",
+  "NEXT_PUBLIC_SUPER_ADMIN_HOST",
 ] as const;
 const saved: Record<string, string | undefined> = {};
 
@@ -168,6 +170,27 @@ describe("isPlatformHost (custom-domain detection, Prompt 05)", () => {
     expect(isPlatformHost("pr-42.preview.example.dev")).toBe(true); // suffix
     expect(isPlatformHost("preview.example.dev")).toBe(true); // bare, via ".suffix"
     expect(isPlatformHost("hostel.everest.com")).toBe(false); // still a tenant domain
+  });
+});
+
+describe("isSuperAdminHost (super-admin login entry point)", () => {
+  it("defaults to admin.<TENANT_BASE_DOMAIN>", () => {
+    process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN = "myhostel.com";
+    expect(isSuperAdminHost("admin.myhostel.com")).toBe(true);
+    expect(isSuperAdminHost("admin.myhostel.com:443")).toBe(true);
+    expect(isSuperAdminHost("everest.myhostel.com")).toBe(false);
+    expect(isSuperAdminHost("myhostel.com")).toBe(false);
+  });
+
+  it("honours NEXT_PUBLIC_SUPER_ADMIN_HOST as an override", () => {
+    process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN = "myhostel.com";
+    process.env.NEXT_PUBLIC_SUPER_ADMIN_HOST = "ops.myhostel.com";
+    expect(isSuperAdminHost("ops.myhostel.com")).toBe(true);
+    expect(isSuperAdminHost("admin.myhostel.com")).toBe(false);
+  });
+
+  it("is false for an empty host", () => {
+    expect(isSuperAdminHost("")).toBe(false);
   });
 });
 

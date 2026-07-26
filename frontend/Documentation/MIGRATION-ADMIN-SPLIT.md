@@ -8,6 +8,12 @@ workspace + PWA), and nine shared `packages/*`. **No URL changed, no backend
 endpoint changed, no user-visible behavior changed** (beyond new RBAC gating
 described below). See `frontend/ARCHITECTURE.md` for the target architecture.
 
+> **Terminology note:** "admin" throughout this document names the `apps/admin`
+> app/zone (the whole authenticated workspace, as opposed to the public
+> marketing `apps/client`) — it is unrelated to the tenant `ADMIN` role or the
+> platform `SUPER_ADMIN`/`is_superuser` account also mentioned below (§5); see
+> `docs/AUTHENTICATION.md` for those.
+
 ## 1. What the analysis found (drove the design)
 
 - **No end-user portal exists.** Every `(protected)` route is staff/owner

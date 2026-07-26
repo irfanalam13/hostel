@@ -8,6 +8,7 @@ import {
   Layers,
   ShieldPlus,
   Siren,
+  Users,
 } from "lucide-react";
 
 export type PlatformSection = {
@@ -54,6 +55,13 @@ export const PLATFORM_SECTIONS: PlatformSection[] = [
     description: "Assign plans to hostels and view lifecycle history",
     href: "/platform/subscriptions",
     icon: Building2,
+  },
+  {
+    id: "hostels",
+    label: "Hostels",
+    description: "Every workspace's own students, revenue and dues",
+    href: "/platform/hostels",
+    icon: Users,
   },
   {
     id: "overrides",

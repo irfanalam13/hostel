@@ -59,7 +59,8 @@ Understand:
 - Invitation flow
 - User onboarding
 - Workspace switching
-- Super Admin portal
+- Super Admin portal (the platform operator — Django `is_superuser=True`,
+  distinct from the tenant `ADMIN`/`OWNER` roles below)
 - Owner portal
 - Tenant portal
 
@@ -229,7 +230,7 @@ tenant.myhostel.com/login
 This login page must authenticate:
 
 - Owner
-- Hostel Admin
+- ADMIN (hostel-level admin role — not the platform super-admin)
 - Staff
 - Receptionist
 - Accountant
