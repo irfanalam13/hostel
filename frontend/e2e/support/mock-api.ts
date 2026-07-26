@@ -156,6 +156,20 @@ export async function installApiMock(target: Page | BrowserContext, opts: MockOp
     // --- Dashboard summary -------------------------------------------------
     if (path.includes("/dashboard")) return json(route, 200, envelope(dashboard));
 
+    // --- Ops status (banner shown in every zone) ---------------------------
+    // Not a paginated DRF list — a plain object. The generic catch-all below
+    // would otherwise satisfy this with a paginated envelope missing
+    // announcements/maintenance/incidents, which OpsBanner reads unguarded.
+    if (path.includes("/ops/status")) {
+      return json(route, 200, {
+        announcements: [],
+        maintenance: [],
+        incidents: [],
+        flags: {},
+        server_time: "2026-01-01T00:00:00Z",
+      });
+    }
+
     // --- Generic catch-all -------------------------------------------------
     // Reads return an empty paginated list; writes echo back a created object.
     if (["POST", "PUT", "PATCH"].includes(method)) {
