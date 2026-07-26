@@ -1,0 +1,35 @@
+{
+  "//": "Advisories npm audit still reports that are NOT independently fixable from this repo today. postcss/sharp only exist because `next` itself vendors a pinned, vulnerable copy (postcss) or declares a vulnerable optionalDependency range (sharp) with no patched release published yet, for either the stable or preview line — verified via `npm view next@<version> dependencies/optionalDependencies` across every version up to the latest preview; `npm overrides` (including the nested `next: {...}` form) cannot reach next's internally-vendored postcss copy or its optional sharp resolution, confirmed by forcing a clean `rm -rf node_modules package-lock.json && npm install`. brace-expansion is pinned by ESLint's own dependency (`@eslint/config-array` -> `minimatch@3.1.5` -> `brace-expansion@^1.1.7`) and by eslint-config-next's nested eslint-plugin-import/jsx-a11y/react, all of which only support ESLint 9's peer range — bumping to eslint@10 (whose minimatch resolves a patched brace-expansion) fails to install (`eslint-plugin-jsx-a11y@6.10.2`/`eslint-plugin-react@7.37.5` nested under eslint-config-next@16.2.12 declare `peer eslint <=9`), and forcing the override directly breaks lint (`Minimatch.braceExpand` throws `expand is not a function` against eslint's own bundled minimatch@3.1.5). It is a lint-time (build-tooling) only dependency, never shipped to users or fed attacker-controlled input (only our own repo's glob patterns). Re-check `npm audit` after any `next` or `eslint`/`eslint-config-next` bump and delete an entry as soon as it stops appearing.",
+  "advisories": [
+    {
+      "id": "GHSA-mh99-v99m-4gvg",
+      "package": "brace-expansion",
+      "reason": "DoS via unbounded expansion length. Reachable only through ESLint's own bundled minimatch@3.1.5 (dev-time lint tooling) and eslint-config-next's nested eslint-plugin-import/jsx-a11y/react — see top-level note for why neither an override nor an eslint@10 bump works today.",
+      "reviewedOn": "2026-07-26"
+    },
+    {
+      "id": "GHSA-qx2v-qp2m-jg93",
+      "package": "postcss",
+      "reason": "PostCSS XSS via unescaped </style> in stringify output. Only reachable via next's vendored postcss@8.4.31 (frontend/node_modules/next/node_modules/postcss) — our own direct postcss (autoprefixer/vite/tailwind) is already patched to 8.5.23.",
+      "reviewedOn": "2026-07-26"
+    },
+    {
+      "id": "GHSA-6g55-p6wh-862q",
+      "package": "postcss",
+      "reason": "PostCSS arbitrary file read via attacker-controlled sourceMappingURL. Same vendored-in-next postcss@8.4.31 as above.",
+      "reviewedOn": "2026-07-26"
+    },
+    {
+      "id": "GHSA-r28c-9q8g-f849",
+      "package": "postcss",
+      "reason": "PostCSS path traversal via sourceMappingURL auto-loading. Same vendored-in-next postcss@8.4.31 as above.",
+      "reviewedOn": "2026-07-26"
+    },
+    {
+      "id": "GHSA-f88m-g3jw-g9cj",
+      "package": "sharp",
+      "reason": "sharp inherits libvips CVEs, fixed at sharp>=0.35.0. next declares optionalDependencies.sharp as \"^0.34.5\" (excludes 0.35.x) with no released version raising that pin — overriding sharp directly does not change what next resolves for its own optional dependency.",
+      "reviewedOn": "2026-07-26"
+    }
+  ]
+}

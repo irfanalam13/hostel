@@ -97,7 +97,12 @@ jobs:
 
   # ===========================================================================
   # Dependency CVEs — Python (pip-audit) and Node (npm audit).
-  # Both fail on a vulnerability at/above their threshold.
+  # Both fail on a vulnerability at/above their threshold. The Node job's
+  # findings are gated through check-npm-audit.mjs against the reviewed
+  # .github/security/npm-audit-allowlist.json instead of npm's raw exit code:
+  # a handful of high-severity advisories are only reachable via another
+  # package's own vendored/pinned dependency (see that file's notes) with no
+  # fix available from us today — everything else still fails the job.
   # ===========================================================================
   python-deps:
     name: Python deps (pip-audit)
@@ -123,7 +128,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: npm audit (high+)
         working-directory: frontend
-        run: npm audit --audit-level=high
+        run: |
+          npm audit --audit-level=high --json > /tmp/npm-audit.json || true
+          node "${{ github.workspace }}/.github/scripts/check-npm-audit.mjs" \
+            /tmp/npm-audit.json \
+            "${{ github.workspace }}/.github/security/npm-audit-allowlist.json"
 
   # ===========================================================================
   # Dependency review — PR-only. Blocks PRs that introduce a high-severity

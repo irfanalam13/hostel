@@ -77,6 +77,13 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 
+# The base image's bundled npm CLI vendors its own `tar` (currently
+# CVE-2026-59873, a gzip-bomb DoS — fixed upstream in tar@7.5.19, not yet
+# released by npm/node:alpine). This runtime never invokes npm/npx/corepack
+# (CMD only runs the standalone server.js), so drop them rather than ship an
+# unused vulnerable copy.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 # Run as the unprivileged "node" user that ships with the base image.
 # Monorepo standalone output nests the app under its workspace path and hoists
 # a trimmed node_modules at the root.

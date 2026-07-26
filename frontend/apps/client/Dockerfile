@@ -73,6 +73,13 @@ ENV NODE_ENV=production \
 # so it is runtime-configurable (compose sets http://admin:3000).
 ENV ADMIN_ZONE_URL=http://admin:3000
 
+# The base image's bundled npm CLI vendors its own `tar` (currently
+# CVE-2026-59873, a gzip-bomb DoS — fixed upstream in tar@7.5.19, not yet
+# released by npm/node:alpine). This runtime never invokes npm/npx/corepack
+# (CMD only runs the standalone server.js), so drop them rather than ship an
+# unused vulnerable copy.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 COPY --from=builder --chown=node:node /app/apps/client/.next/standalone ./
 COPY --from=builder --chown=node:node /app/apps/client/.next/static ./apps/client/.next/static
 
