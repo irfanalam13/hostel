@@ -161,7 +161,10 @@ export default function VerifyOtpPage() {
           >
             {resending ? "Resending..." : "Resend code"}
           </button>
-          <Link href="/signup" className="text-gray-600 hover:underline">
+          {/* Always in the viewport on this page — default auto-prefetch would fire
+              a request for /signup the moment this form mounts (same issue as
+              WorkspaceLoginForm.tsx's signup/forgot-* links). */}
+          <Link href="/signup" prefetch={false} className="text-gray-600 hover:underline">
             Change details
           </Link>
         </div>
