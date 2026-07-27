@@ -33,6 +33,11 @@ export function MobileBottomNav() {
           <Link
             key={item.name}
             href={item.href}
+            // These 4 links are always in the viewport (fixed bottom nav), so
+            // Next's default auto-prefetch would fire a request for every one
+            // of them on every dashboard load. Defer to hover/touch prefetch
+            // instead, same as Sidebar.tsx.
+            prefetch={false}
             className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-semibold transition ${
               isActive ? "text-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--foreground-secondary)]"
             }`}
