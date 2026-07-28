@@ -61,6 +61,10 @@ services:
     # into the root-owned /opt/venv (the non-root app user can't).
     user: root
     extra_hosts: *host-db-hosts
+    # Boot-time `pip install` below needs outbound DNS; some networks' upstream
+    # resolver doesn't answer through Docker's embedded/NAT DNS path, so pin a
+    # public resolver for this container.
+    dns: [8.8.8.8, 1.1.1.1]
     environment:
       DEBUG: "True"
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
@@ -84,6 +88,7 @@ services:
     # into the root-owned /opt/venv (the non-root app user can't).
     user: root
     extra_hosts: *host-db-hosts
+    dns: [8.8.8.8, 1.1.1.1]
     environment:
       DEBUG: "True"
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-irfanalam}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-hostel}
@@ -109,6 +114,7 @@ services:
       context: ./frontend
       dockerfile: apps/client/Dockerfile
       target: deps
+      network: host
     environment:
       NODE_ENV: development
       # Browser calls the API SAME-ORIGIN through the Nginx gateway ("/api" ->
@@ -140,6 +146,7 @@ services:
       context: ./frontend
       dockerfile: apps/admin/Dockerfile
       target: deps
+      network: host
     environment:
       NODE_ENV: development
       # Same-origin API through the gateway (see the client service note).
@@ -155,19 +162,22 @@ services:
 
   # ML service: bind-mount source + uvicorn --reload for live edits. The venv
   # lives at /opt/venv (not shadowed by the /app mount), so no reinstall needed.
-  ml_hostel:
-    build:
-      context: ./ML_hostel
-      dockerfile: Dockerfile
-    environment:
-      # Same-origin through the nginx gateway (/ai) in dev — no CORS needed.
-      ML_ALLOWED_ORIGINS: ""
-    volumes:
-      - ./ML_hostel:/app
-    # NB: no --reload. The watchfiles reloader OOMs under WSL memory pressure
-    # (it crashed the server mid-stream); restart the service after edits instead:
-    #   docker compose restart ml_hostel
-    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 9000"]
+  # DISABLED: ML/Ollama services were making the stack slow/hanging. Re-enable
+  # by uncommenting this block (and the base-file blocks in docker-compose.yml).
+  # ml_hostel:
+  #   build:
+  #     context: ./ML_hostel
+  #     dockerfile: Dockerfile
+  #     network: host
+  #   environment:
+  #     # Same-origin through the nginx gateway (/ai) in dev — no CORS needed.
+  #     ML_ALLOWED_ORIGINS: ""
+  #   volumes:
+  #     - ./ML_hostel:/app
+  #   # NB: no --reload. The watchfiles reloader OOMs under WSL memory pressure
+  #   # (it crashed the server mid-stream); restart the service after edits instead:
+  #   #   docker compose restart ml_hostel
+  #   command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 9000"]
 
   # ---------------------------------------------------------------------------
   # nginx — DEV single-origin gateway (the production mirror).
@@ -194,8 +204,7 @@ services:
         condition: service_started
       admin:
         condition: service_started
-      ml_hostel:
-        condition: service_started
+      # ml_hostel dependency removed while the ML service is disabled above.
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 15s

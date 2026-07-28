@@ -26,3 +26,4 @@ coverage.xml
 htmlcov/
 .pytest_cache/
 /test-media/
+/test-results/

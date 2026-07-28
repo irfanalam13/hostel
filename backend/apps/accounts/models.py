@@ -14,6 +14,11 @@ ROLE_CHOICES = [
     ("PARENT", "Parent"),
     ("RESIDENT", "Resident"),  # legacy pre-portal role (student-equivalent)
     ("READ_ONLY", "Read only"),
+    # A discovery-directory reviewer — not a tenant staff/portal account.
+    # Zero workspace permissions anywhere (see DEFAULT_ROLE_PERMISSIONS);
+    # linked only to the hidden platform workspace so the hostel-bound
+    # JWT/cookie pipeline needs no changes. See apps.discovery.
+    ("CONSUMER", "Consumer"),
 ]
 
 class User(AbstractUser):
@@ -70,4 +75,3 @@ class SignupOTP(TimeStampedModel):
         from datetime import timedelta
         # Valid for 15 minutes
         return not self.is_used and (timezone.now() - self.created_at) < timedelta(minutes=15)
-

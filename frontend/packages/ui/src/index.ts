@@ -9,6 +9,7 @@ export * from "./Modal";
 export * from "./Select";
 export * from "./Skeleton";
 export * from "./Spinner";
+export * from "./StarRating";
 export * from "./Table";
 export * from "./DataTable";
 export * from "./Textarea";

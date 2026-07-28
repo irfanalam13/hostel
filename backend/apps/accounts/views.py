@@ -43,6 +43,8 @@ from .tokens import issue_tokens, remember_me_lifetime
 from .models import User, UserHostel, PasswordResetOTP, SignupOTP
 from .serializers import (
     ActivityEventSerializer,
+    ConsumerLoginSerializer,
+    ConsumerSignupSerializer,
     MeSerializer,
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
@@ -660,6 +662,59 @@ class SignupView(APIView):
         return response
 
 
+class ConsumerSignupView(APIView):
+    """Signup for a discovery-directory reviewer (CONSUMER role). Distinct
+    from the staff ``SignupView``: no hostel is created — the account is
+    linked only to the hidden platform workspace (see
+    ``apps.tenants.services.get_or_create_platform_workspace``)."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    # Scope only — read by the project-wide ResilientScopedRateThrottle
+    # (part of DEFAULT_THROTTLE_CLASSES), not a forced throttle_classes
+    # override, so the test suite's throttle-disabling still applies here.
+    throttle_scope = "consumer_signup"
+
+    def post(self, request):
+        serializer = ConsumerSignupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        hostel = user._platform_hostel
+
+        refresh, access = issue_tokens(user, hostel, portal="consumer")
+        response = Response(
+            {"detail": "Signup successful", "user": MeSerializer(user).data},
+            status=status.HTTP_201_CREATED,
+        )
+        set_auth_cookies(response, access=str(access), refresh=str(refresh))
+        record_event(request, action=AuditEvent.Action.CREATE, actor=user,
+                     message="Consumer account created")
+        return response
+
+
+class ConsumerLoginView(APIView):
+    """Discovery-directory reviewer login — email + password, no Hostel ID."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_scope = "consumer_login"
+
+    def post(self, request):
+        serializer = ConsumerLoginSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        response = Response(
+            {"detail": "Login successful", "user": data["user"], "role": data["role"],
+             "redirect": data["redirect"]},
+            status=status.HTTP_200_OK,
+        )
+        set_auth_cookies(response, access=data["access"], refresh=data["refresh"])
+        record_event(request, action=AuditEvent.Action.LOGIN, actor=serializer.user,
+                     message="Consumer login successful")
+        return response
+
+
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1125,7 +1180,7 @@ class ForgotHostelIDView(APIView):
         auth_guard.note_enumeration(request, email_or_username)
 
         user = User.objects.filter(
-            Q(email__iexact=email_or_username) | Q(username__iexact=email_or_username), 
+            Q(email__iexact=email_or_username) | Q(username__iexact=email_or_username),
             is_active=True
         ).first()
 

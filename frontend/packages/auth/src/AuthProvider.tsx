@@ -115,11 +115,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    try {
-      await apiFetch("/auth/logout/", { method: "POST", auth: false });
-    } catch {
-      // Even if the server call fails, we still clear locally.
-    }
+    // Clear client-side session and flip status FIRST, before the network
+    // round-trip: every poller (heartbeat, notifications, ops banner, system
+    // status) only stops once `status` becomes "unauthenticated" and unmounts.
+    // Awaiting the revoke call first left them running — and re-triggering
+    // 401 -> refresh attempts — for as long as the (sometimes slow) backend
+    // took to respond.
     authStore.clear();
     hostelStore.clear();
     try {
@@ -128,6 +129,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     applyUser(null);
     setStatus("unauthenticated");
     router.replace("/login");
+    try {
+      await apiFetch("/auth/logout/", { method: "POST", auth: false });
+    } catch {
+      // Best-effort server-side session revoke; client is already logged out.
+    }
   }, [applyUser, router]);
 
   // Initial validation on mount.

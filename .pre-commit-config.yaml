@@ -31,3 +31,28 @@ repos:
     hooks:
       - id: sops-encryption
         files: ^secrets/.*\.(enc\.env|sops\.(ya?ml|json))$
+
+  # --- Auth/account regression gate ------------------------------------------
+  # Runs the accounts/tenants/security(+RBAC) test suite whenever a commit
+  # touches auth-relevant code, so signup/login/password-reset/hostel-id-reset
+  # regressions are caught locally before they ever reach CI. Uses the
+  # project's existing fast SQLite settings (config.settings_test) — no
+  # Docker/Postgres needed — so this stays a few seconds, not minutes. For the
+  # slower, Postgres/Redis-backed run matching CI, use
+  # `docker compose --profile test up test` instead (see docker-compose.yml).
+  - repo: local
+    hooks:
+      - id: auth-tests
+        name: Auth/account regression tests (pytest)
+        # Falls back to a bare `python` if the contributor hasn't created
+        # backend/.venv (it's gitignored, so this can't be assumed).
+        entry: >-
+          bash -c 'cd backend &&
+          PY=.venv/bin/python; [ -x "$PY" ] || PY=python;
+          "$PY" -m pytest apps/accounts apps/tenants apps/security
+          apps/discovery/tests/test_consumer_auth.py apps/common/tests/test_rbac.py
+          --no-cov -q -x'
+        language: system
+        pass_filenames: false
+        files: ^backend/apps/(accounts|tenants|security)/|^backend/apps/discovery/tests/test_consumer_auth\.py$|^backend/apps/common/(rbac|permissions)\.py$|^backend/config/settings(_test)?\.py$
+        stages: [pre-commit]

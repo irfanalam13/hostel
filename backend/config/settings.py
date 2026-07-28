@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "apps.analytics",
     "apps.marketing",
     "apps.website",
+    "apps.discovery",
     "apps.domains",
     "apps.subscriptions",
     "apps.staff",
@@ -288,6 +289,13 @@ REST_FRAMEWORK = {
         "workspace_check": env("THROTTLE_WORKSPACE_CHECK", default="30/min"),
         # Workspace registration by an authenticated user.
         "workspace": env("THROTTLE_WORKSPACE", default="5/hour"),
+        # Hostel discovery reviews (distinct from "review" above, which is the
+        # platform-marketing Testimonial form — this is a review of a hostel).
+        "discovery_review": env("THROTTLE_DISCOVERY_REVIEW", default="10/hour"),
+        "discovery_flag": env("THROTTLE_DISCOVERY_FLAG", default="20/hour"),
+        # Consumer (reviewer) account signup/login — separate buckets from staff.
+        "consumer_signup": env("THROTTLE_CONSUMER_SIGNUP", default="5/hour"),
+        "consumer_login": env("THROTTLE_CONSUMER_LOGIN", default="20/hour"),
     },
 }
 
@@ -880,6 +888,12 @@ CELERY_BEAT_SCHEDULE = {
     "platformops-reap-overrides": {
         "task": "apps.platformops.tasks.reap_feature_overrides",
         "schedule": crontab(minute=20),  # hourly at :20
+    },
+    # Discovery: back-fill a missing Website/HostelDiscoveryProfile row for
+    # any active hostel a failed scaffold/sync signal left incomplete.
+    "discovery-self-heal-missing-data": {
+        "task": "apps.discovery.tasks.self_heal_missing_discovery_data",
+        "schedule": crontab(minute=40),  # hourly at :40
     },
 }
 

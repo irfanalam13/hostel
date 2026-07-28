@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, useToast } from "@hostel/ui";
-import { AlertTriangle } from "lucide-react";
+import { Button, Modal, Select, useToast } from "@hostel/ui";
+import { AlertTriangle, Settings2, X } from "lucide-react";
 import { platformApi } from "../api/platform.api";
-import type { DependencyViolation, PlanFeatureRow } from "../types/platform.types";
+import type { DependencyViolation, FeatureDependency, PlanFeatureRow } from "../types/platform.types";
 import { Badge, Toggle } from "./primitives";
 
 export function FeatureMatrix({ planId }: { planId: string }) {
@@ -14,6 +14,12 @@ export function FeatureMatrix({ planId }: { planId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [violations, setViolations] = useState<DependencyViolation[]>([]);
+  const [dependencies, setDependencies] = useState<FeatureDependency[]>([]);
+  const [depFeature, setDepFeature] = useState<PlanFeatureRow | null>(null);
+  const [newRequires, setNewRequires] = useState("");
+  const [depBusy, setDepBusy] = useState(false);
+
+  const loadDependencies = () => platformApi.featureDependencies.list().then(setDependencies);
 
   useEffect(() => {
     platformApi.plans
@@ -24,7 +30,35 @@ export function FeatureMatrix({ planId }: { planId: string }) {
       })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => setLoading(false));
+    loadDependencies().catch((e) => toast.error((e as Error).message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planId, toast]);
+
+  const addDependency = async () => {
+    if (!depFeature || !newRequires) return;
+    setDepBusy(true);
+    try {
+      await platformApi.featureDependencies.create(depFeature.feature, newRequires);
+      await loadDependencies();
+      setNewRequires("");
+    } catch (e) {
+      toast.error((e as Error).message, "Couldn't add dependency");
+    } finally {
+      setDepBusy(false);
+    }
+  };
+
+  const removeDependency = async (id: string) => {
+    setDepBusy(true);
+    try {
+      await platformApi.featureDependencies.remove(id);
+      await loadDependencies();
+    } catch (e) {
+      toast.error((e as Error).message, "Couldn't remove dependency");
+    } finally {
+      setDepBusy(false);
+    }
+  };
 
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; items: PlanFeatureRow[] }>();
@@ -137,17 +171,80 @@ export function FeatureMatrix({ planId }: { planId: string }) {
                       <div className="text-xs text-[var(--muted)]">requires: {r.requires.join(", ")}</div>
                     ) : null}
                   </div>
-                  <Toggle
-                    checked={!!draft[r.key]}
-                    onChange={(v) => setDraft((d) => ({ ...d, [r.key]: v }))}
-                    label={r.name}
-                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      title="Manage dependencies"
+                      onClick={() => setDepFeature(r)}
+                      className="text-[var(--muted)] hover:text-[var(--foreground)]"
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </button>
+                    <Toggle
+                      checked={!!draft[r.key]}
+                      onChange={(v) => setDraft((d) => ({ ...d, [r.key]: v }))}
+                      label={r.name}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         ))}
       </div>
+
+      <Modal
+        open={!!depFeature}
+        title={depFeature ? `Dependencies for ${depFeature.name}` : "Dependencies"}
+        onClose={() => {
+          setDepFeature(null);
+          setNewRequires("");
+        }}
+      >
+        {depFeature ? (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              {dependencies.filter((d) => d.feature === depFeature.feature).length === 0 ? (
+                <div className="text-xs text-[var(--muted)]">No dependencies yet — this feature requires nothing.</div>
+              ) : (
+                dependencies
+                  .filter((d) => d.feature === depFeature.feature)
+                  .map((d) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm"
+                    >
+                      <span className="text-[var(--foreground-secondary)]">requires {d.requires_key}</span>
+                      <button
+                        type="button"
+                        disabled={depBusy}
+                        onClick={() => removeDependency(d.id)}
+                        className="text-[var(--error)]"
+                        title="Remove"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+            <div className="flex items-end gap-2">
+              <Select
+                label="Add requirement"
+                placeholder="Select a feature"
+                value={newRequires}
+                onChange={(e) => setNewRequires(e.target.value)}
+                options={rows
+                  .filter((f) => f.feature !== depFeature.feature)
+                  .map((f) => ({ value: f.feature, label: f.name }))}
+              />
+              <Button size="sm" loading={depBusy} disabled={!newRequires} onClick={addDependency}>
+                Add
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }

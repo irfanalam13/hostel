@@ -255,7 +255,9 @@ class PublicWebsiteView(APIView):
             return Response({"detail": "No workspace resolved for this request."},
                             status=status.HTTP_404_NOT_FOUND)
 
-        # Workspace preferences (Prompt 04): the public-website master switch.
+        # Workspace preferences (Prompt 04): the public-website master switch,
+        # checked up front so a workspace that has opted out never gets a
+        # website auto-scaffolded just from an anonymous hit on this endpoint.
         prefs = get_workspace_settings(hostel, "preferences")
         if not prefs.get("enable_public_website", True):
             return Response(
@@ -264,8 +266,14 @@ class PublicWebsiteView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        # Auto-scaffold a missing site (first public hit publishes a
+        # professional default immediately — see services.get_or_scaffold_website),
+        # then defer the actual "is it visible" decision to is_publicly_visible,
+        # the single source of truth this shares with apps.discovery (it
+        # re-checks the same enable_public_website + published-website gate,
+        # just without the scaffolding side effect).
         website = services.get_or_scaffold_website(hostel)
-        if not website.is_published:
+        if not services.is_publicly_visible(hostel):
             return Response(
                 {"detail": "This website is not published.",
                  "code": "website_unpublished"},

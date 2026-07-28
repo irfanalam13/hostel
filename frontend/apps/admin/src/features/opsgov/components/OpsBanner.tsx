@@ -2,6 +2,7 @@
 
 import React from "react";
 
+import { authStore } from "@hostel/auth";
 import { fetchOpsStatus } from "../api/opsgov.api";
 import type { OpsStatus } from "../types/opsgov.types";
 
@@ -33,10 +34,14 @@ export function OpsBanner() {
 
   React.useEffect(() => {
     let alive = true;
-    const load = () =>
-      fetchOpsStatus()
+    const load = () => {
+      // Skip while logged out — the poll interval is only cleared on unmount,
+      // which can lag a step behind the auth state flipping.
+      if (!authStore.getAccess()) return Promise.resolve();
+      return fetchOpsStatus()
         .then((s) => alive && setStatus(s))
         .catch(() => {});
+    };
     load();
     const timer = setInterval(load, 60_000);
     return () => {

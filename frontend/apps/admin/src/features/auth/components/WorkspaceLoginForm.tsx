@@ -271,21 +271,29 @@ export function WorkspaceLoginForm({
         {showSignup && (
           <div className="mt-4 text-center text-sm">
             <span className="text-gray-600">New hostel?</span>
-            <Link href="/signup" className="ml-1 font-semibold text-blue-600 hover:underline">
+            <Link
+              href="/signup"
+              // These links are always in the viewport on the login page, so
+              // Next's default auto-prefetch would fire a request the moment
+              // this form mounts (e.g. right after logout) — defer to hover/
+              // touch instead, same fix as Sidebar's nav links.
+              prefetch={false}
+              className="ml-1 font-semibold text-blue-600 hover:underline"
+            >
               Create account
             </Link>
           </div>
         )}
 
         <div className="mt-2 text-center text-sm">
-          <Link href="/forgot-password" className="font-semibold text-blue-600 hover:underline">
+          <Link href="/forgot-password" prefetch={false} className="font-semibold text-blue-600 hover:underline">
             Forgot password?
           </Link>
         </div>
 
         {!workspaceSlug && (
           <div className="mt-2 text-center text-sm">
-            <Link href="/forgot-hostel-id" className="font-semibold text-blue-600 hover:underline">
+            <Link href="/forgot-hostel-id" prefetch={false} className="font-semibold text-blue-600 hover:underline">
               Forgot Hostel ID?
             </Link>
           </div>
@@ -294,22 +302,3 @@ export function WorkspaceLoginForm({
     </main>
   );
 }
-
-
-
-
-
-// "use client";
-
-// import { WorkspaceLoginForm } from "@/features/auth/components/WorkspaceLoginForm";
-
-// /** Staff portal login (alias of /login, kept for the canonical portal URL). */
-// export default function StaffLoginPage() {
-//   return (
-//     <WorkspaceLoginForm
-//       portal="staff"
-//       title="Staff Login"
-//       subtitle="Sign in with your staff account."
-//     />
-//   );
-// }

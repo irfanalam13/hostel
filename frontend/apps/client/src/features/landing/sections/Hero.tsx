@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowRight, CheckCircle2, WifiOff, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, WifiOff, ShieldCheck, Search } from "lucide-react";
 import { Container } from "../components/Container";
 import { CtaLink } from "../components/CtaLink";
 import { Reveal } from "../components/Reveal";
@@ -64,6 +64,20 @@ export function Hero() {
               </li>
             ))}
           </ul>
+        </Reveal>
+
+        {/* Teaser for the public discovery directory — a separate audience
+            (prospective residents) from the owner-acquisition funnel above,
+            so it's kept low-key and doesn't compete with the primary CTAs. */}
+        <Reveal delay={360}>
+          <a
+            href="/hostels"
+            className="mx-auto mt-6 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground-secondary)] transition hover:border-[var(--border-hover)] hover:text-[var(--foreground)]"
+          >
+            <Search className="h-4 w-4 text-[var(--accent)]" aria-hidden />
+            Looking for a place to stay? Find a hostel near you
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </a>
         </Reveal>
 
         {/* Product preview placeholder — swap for a real screenshot when available. */}

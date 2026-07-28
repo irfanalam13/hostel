@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { authStore } from "@hostel/auth";
 import { getServiceWorkerVersion, isStandalone } from "@hostel/pwa";
 import { sendHeartbeat } from "./api";
 import { APP_VERSION } from "./types";
@@ -21,7 +22,10 @@ export function PresenceHeartbeat() {
     const beat = async () => {
       // Overlap guard: never stack a new heartbeat on one that hasn't
       // finished — a slow backend must not accumulate open connections.
-      if (stopped || inFlight || document.visibilityState === "hidden") return;
+      // Also bail if the session marker is gone (logout just cleared it) —
+      // the interval is only torn down on unmount, which can lag a step
+      // behind the auth state flipping.
+      if (stopped || inFlight || document.visibilityState === "hidden" || !authStore.getAccess()) return;
       inFlight = true;
       try {
         const sw = await getServiceWorkerVersion();
