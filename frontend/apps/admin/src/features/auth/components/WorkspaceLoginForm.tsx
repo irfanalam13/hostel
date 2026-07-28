@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input, useToast } from "@hostel/ui";
@@ -76,6 +76,12 @@ export function WorkspaceLoginForm({
   const [remember, setRemember] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  // `loading` (React state) only takes effect on the NEXT render, so a second
+  // submit that fires before that commit — Enter plus a near-simultaneous
+  // click, or a fast double-click — reads the stale `loading === false` and
+  // slips through, firing a second POST /auth/login/. A ref is synchronous:
+  // it closes that gap regardless of render timing.
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     const slug = workspaceFromLocation();
@@ -110,7 +116,7 @@ export function WorkspaceLoginForm({
 
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (loading) return;
+    if (submittingRef.current) return;
     setErr("");
 
     const code = hostelCode.trim().toUpperCase();
@@ -121,6 +127,7 @@ export function WorkspaceLoginForm({
     if (!username.trim()) return setErr("Username or email is required.");
     if (!password) return setErr("Password is required.");
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       const data: LoginResponse = await authApi.login({
@@ -177,6 +184,7 @@ export function WorkspaceLoginForm({
       setErr(msg);
       toast.error(msg, "Login failed");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

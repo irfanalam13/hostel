@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input, useToast } from "@hostel/ui";
 import { authStore, useAuth } from "@hostel/auth";
@@ -24,15 +24,20 @@ export function SuperAdminLoginForm() {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  // See WorkspaceLoginForm.tsx for why this guard is a ref, not the `loading`
+  // state: state only takes effect on the next render, so a near-simultaneous
+  // second submit (Enter + click) can still read `loading === false`.
+  const submittingRef = useRef(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (loading) return;
+    if (submittingRef.current) return;
     setErr("");
 
     if (!username.trim()) return setErr("Username or email is required.");
     if (!password) return setErr("Password is required.");
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       const data: SuperAdminLoginResponse = await authApi.superAdminLogin({
@@ -55,6 +60,7 @@ export function SuperAdminLoginForm() {
       setErr(msg);
       toast.error(msg, "Login failed");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
