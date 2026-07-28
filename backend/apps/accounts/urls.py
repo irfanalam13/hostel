@@ -5,6 +5,8 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ActivityView,
+    ConsumerLoginView,
+    ConsumerSignupView,
     CSRFView,
     CookieTokenObtainPairView,
     CookieTokenRefreshView,
@@ -39,6 +41,9 @@ urlpatterns = [
     path("login/", CookieTokenObtainPairView.as_view(), name="login"),
     path("token/", CookieTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("super-admin/login/", SuperAdminTokenObtainPairView.as_view(), name="super_admin_login"),
+    # 🧑‍💻 Discovery-directory reviewer accounts (CONSUMER role) — no hostel, no portal.
+    path("consumer/signup/", ConsumerSignupView.as_view(), name="consumer_signup"),
+    path("consumer/login/", ConsumerLoginView.as_view(), name="consumer_login"),
     path("token/refresh/", CookieTokenRefreshView.as_view(), name="token_refresh"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("logout-all/", LogoutAllView.as_view(), name="logout_all"),

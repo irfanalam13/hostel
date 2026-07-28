@@ -2,16 +2,19 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Input, Modal, Table, EmptyState, useToast, useConfirm } from "@hostel/ui";
+import { Button, Input, Modal, Table, EmptyState, Textarea, useToast, useConfirm } from "@hostel/ui";
 import {
   Archive,
   ArchiveRestore,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Download,
   Pencil,
   Plus,
   Power,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { platformApi } from "../api/platform.api";
 import type { Plan } from "../types/platform.types";
@@ -34,11 +37,16 @@ export function PlanList() {
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("0");
   const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
+  const [importJson, setImportJson] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setPlans(await platformApi.plans.list(search));
+      const data = await platformApi.plans.list(search);
+      setPlans([...data].sort((a, b) => a.sort_order - b.sort_order));
+      setSelected(new Set());
     } catch (e) {
       toast.error((e as Error).message, "Couldn't load plans");
     } finally {
@@ -103,6 +111,73 @@ export function PlanList() {
     }
   };
 
+  const runImport = async () => {
+    let rows: unknown[];
+    try {
+      rows = JSON.parse(importJson);
+      if (!Array.isArray(rows)) throw new Error("Expected a JSON array of plans.");
+    } catch (e) {
+      toast.error((e as Error).message, "Invalid JSON");
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await platformApi.plans.import(rows);
+      toast.success(`Imported: ${result.created} created, ${result.updated} updated.`);
+      setImporting(false);
+      setImportJson("");
+      await load();
+    } catch (e) {
+      toast.error((e as Error).message, "Import failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const move = async (index: number, dir: -1 | 1) => {
+    const otherIndex = index + dir;
+    if (otherIndex < 0 || otherIndex >= plans.length) return;
+    const reordered = [...plans];
+    [reordered[index], reordered[otherIndex]] = [reordered[otherIndex], reordered[index]];
+    setPlans(reordered);
+    try {
+      await platformApi.plans.reorder(reordered.map((p, i) => ({ id: p.id, sort_order: i })));
+    } catch (e) {
+      toast.error((e as Error).message, "Reorder failed");
+      await load();
+    }
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const bulkAction = async (action: "activate" | "deactivate" | "archive" | "unarchive" | "delete") => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (action === "delete") {
+      const yes = await confirm({
+        title: "Delete plans",
+        message: `Delete ${ids.length} plan(s)? This cannot be undone.`,
+        danger: true,
+        confirmText: "Delete",
+      });
+      if (!yes) return;
+    }
+    try {
+      const result = await platformApi.plans.bulk(ids, action);
+      toast.success(`${action}: ${result.count} plan(s) updated.`);
+      await load();
+    } catch (e) {
+      toast.error((e as Error).message, "Bulk action failed");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -116,10 +191,27 @@ export function PlanList() {
         <Button variant="secondary" onClick={exportPlans}>
           <Download className="h-4 w-4" /> Export
         </Button>
+        <Button variant="secondary" onClick={() => setImporting(true)}>
+          <Upload className="h-4 w-4" /> Import
+        </Button>
         <Button onClick={() => setCreating(true)}>
           <Plus className="h-4 w-4" /> New plan
         </Button>
       </div>
+
+      {selected.size > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--background-secondary)] px-3 py-2 text-sm">
+          <span className="text-[var(--foreground-secondary)]">{selected.size} selected</span>
+          <Button variant="ghost" size="sm" onClick={() => bulkAction("activate")}>Activate</Button>
+          <Button variant="ghost" size="sm" onClick={() => bulkAction("deactivate")}>Deactivate</Button>
+          <Button variant="ghost" size="sm" onClick={() => bulkAction("archive")}>Archive</Button>
+          <Button variant="ghost" size="sm" onClick={() => bulkAction("unarchive")}>Unarchive</Button>
+          <Button variant="ghost" size="sm" onClick={() => bulkAction("delete")}>
+            <Trash2 className="h-4 w-4 text-[var(--error)]" /> Delete
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="text-sm text-[var(--muted)]">Loading…</div>
@@ -129,6 +221,8 @@ export function PlanList() {
         <Table>
           <thead>
             <tr className="border-b border-[var(--border)] text-left text-[var(--muted)]">
+              <th className="w-8 px-4 py-3"></th>
+              <th className="w-14 px-4 py-3"></th>
               <th className="px-4 py-3 font-medium">Plan</th>
               <th className="px-4 py-3 font-medium">Price</th>
               <th className="px-4 py-3 font-medium">Visibility</th>
@@ -138,8 +232,38 @@ export function PlanList() {
             </tr>
           </thead>
           <tbody>
-            {plans.map((plan) => (
+            {plans.map((plan, index) => (
               <tr key={plan.id} className="border-b border-[var(--border)] last:border-0">
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(plan.id)}
+                    onChange={() => toggleSelected(plan.id)}
+                    aria-label={`Select ${plan.name}`}
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => move(index, -1)}
+                      className="text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-30"
+                      title="Move up"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === plans.length - 1}
+                      onClick={() => move(index, 1)}
+                      className="text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-30"
+                      title="Move down"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-[var(--foreground)]">{plan.name}</span>
@@ -240,6 +364,29 @@ export function PlanList() {
             </Button>
             <Button loading={busy} onClick={create}>
               Create plan
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={importing} title="Import plans" onClose={() => setImporting(false)}>
+        <div className="space-y-3">
+          <p className="text-xs text-[var(--muted)]">
+            Paste a JSON array of plans (the same shape produced by Export). Matching slugs are updated in place;
+            everything else is created.
+          </p>
+          <Textarea
+            value={importJson}
+            onChange={(e) => setImportJson(e.target.value)}
+            placeholder={'[ { "name": "Professional", ... } ]'}
+            className="min-h-[220px] font-mono text-xs"
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setImporting(false)}>
+              Cancel
+            </Button>
+            <Button loading={busy} onClick={runImport} disabled={!importJson.trim()}>
+              Import
             </Button>
           </div>
         </div>

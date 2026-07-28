@@ -20,8 +20,11 @@ Namespaces:
                    the *public website's* branding stays in apps.website
 """
 import copy
+import logging
 
 from django.core.exceptions import ValidationError
+
+logger = logging.getLogger(__name__)
 
 _MAX_STRING = 500
 _MAX_LIST = 50
@@ -201,6 +204,7 @@ def update_workspace_settings(hostel, namespace: str, data: dict, actor=None) ->
     settings_blob["workspace"] = workspace_blob
     hostel.settings = settings_blob
     hostel.save(update_fields=["settings", "updated_at"])  # signal invalidates caches
+    _sync_discovery_profile_if_relevant(hostel, namespace)
 
     try:
         from apps.auditlog.models import AuditEvent
@@ -219,6 +223,22 @@ def update_workspace_settings(hostel, namespace: str, data: dict, actor=None) ->
     return get_workspace_settings(hostel, namespace)
 
 
+# Namespaces whose fields feed the discovery directory's denormalized profile
+# (city/district/hostel_type/enable_public_website) — see apps.discovery.
+_DISCOVERY_RELEVANT_NAMESPACES = {"business", "profile", "preferences"}
+
+
+def _sync_discovery_profile_if_relevant(hostel, namespace: str) -> None:
+    if namespace not in _DISCOVERY_RELEVANT_NAMESPACES:
+        return
+    try:
+        from apps.discovery.services import sync_discovery_profile
+
+        sync_discovery_profile(hostel)
+    except Exception:
+        logger.exception("discovery profile sync failed (hostel=%r, namespace=%r)", hostel.pk, namespace)
+
+
 def reset_workspace_settings(hostel, namespace: str, actor=None) -> dict:
     """Danger-zone reset: drop the stored namespace back to defaults."""
     namespace_defaults(namespace)  # validates the name
@@ -228,6 +248,7 @@ def reset_workspace_settings(hostel, namespace: str, actor=None) -> dict:
     settings_blob["workspace"] = workspace_blob
     hostel.settings = settings_blob
     hostel.save(update_fields=["settings", "updated_at"])
+    _sync_discovery_profile_if_relevant(hostel, namespace)
     try:
         from apps.auditlog.models import AuditEvent
 

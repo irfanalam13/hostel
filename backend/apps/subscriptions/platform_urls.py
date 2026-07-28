@@ -2,6 +2,14 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from .platform_account_views import PlatformAccountsView
+from .platform_hostel_views import (
+    PlatformHostelDetailView,
+    PlatformHostelRoomsView,
+    PlatformHostelStaffView,
+    PlatformHostelStudentDuesView,
+    PlatformHostelStudentsView,
+)
 from .platform_views import (
     AnalyticsView,
     FeatureCategoryViewSet,
@@ -28,8 +36,18 @@ router.register("feature-overrides", FeatureOverrideViewSet, basename="platform-
 router.register("limit-overrides", LimitOverrideViewSet, basename="platform-limit-override")
 
 urlpatterns = [
+    path("accounts/", PlatformAccountsView.as_view(), name="platform-accounts"),
     path("analytics/", AnalyticsView.as_view(), name="platform-analytics"),
     path("hostels/overview/", PlatformHostelsOverviewView.as_view(), name="platform-hostels-overview"),
+    path("hostels/<uuid:id>/", PlatformHostelDetailView.as_view(), name="platform-hostel-detail"),
+    path("hostels/<uuid:id>/students/", PlatformHostelStudentsView.as_view(), name="platform-hostel-students"),
+    path(
+        "hostels/<uuid:id>/students/<uuid:student_id>/dues/",
+        PlatformHostelStudentDuesView.as_view(),
+        name="platform-hostel-student-dues",
+    ),
+    path("hostels/<uuid:id>/staff/", PlatformHostelStaffView.as_view(), name="platform-hostel-staff"),
+    path("hostels/<uuid:id>/rooms/", PlatformHostelRoomsView.as_view(), name="platform-hostel-rooms"),
     path("subscriptions/", PlatformSubscriptionsView.as_view(), name="platform-subscriptions"),
     path(
         "subscriptions/<uuid:hostel_id>/history/",

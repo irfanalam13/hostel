@@ -21,6 +21,7 @@ export const NAV_LINKS: NavLink[] = [
   { label: "Pricing", href: `/#${SECTION_IDS.pricing}` },
   { label: "Testimonials", href: `/#${SECTION_IDS.testimonials}` },
   { label: "FAQ", href: `/#${SECTION_IDS.faq}` },
+  { label: "Find a hostel", href: "/hostels" },
 ];
 
 /**

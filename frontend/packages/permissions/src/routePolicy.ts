@@ -36,10 +36,6 @@ const ROUTE_POLICY: ReadonlyArray<{ prefix: string; permission: Permission }> = 
   { prefix: "/audit", permission: "settings:manage" },
   { prefix: "/settings", permission: "settings:manage" },
   { prefix: "/backup", permission: "backups:manage" },
-  // Cross-tenant hostel / plan / subscription console — a platform-operator
-  // surface (not in the tenant sidebar). Super-admin only; a tenant's own plan
-  // lives under Settings → Billing.
-  { prefix: "/tenants", permission: "platform:manage" },
   { prefix: "/staff", permission: "staff:manage" },
   // Platform (Super Admin) subscription & plan management — super-admin only.
   { prefix: "/platform", permission: "platform:manage" },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { authStore } from "@hostel/auth";
 import {
   Activity,
   Bell,
@@ -79,6 +80,9 @@ export function SystemStatusPanel() {
   const [notif, setNotif] = useState<string>("default");
 
   const refresh = useCallback(async () => {
+    // Skip while logged out — the poll interval is only cleared on unmount,
+    // which can lag a step behind the auth state flipping.
+    if (!authStore.getAccess()) return;
     setLoading(true);
     try {
       setStatus(await getSystemStatus());

@@ -50,7 +50,13 @@ const TENANT_ADMIN_GRANTS: readonly Permission[] = PERMISSIONS.filter(
 );
 
 /**
- * What each role may do. `"*"` grants everything (SUPER_ADMIN only).
+ * What each role may do.
+ *
+ * SUPER_ADMIN (is_superuser) is a platform operator, not a member of any
+ * hostel — it holds ONLY the cross-tenant platform surface plus its own
+ * profile, never a tenant's operational permissions (finance, inventory,
+ * gate, etc). It used to hold `"*"`, which leaked the entire tenant admin
+ * sidebar into the super-admin session; this is the deliberate narrowing.
  *
  * OWNER/ADMIN historically held `"*"`; they now hold every permission except
  * `platform:manage`, so existing accounts keep all their workspace access while
@@ -58,7 +64,7 @@ const TENANT_ADMIN_GRANTS: readonly Permission[] = PERMISSIONS.filter(
  * admin permissions — the admin app is staff-only by construction.
  */
 const ROLE_GRANTS: Record<Role, readonly Permission[] | "*"> = {
-  SUPER_ADMIN: "*",
+  SUPER_ADMIN: ["platform:manage", "profile:view"],
   OWNER: TENANT_ADMIN_GRANTS,
   ADMIN: TENANT_ADMIN_GRANTS,
   MANAGER: [
@@ -149,6 +155,7 @@ export function grantsFor(role: Role): readonly Permission[] {
  * authoritative; this covers client-side fallbacks and guards).
  */
 export function portalHomeForRole(role: Role): string {
+  if (role === "SUPER_ADMIN") return "/platform";
   if (role === "STUDENT" || role === "RESIDENT") return "/student/dashboard";
   if (role === "PARENT" || role === "GUARDIAN") return "/parent/dashboard";
   return "/dashboard";

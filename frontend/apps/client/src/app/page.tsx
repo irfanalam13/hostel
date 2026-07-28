@@ -7,6 +7,7 @@ import { BRAND, HERO } from "@/features/landing/content";
 import { permanentRedirect } from "next/navigation";
 import { getPublicWebsite, type SiteIdentifier, type SitePayload } from "@/features/hostel-site/api";
 import { HostelSite, SiteUnavailable } from "@/features/hostel-site/HostelSite";
+import { getReviewsSectionData } from "@/features/hostel-site/reviews/api";
 
 /**
  * The root page serves two completely different experiences by host:
@@ -100,7 +101,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-function buildHostelJsonLd(site: SitePayload) {
+function buildHostelJsonLd(site: SitePayload, rating?: { average: number; count: number }) {
   const contact = site.sections.find((s) => s.type === "contact")?.content as
     | Record<string, string>
     | undefined;
@@ -113,6 +114,15 @@ function buildHostelJsonLd(site: SitePayload) {
     ...(contact?.phone ? { telephone: contact.phone } : {}),
     ...(contact?.email ? { email: contact.email } : {}),
     ...(contact?.address ? { address: contact.address } : {}),
+    ...(rating && rating.count > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: rating.average,
+            reviewCount: rating.count,
+          },
+        }
+      : {}),
   };
 }
 
@@ -144,13 +154,14 @@ export default async function HomePage() {
       // control-flow error, which a catch block must never swallow.
       if (shouldRedirect) permanentRedirect(publicUrl);
     }
+    const { rating } = await getReviewsSectionData(result.site.workspace.username);
     return (
       <>
         <script
           type="application/ld+json"
           // Structured data for rich results; owner-authored plain text is
           // serialized through JSON.stringify (safely escaped).
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildHostelJsonLd(result.site)) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildHostelJsonLd(result.site, rating)) }}
         />
         <HostelSite site={result.site} />
       </>

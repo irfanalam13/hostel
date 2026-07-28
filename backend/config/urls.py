@@ -53,10 +53,13 @@ urlpatterns = [
     path("api/push/", include("apps.notifications.push_urls")),
     path("api/analytics/", include("apps.analytics.urls")),
     path("api/audit/", include("apps.auditlog.urls")),
+    path("api/platform/audit/", include("apps.auditlog.platform_urls")),
     path("api/backups/", include("apps.backups.urls")),
     path("api/exports/", include("apps.exports.urls")),
     path("api/marketing/", include("apps.marketing.urls")),
     path("api/website/", include("apps.website.urls")),
+    path("api/discovery/", include("apps.discovery.urls")),
+    path("api/platform/discovery/", include("apps.discovery.platform_urls")),
     path("api/domains/", include("apps.domains.urls")),
     path("api/subscriptions/", include("apps.subscriptions.urls")),
     path("api/platform/", include("apps.subscriptions.platform_urls")),
@@ -86,5 +89,3 @@ if getattr(settings, "PROMETHEUS_ENABLED", False):
 
 # Media
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-

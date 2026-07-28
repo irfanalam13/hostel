@@ -34,6 +34,7 @@ ROLE_STUDENT = "STUDENT"
 ROLE_PARENT = "PARENT"
 ROLE_RESIDENT = "RESIDENT"     # legacy pre-portal role (student-equivalent)
 ROLE_READ_ONLY = "READ_ONLY"
+ROLE_CONSUMER = "CONSUMER"     # discovery-directory reviewer (apps.discovery)
 
 STAFF_PORTAL_ROLES = {
     ROLE_MANAGER, ROLE_RECEPTIONIST, ROLE_ACCOUNTANT, ROLE_WARDEN, ROLE_STAFF,
@@ -42,6 +43,7 @@ STAFF_PORTAL_ROLES = {
 ADMIN_PORTAL_ROLES = {ROLE_OWNER, ROLE_ADMIN}
 STUDENT_PORTAL_ROLES = {ROLE_STUDENT, ROLE_RESIDENT}
 PARENT_PORTAL_ROLES = {ROLE_PARENT}
+CONSUMER_PORTAL_ROLES = {ROLE_CONSUMER}
 
 # Portal key -> roles allowed to authenticate through it. Admin roles may also
 # use the staff portal (an owner signing in at /login is fine); the reverse —
@@ -51,6 +53,7 @@ PORTALS = {
     "staff": STAFF_PORTAL_ROLES | ADMIN_PORTAL_ROLES,
     "student": STUDENT_PORTAL_ROLES,
     "parent": PARENT_PORTAL_ROLES,
+    "consumer": CONSUMER_PORTAL_ROLES,
 }
 
 # Role -> the dashboard a successful login should land on. New portals only
@@ -67,6 +70,7 @@ DEFAULT_ROUTE_BY_ROLE = {
     ROLE_STUDENT: "/student/dashboard",
     ROLE_RESIDENT: "/student/dashboard",
     ROLE_PARENT: "/parent/dashboard",
+    ROLE_CONSUMER: "/hostels",
 }
 
 
@@ -89,7 +93,7 @@ MODULES = [
     "residents", "billing", "payments", "rooms", "beds", "attendance",
     "admissions", "complaints", "notices", "reports", "exports", "operations",
     "backups", "notifications", "analytics", "accounts", "workspace",
-    "website", "staff", "finance", "accounting", "inventory", "ai",
+    "website", "staff", "finance", "accounting", "inventory", "ai", "discovery",
 ]
 CRUD = ["view", "create", "edit", "delete"]
 
@@ -123,6 +127,8 @@ FEATURE_PERMISSIONS = [
     "ai.chat",                # converse with the AI assistant
     "ai.reports",             # generate AI narrative reports / insights
     "ai.manage",              # manage AI models, prompts, providers, settings
+    "discovery.moderate",     # approve/reject pending reviews, unflag/remove
+    "discovery.respond",      # post an owner reply to a review
 ]
 
 
@@ -143,13 +149,13 @@ DEFAULT_ROLE_PERMISSIONS = {
         "reports.*", "exports.*", "operations.*", "notifications.*",
         "analytics.view", "accounts.view", "accounts.invite", "website.*",
         "staff.view", "staff.create", "staff.edit", "staff.invite",
-        "finance.*", "accounting.*", "inventory.*", "ai.*",
+        "finance.*", "accounting.*", "inventory.*", "ai.*", "discovery.*",
     ],
     ROLE_RECEPTIONIST: [
         "residents.view", "residents.create", "residents.edit",
         "admissions.*", "rooms.view", "beds.view", "attendance.*",
         "complaints.view", "complaints.create", "notices.view",
-        "ai.view", "ai.chat",
+        "ai.view", "ai.chat", "discovery.view", "discovery.moderate",
     ],
     ROLE_ACCOUNTANT: [
         "billing.*", "payments.*", "reports.*", "exports.*", "finance.*",
@@ -164,7 +170,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "billing.view", "payments.view", "finance.view",
         "inventory.view", "inventory.create", "inventory.edit",
         "inventory.adjust", "inventory.transfer",
-        "ai.view", "ai.chat",
+        "ai.view", "ai.chat", "discovery.view", "discovery.moderate", "discovery.respond",
     ],
     ROLE_STAFF: [
         "residents.view", "rooms.view", "beds.view", "attendance.view",

@@ -30,7 +30,6 @@ import {
   RefreshCw,
   ScrollText,
   Settings,
-  ShieldPlus,
   User,
   UserCheck,
   UserCog,
@@ -69,9 +68,6 @@ const MODULES = [
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Profile", href: "/profile", icon: User },
   { name: "Backup", href: "/backup", icon: Database },
-  // Super-admin only: the route policy gates /platform on `platform:manage`,
-  // which only SUPER_ADMIN holds, so this entry is hidden for everyone else.
-  { name: "Platform", href: "/platform", icon: ShieldPlus },
 ];
 
 export default function Sidebar() {

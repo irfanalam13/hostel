@@ -319,7 +319,7 @@ class Hostel(TimeStampedModel):
             and self.is_active
             and self.status in OPERATIONAL_STATUSES
         )
-    
+
 class WorkspaceAlias(TimeStampedModel):
     """A workspace username this hostel previously used.
 
@@ -353,6 +353,10 @@ class Testimonial(TimeStampedModel):
     unapproved); an admin then "purifies" the pool — approving the genuine ones
     (which count toward the public rating stats) and featuring the best few to
     appear as cards in the landing-page testimonials section.
+
+    Note: this is platform-marketing testimonial content about the SaaS
+    product itself, not a hostel review — see ``apps.discovery.models.Review``
+    for resident-authored hostel reviews.
     """
     author_name = models.CharField(max_length=120)
     author_role = models.CharField(

@@ -7,3 +7,4 @@ pytest-django
 pytest-cov
 coverage
 factory_boy
+pre-commit

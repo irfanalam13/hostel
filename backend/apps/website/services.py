@@ -176,6 +176,22 @@ def public_payload(website: Website, hostel) -> dict:
     }
 
 
+def is_publicly_visible(hostel) -> bool:
+    """Whether hostel's public website should be visible anywhere public-facing:
+    its own public page (PublicWebsiteView) and the cross-hostel discovery
+    directory (apps.discovery). Mirrors PublicWebsiteView's two gates — published
+    AND the workspace's "enable_public_website" preference — but never scaffolds
+    a missing website (no auto-create/auto-publish side effect), since callers
+    here are read-only lookups over hostels that may not have set one up yet."""
+    from apps.tenants.workspace_settings import get_workspace_settings
+
+    prefs = get_workspace_settings(hostel, "preferences")
+    if not prefs.get("enable_public_website", True):
+        return False
+    website = Website.objects.filter(hostel=hostel).first()
+    return bool(website and website.is_published)
+
+
 def overview(website: Website) -> dict:
     """Builder dashboard numbers."""
     sections = list(website.sections.all())

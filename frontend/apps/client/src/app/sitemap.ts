@@ -4,6 +4,7 @@ import { SITE_URL } from "@/features/landing/seo";
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; changeFrequency: "weekly" | "monthly" }[] = [
     { path: "", priority: 1, changeFrequency: "weekly" },
+    { path: "/hostels", priority: 0.9, changeFrequency: "weekly" },
     { path: "/about", priority: 0.7, changeFrequency: "monthly" },
     { path: "/signup", priority: 0.8, changeFrequency: "monthly" },
     { path: "/login", priority: 0.5, changeFrequency: "monthly" },

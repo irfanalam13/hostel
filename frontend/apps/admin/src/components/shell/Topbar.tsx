@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { getUnreadCount, listInbox, markAllRead as apiMarkAllRead, markRead } from "@/features/notifications/api";
 import type { InboxNotification } from "@/features/notifications/types";
-import { useAuth } from "@hostel/auth";
+import { authStore, useAuth } from "@hostel/auth";
 import { displayName, initials } from "@/features/account/lib";
 import { useSidebar } from "@/components/shell/SidebarContext";
 import { useTheme } from "@hostel/ui";
@@ -40,6 +40,10 @@ export function Topbar({ title = "Dashboard" }: { title?: string }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const loadNotifs = useCallback(async () => {
+    // Skip while logged out — the background-refresh subscription and the
+    // mount effect below aren't torn down until this component unmounts,
+    // which can lag a step behind the auth state flipping.
+    if (!authStore.getAccess()) return;
     try {
       // Authoritative unread count (not capped by the list page size) plus a
       // preview list for the dropdown.

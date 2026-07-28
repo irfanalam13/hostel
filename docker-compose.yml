@@ -62,6 +62,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      # host networking for the build only, so RUN steps (apt/pip) resolve DNS
+      # through the host's resolver instead of the container's embedded one —
+      # some networks' upstream DNS doesn't answer through Docker's NAT path.
+      network: host
     restart: unless-stopped
     env_file: .env
     environment:
@@ -93,6 +97,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     restart: unless-stopped
     env_file: .env
     # Only `web` migrates; sidecars skip it to avoid racing on the same schema.
@@ -122,6 +127,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     restart: unless-stopped
     env_file: .env
 
@@ -169,6 +175,7 @@ services:
     build:
       context: ./frontend
       dockerfile: apps/client/Dockerfile
+      network: host
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
         NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${NEXT_PUBLIC_TENANT_BASE_DOMAIN:-localhost}
@@ -205,6 +212,7 @@ services:
     build:
       context: ./frontend
       dockerfile: apps/admin/Dockerfile
+      network: host
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
@@ -225,19 +233,21 @@ services:
   # pull one once (persisted in the ollama_data volume):
   #   docker compose exec ollama ollama pull llama3.2:3b
   # ---------------------------------------------------------------------------
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    volumes:
-      - ollama_data:/root/.ollama
-    ports:
-      - "${OLLAMA_PORT:-11434}:11434"
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+  # DISABLED: ML/Ollama services were making the stack slow/hanging. Re-enable
+  # by uncommenting this block (and the ml_hostel block below).
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   ports:
+  #     - "${OLLAMA_PORT:-11434}:11434"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 20s
 
   # ---------------------------------------------------------------------------
   # ml_hostel — AI service (FastAPI + Uvicorn). Verifies the context token Django
@@ -245,31 +255,111 @@ services:
   # the web gateway (apps.assistant) with that token — so tenancy + RBAC are
   # enforced by Django, never re-implemented here.
   # ---------------------------------------------------------------------------
-  ml_hostel:
-    build:
-      context: ./ML_hostel
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    # ML_SHARED_SECRET (must match Django's) + optional provider keys come from .env
-    env_file: .env
+  # DISABLED: see ollama note above.
+  # ml_hostel:
+  #   build:
+  #     context: ./ML_hostel
+  #     dockerfile: Dockerfile
+  #     network: host
+  #   restart: unless-stopped
+  #   # ML_SHARED_SECRET (must match Django's) + optional provider keys come from .env
+  #   env_file: .env
+  #   environment:
+  #     ML_DJANGO_API_URL: ${ML_DJANGO_API_URL:-http://web:8000/api}
+  #     ML_OLLAMA_URL: ${ML_OLLAMA_URL:-http://ollama:11434}
+  #     ML_PROVIDER: ${ML_PROVIDER:-ollama}
+  #     ML_MODEL: ${ML_MODEL:-llama3.2:3b}
+  #   ports:
+  #     - "${ML_PORT:-9000}:9000"
+  #   depends_on:
+  #     web:
+  #       condition: service_started
+  #     ollama:
+  #       condition: service_started
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health/"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # postgres_test / redis_test — ephemeral infra for the `test` profile only.
+  # No named volumes: every run starts from a clean database, and dev's real
+  # postgres_data/redis_data volumes are never touched. Gated behind
+  # profiles: ["test"] so neither ever starts on a plain `docker compose up`.
+  # ---------------------------------------------------------------------------
+  postgres_test:
+    image: postgres:16-alpine
+    profiles: ["test"]
     environment:
-      ML_DJANGO_API_URL: ${ML_DJANGO_API_URL:-http://web:8000/api}
-      ML_OLLAMA_URL: ${ML_OLLAMA_URL:-http://ollama:11434}
-      ML_PROVIDER: ${ML_PROVIDER:-ollama}
-      ML_MODEL: ${ML_MODEL:-llama3.2:3b}
-    ports:
-      - "${ML_PORT:-9000}:9000"
-    depends_on:
-      web:
-        condition: service_started
-      ollama:
-        condition: service_started
+      POSTGRES_DB: hostel_test
+      POSTGRES_USER: hostel_test
+      POSTGRES_PASSWORD: hostel_test
+    tmpfs:
+      - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health/"]
-      interval: 30s
+      test: ["CMD-SHELL", "pg_isready -U hostel_test -d hostel_test"]
+      interval: 5s
       timeout: 5s
-      retries: 3
-      start_period: 15s
+      retries: 10
+      start_period: 5s
+
+  redis_test:
+    image: redis:7-alpine
+    profiles: ["test"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # test — one-shot auth-suite runner against real Postgres + Redis, matching
+  # what the `auth-tests` pre-commit hook cannot (that hook uses SQLite for
+  # speed). Not part of the default `docker compose up` stack:
+  #
+  #   docker compose --profile test up --build test
+  #
+  # requirements-dev.txt isn't baked into the production image (only
+  # requirements.txt is), so it's installed at container start instead — same
+  # pattern docker-compose.override.yml already uses for the dev Celery
+  # services' watchdog install. Runs as root for that reason (writing into the
+  # root-owned /opt/venv).
+  # ---------------------------------------------------------------------------
+  test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      network: host
+    profiles: ["test"]
+    user: root
+    dns: [8.8.8.8, 1.1.1.1]
+    environment:
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: docker-test-secret-key-not-for-production
+      DJANGO_SETTINGS_MODULE: config.settings_test_docker
+      DATABASE_URL: postgres://hostel_test:hostel_test@postgres_test:5432/hostel_test
+      REDIS_URL: redis://redis_test:6379/0
+      CELERY_BROKER_URL: redis://redis_test:6379/0
+      CELERY_RESULT_BACKEND: redis://redis_test:6379/0
+      RUN_MIGRATIONS: "1"
+    entrypoint: ["/app/entrypoint.sh"]
+    command:
+      - sh
+      - -c
+      - >-
+        pip install --quiet -r requirements-dev.txt &&
+        pytest apps/accounts apps/tenants apps/security
+        apps/discovery/tests/test_consumer_auth.py apps/common/tests/test_rbac.py
+        --no-cov -q --junitxml=test-results/junit.xml
+    depends_on:
+      postgres_test:
+        condition: service_healthy
+      redis_test:
+        condition: service_healthy
+    volumes:
+      - ./backend/test-results:/app/test-results
 
 volumes:
   postgres_data:

@@ -80,11 +80,14 @@ export async function flush(): Promise<void> {
   const batch = queue;
   queue = [];
   try {
-    await api.post("/analytics/collect/", {
-      events: batch,
-      app_version: APP_VERSION,
-      sw_version: swVersion,
-    });
+    await api.post(
+      "/analytics/collect/",
+      { events: batch, app_version: APP_VERSION, sw_version: swVersion },
+      // Telemetry must never hold a connection open for the default 30s
+      // budget — a slow/cold backend right around logout was showing up as a
+      // canceled fetch in the network tab, 30s after the tab had moved on.
+      { timeoutMs: 8_000 },
+    );
   } catch {
     // Re-queue (bounded) so a transient failure doesn't lose events.
     queue = [...batch, ...queue].slice(-MAX_QUEUE);

@@ -1,17 +1,25 @@
 import { apiFetch } from "@hostel/api";
 import type {
   Analytics,
+  AuditEvent,
   Comparison,
   Feature,
   FeatureCategory,
+  FeatureDependency,
   FeatureOverride,
+  HostelDetail,
   HostelOverviewRow,
+  HostelRoomRow,
+  HostelStaffRow,
+  HostelStudentDue,
+  HostelStudentRow,
   HostelSubscription,
   LimitDefinition,
   LimitOverride,
   Plan,
   PlanFeatureRow,
   PlanLimitRow,
+  PlatformAccountsPage,
   SubscriptionEvent,
 } from "../types/platform.types";
 
@@ -82,6 +90,13 @@ export const platformApi = {
     remove: (id: string) => p<void>(`/limit-definitions/${id}/`, { method: "DELETE" }),
   },
 
+  featureDependencies: {
+    list: () => p<FeatureDependency[]>("/feature-dependencies/"),
+    create: (feature: string, requires: string) =>
+      p<FeatureDependency>("/feature-dependencies/", { method: "POST", ...json({ feature, requires }) }),
+    remove: (id: string) => p<void>(`/feature-dependencies/${id}/`, { method: "DELETE" }),
+  },
+
   featureOverrides: {
     list: () => p<FeatureOverride[]>("/feature-overrides/"),
     create: (body: Partial<FeatureOverride>) =>
@@ -103,11 +118,59 @@ export const platformApi = {
       p<HostelOverviewRow[]>(`/hostels/overview/${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   },
 
+  /** Read-only hostel drill-down (Overview/Students/Staff/Rooms tabs). */
+  hostel: {
+    detail: (id: string) => p<HostelDetail>(`/hostels/${id}/`),
+    students: (id: string) => p<HostelStudentRow[]>(`/hostels/${id}/students/`),
+    studentDues: (id: string, studentId: string) =>
+      p<HostelStudentDue[]>(`/hostels/${id}/students/${studentId}/dues/`),
+    staff: (id: string) => p<HostelStaffRow[]>(`/hostels/${id}/staff/`),
+    rooms: (id: string) => p<HostelRoomRow[]>(`/hostels/${id}/rooms/`),
+  },
+
   subscriptions: {
     list: (search?: string) =>
       p<HostelSubscription[]>(`/subscriptions/${search ? `?search=${encodeURIComponent(search)}` : ""}`),
     assign: (hostel: string, plan: string, reason?: string) =>
       p<HostelSubscription>("/subscriptions/", { method: "POST", ...json({ hostel, plan, reason }) }),
     history: (hostelId: string) => p<SubscriptionEvent[]>(`/subscriptions/${hostelId}/history/`),
+  },
+
+  accounts: {
+    list: (params: { search?: string; role?: string; plan?: string; limit?: number; offset?: number } = {}) => {
+      const qs = new URLSearchParams();
+      if (params.search) qs.set("search", params.search);
+      if (params.role) qs.set("role", params.role);
+      if (params.plan) qs.set("plan", params.plan);
+      if (params.limit) qs.set("limit", String(params.limit));
+      if (params.offset) qs.set("offset", String(params.offset));
+      const query = qs.toString();
+      return p<PlatformAccountsPage>(`/accounts/${query ? `?${query}` : ""}`);
+    },
+  },
+
+  audit: {
+    list: (
+      params: {
+        search?: string;
+        action?: string;
+        result?: string;
+        entity_type?: string;
+        created_after?: string;
+        created_before?: string;
+        page?: number;
+      } = {},
+    ) => {
+      const qs = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== "") qs.set(key, String(value));
+      });
+      const query = qs.toString();
+      return p<AuditEvent[]>(`/audit/events/${query ? `?${query}` : ""}`);
+    },
+    verifyChain: () =>
+      p<{ ok: boolean; checked: number; first_bad_sequence: number | null; reason: string; errors: unknown[] }>(
+        "/audit/events/verify/",
+      ),
   },
 };

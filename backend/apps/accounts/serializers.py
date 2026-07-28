@@ -165,9 +165,143 @@ class SignupSerializer(serializers.ModelSerializer):
         # attach hostel for response
         user._created_hostel = hostel
         return user
-    
-    
-    
+
+
+class ConsumerSignupSerializer(serializers.ModelSerializer):
+    """Signup for a discovery-directory reviewer (CONSUMER role) — no hostel,
+    no staff/student portal. Reuses the same email-OTP verification as the
+    staff signup flow (SignupOTP is keyed by email only, not account type).
+    """
+
+    email = serializers.EmailField(required=True, allow_blank=False)
+    otp = serializers.CharField(write_only=True, min_length=6, max_length=6)
+    password = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(write_only=True, min_length=8)
+    full_name = serializers.CharField(write_only=True, max_length=255)
+    phone = serializers.CharField(write_only=True, max_length=30)
+
+    class Meta:
+        model = User
+        fields = ("id", "email", "otp", "password", "password2", "full_name", "phone")
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password2"]:
+            raise serializers.ValidationError({"password2": "Passwords do not match."})
+        _run_password_validators(attrs["password"])
+
+        if User.objects.filter(email__iexact=attrs["email"]).exists():
+            raise serializers.ValidationError(
+                {"email": "An account with this email already exists."}
+            )
+
+        otp_obj = (
+            SignupOTP.objects.filter(
+                email__iexact=attrs["email"], otp=attrs["otp"], is_used=False
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if not otp_obj or not otp_obj.is_valid():
+            raise serializers.ValidationError(
+                {"otp": "Invalid or expired verification code. Request a new one."}
+            )
+        self._signup_otp = otp_obj
+        return attrs
+
+    def _unique_username(self, email: str) -> str:
+        base = (email.split("@")[0] or "reviewer")[:140]
+        candidate = base
+        suffix = 2
+        while User.objects.filter(username__iexact=candidate).exists():
+            candidate = f"{base}{suffix}"[:150]
+            suffix += 1
+        return candidate
+
+    def create(self, validated_data):
+        from django.db import transaction
+
+        from apps.discovery.models import ConsumerProfile
+        from apps.tenants.services import get_or_create_platform_workspace
+
+        validated_data.pop("password2")
+        validated_data.pop("otp", None)
+        password = validated_data.pop("password")
+        full_name = validated_data.pop("full_name").strip()
+        phone = validated_data.pop("phone")
+        email = validated_data["email"]
+
+        with transaction.atomic():
+            user = User(username=self._unique_username(email), email=email, role="CONSUMER")
+            first_name, _, last_name = full_name.partition(" ")
+            user.first_name = first_name[:150]
+            user.last_name = last_name[:150]
+            user.set_password(password)
+            user.save()
+
+            ConsumerProfile.objects.create(user=user, full_name=full_name, phone=phone)
+
+            hostel = get_or_create_platform_workspace()
+            UserHostel.objects.get_or_create(user=user, hostel=hostel, defaults={"is_active": True})
+
+            otp_obj = getattr(self, "_signup_otp", None)
+            if otp_obj is not None:
+                otp_obj.is_used = True
+                otp_obj.save(update_fields=["is_used"])
+            SignupOTP.objects.filter(email__iexact=email, is_used=False).update(is_used=True)
+
+        user._platform_hostel = hostel
+        return user
+
+
+class ConsumerLoginSerializer(serializers.Serializer):
+    """Discovery-directory reviewer login — no Hostel ID, no portal choice.
+
+    Deliberately separate from ``CookieTokenObtainPairSerializer`` (which
+    always requires a Hostel ID): a CONSUMER account is linked only to the
+    one hidden platform workspace, resolved automatically, same idea as
+    ``SuperAdminLoginSerializer``.
+    """
+
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True, trim_whitespace=False)
+
+    default_error_messages = {"invalid_login": "Invalid email or password."}
+
+    def validate(self, attrs):
+        from django.contrib.auth import authenticate
+
+        from apps.common import rbac
+        from apps.tenants.services import get_or_create_platform_workspace
+
+        from .tokens import issue_tokens
+
+        generic_error = self.error_messages["invalid_login"]
+        user = User.objects.filter(email__iexact=attrs["email"], is_active=True).first()
+        authenticated = None
+        if user:
+            authenticated = authenticate(
+                request=self.context.get("request"),
+                username=user.username,
+                password=attrs["password"],
+            )
+        if not user or authenticated is None or authenticated.role != "CONSUMER":
+            raise serializers.ValidationError({"detail": generic_error})
+
+        hostel = get_or_create_platform_workspace()
+        refresh, access = issue_tokens(authenticated, hostel, portal="consumer")
+
+        self.user = authenticated
+        self.hostel = hostel
+        return {
+            "refresh": str(refresh),
+            "access": str(access),
+            "hostel_code": hostel.code,
+            "role": "CONSUMER",
+            "redirect": rbac.default_route_for_role("CONSUMER"),
+            "user": MeSerializer(authenticated).data,
+        }
+
+
 class MeSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -299,4 +433,3 @@ class SecureLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError({"detail": self.error_messages["invalid_login"]})
         attrs["hostel_id"] = hostel_id
         return attrs
-

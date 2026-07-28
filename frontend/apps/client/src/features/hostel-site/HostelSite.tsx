@@ -9,6 +9,7 @@
  */
 import React from "react";
 import type { SitePayload } from "./api";
+import { ReviewsSection } from "./reviews/ReviewsSection";
 import {
   AboutSection,
   ContactSection,
@@ -97,7 +98,12 @@ function renderSection(
 /* eslint-disable @next/next/no-img-element -- owner-uploaded remote assets */
 
 export function HostelSite({ site }: { site: SitePayload }) {
-  const nav = (site.navigation?.items || []).filter((i) => i.visible !== false && i.label);
+  // Reviews is a platform-mandated section, not part of the owner's
+  // website-builder nav content — synthesized alongside the owner-authored items.
+  const nav = [
+    ...(site.navigation?.items || []).filter((i) => i.visible !== false && i.label),
+    { label: "Reviews", href: "#reviews" },
+  ];
   const footer = site.footer || {};
   const branding = site.branding || {};
   const socials = Object.entries(site.social || {}).filter(([, url]) => url);
@@ -154,6 +160,8 @@ export function HostelSite({ site }: { site: SitePayload }) {
           </React.Fragment>
         ))}
       </main>
+
+      <ReviewsSection hostelSlug={site.workspace.username} />
 
       {/* Footer */}
       <footer className="bg-[var(--site-secondary)] py-12 text-white/80">
