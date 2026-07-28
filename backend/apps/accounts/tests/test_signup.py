@@ -32,7 +32,8 @@ def _payload(**over):
 def _verified_payload(api, **over):
     """Run step 1 and return a step-2 payload carrying the real OTP."""
     data = _payload(**over)
-    assert api.post(REQUEST_OTP, {"email": data["email"]}).status_code == 200
+    resp = api.post(REQUEST_OTP, {"email": data["email"], "username": data["username"]})
+    assert resp.status_code == 200, resp.data
     data["otp"] = (
         SignupOTP.objects.filter(email__iexact=data["email"], is_used=False)
         .latest("created_at")
@@ -43,7 +44,7 @@ def _verified_payload(api, **over):
 
 # --- step 1: request OTP ----------------------------------------------------
 def test_request_otp_sends_email(api):
-    resp = api.post(REQUEST_OTP, {"email": "owner@example.com"})
+    resp = api.post(REQUEST_OTP, {"email": "owner@example.com", "username": "newowner"})
     assert resp.status_code == 200
     assert len(mail.outbox) == 1
     assert "verification code" in mail.outbox[0].body.lower()
@@ -51,8 +52,21 @@ def test_request_otp_sends_email(api):
 
 
 def test_request_otp_requires_valid_email(api):
-    assert api.post(REQUEST_OTP, {}).status_code == 400
-    assert api.post(REQUEST_OTP, {"email": "not-an-email"}).status_code == 400
+    assert api.post(REQUEST_OTP, {"username": "newowner"}).status_code == 400
+    assert api.post(REQUEST_OTP, {"email": "not-an-email", "username": "newowner"}).status_code == 400
+
+
+def test_request_otp_requires_username(api):
+    assert api.post(REQUEST_OTP, {"email": "owner@example.com"}).status_code == 400
+
+
+def test_request_otp_rejects_duplicate_username(api, make_user):
+    # Catching this at step 1 is the whole point: it must surface on the
+    # signup form, not after the user has already gone to verify a code.
+    make_user(username="newowner")
+    resp = api.post(REQUEST_OTP, {"email": "owner@example.com", "username": "newowner"})
+    assert resp.status_code == 400
+    assert "username" in resp.data
 
 
 def test_request_otp_returns_502_when_delivery_fails(api):
@@ -63,7 +77,7 @@ def test_request_otp_returns_502_when_delivery_fails(api):
     from unittest import mock
 
     with mock.patch("apps.accounts.tasks.send_mail", side_effect=Exception("smtp down")):
-        resp = api.post(REQUEST_OTP, {"email": "owner@example.com"})
+        resp = api.post(REQUEST_OTP, {"email": "owner@example.com", "username": "newowner"})
     assert resp.status_code == 502
     assert not mail.outbox
 
@@ -95,7 +109,7 @@ def test_signup_without_otp_rejected(api):
 
 
 def test_signup_with_wrong_otp_rejected(api):
-    api.post(REQUEST_OTP, {"email": "owner@example.com"})
+    api.post(REQUEST_OTP, {"email": "owner@example.com", "username": "newowner"})
     resp = api.post(SIGNUP, _payload(otp="000000"))
     assert resp.status_code == 400
     assert not User.objects.filter(username="newowner").exists()
@@ -136,6 +150,10 @@ def test_signup_missing_hostel_name_rejected(api):
 
 
 def test_signup_duplicate_username_rejected(api, make_user):
+    # Defense in depth for the race between step 1's availability check and
+    # step 2's account creation: request the OTP while the username is still
+    # free, then have someone else take it before the final signup call.
+    data = _verified_payload(api)
     make_user(username="newowner")
-    resp = api.post(SIGNUP, _verified_payload(api))
+    resp = api.post(SIGNUP, data)
     assert resp.status_code == 400

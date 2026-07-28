@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@hostel/ui";
 import { Button } from "@hostel/ui";
 import { suggestWorkspaceUsername, validateWorkspaceUsername } from "@hostel/utils";
 import { authApi } from "@/features/auth/api/auth.api";
-import { savePendingSignup } from "@/features/auth/lib/pendingSignup";
+import { loadPendingSignup, savePendingSignup } from "@/features/auth/lib/pendingSignup";
 import { WorkspaceUsernameField } from "@/features/tenants/components/WorkspaceUsernameField";
 import type { AvailabilityState } from "@/features/tenants/hooks/useWorkspaceAvailability";
 import { useToast } from "@hostel/ui";
@@ -31,7 +31,16 @@ function strengthLabel(score: number) {
 }
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-gray-50" />}>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
 
   const [hostelName, setHostelName] = useState("");
@@ -55,6 +64,30 @@ export default function SignupPage() {
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
+  // Restore in-progress details when bounced back here — either via the OTP
+  // page's "Change details" link, or automatically when the final signup call
+  // rejects a field that only this page can fix (e.g. a same-username race).
+  useEffect(() => {
+    const pending = loadPendingSignup();
+    if (pending) {
+      setHostelName(pending.hostel_name);
+      setWorkspaceUsername(pending.workspace_username || "");
+      setWorkspaceTouched(true);
+      setHostelPhone(pending.hostel_phone || "");
+      setHostelAddress(pending.hostel_address || "");
+      setOwnerName(pending.owner_name || "");
+      setUsername(pending.username);
+      setEmail(pending.email);
+      setPassword(pending.password);
+      setPassword2(pending.password2);
+    }
+
+    const errorParam = searchParams.get("error");
+    if (errorParam) setErr(errorParam);
+    // Only ever run once, on mount — this is a one-time restore, not a live sync.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pwScore = useMemo(() => scorePassword(password), [password]);
 
@@ -120,7 +153,7 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      await authApi.requestSignupOtp({ email: cleanEmail });
+      await authApi.requestSignupOtp({ email: cleanEmail, username: payload.username });
       savePendingSignup(payload);
       toast.success(
         `We sent a 6-digit verification code to ${cleanEmail}. Check your inbox (and spam).`,

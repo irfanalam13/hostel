@@ -61,6 +61,21 @@ def test_wrong_password_for_superuser_fails(make_user, api):
     assert detail_text(resp) == "Invalid username or password."
 
 
+def test_superuser_promoted_from_owner_still_reports_super_admin_role(make_user, hostel, api):
+    """A hostel owner promoted to is_superuser=True (e.g. via the admin/shell,
+    rather than a fresh `createsuperuser` account) keeps `role="OWNER"` in the
+    DB — the response's embedded `user.role` must still say SUPER_ADMIN, or
+    the frontend's permission check denies them access to /platform and sends
+    them back to their hostel's own dashboard instead."""
+    owner = make_user(role="OWNER", hostel=hostel, password="Sup3rSecret!", is_superuser=True)
+
+    resp = api.post(LOGIN, {"username": owner.username, "password": "Sup3rSecret!"})
+
+    assert resp.status_code == 200
+    assert resp.data["role"] == "SUPER_ADMIN"
+    assert resp.data["user"]["role"] == "SUPER_ADMIN"
+
+
 def test_two_superusers_share_the_same_platform_hostel(make_user, api):
     first = make_user(username="root3", password="Sup3rSecret!", is_superuser=True)
     second = make_user(username="root4", password="Sup3rSecret!", is_superuser=True)

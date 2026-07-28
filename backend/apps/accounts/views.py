@@ -406,6 +406,16 @@ class SuperAdminLoginSerializer(serializers.Serializer):
 
         self.user = authenticated
         self.hostel = hostel
+        # Same override MeView._me_payload applies: is_superuser is the actual
+        # authority here, not whatever tenant `role` the account happens to
+        # carry in the DB (e.g. an OWNER account promoted to superuser via the
+        # admin/shell keeps its OWNER role column). Without this the embedded
+        # `user` disagrees with the top-level `role`/`redirect`, and the
+        # frontend's permission check — which reads `user.role` — denies
+        # access to /platform even though this endpoint just authenticated
+        # them as a superuser.
+        user_data = MeSerializer(authenticated).data
+        user_data["role"] = "SUPER_ADMIN"
         return {
             "refresh": str(refresh),
             "access": str(access),
@@ -414,7 +424,7 @@ class SuperAdminLoginSerializer(serializers.Serializer):
             "role": "SUPER_ADMIN",
             # Always the platform dashboard — this endpoint has no other purpose.
             "redirect": "/platform",
-            "user": MeSerializer(authenticated).data,
+            "user": user_data,
         }
 
 

@@ -81,6 +81,26 @@ export default function VerifyOtpPage() {
       // replace() so the back button doesn't bounce to the verification screen.
       router.replace("/dashboard");
     } catch (e: any) {
+      // Everything about the details themselves (username/email/password/
+      // workspace username) was already validated back on the signup page —
+      // this call should only ever fail on the `otp` field. If it fails on
+      // something else (e.g. the username was taken by someone else in the
+      // split second between that check and this request), that's not
+      // something retyping the code can fix, so send the user back to
+      // correct it there instead of showing a confusing error under the OTP
+      // box.
+      const data = e?.data;
+      const otherFieldError =
+        data &&
+        typeof data === "object" &&
+        Object.keys(data).some((key) => key !== "otp" && key !== "detail");
+      if (otherFieldError) {
+        const msg = e?.message || "Please review your details and try again.";
+        toast.error(msg, "Check your details");
+        router.replace(`/signup?error=${encodeURIComponent(msg)}`);
+        return;
+      }
+
       const msg = e?.message || "Invalid or expired code. Try resending it.";
       setErr(msg);
       setOtp("");
@@ -95,7 +115,7 @@ export default function VerifyOtpPage() {
     setErr("");
     setResending(true);
     try {
-      await authApi.requestSignupOtp({ email: pending.email });
+      await authApi.requestSignupOtp({ email: pending.email, username: pending.username });
       toast.success(`A new code was sent to ${pending.email}.`, "Code resent");
     } catch (e: any) {
       const msg = e?.message || "Could not resend the code. Try again.";

@@ -43,8 +43,19 @@ class UserCreateSerializer(serializers.ModelSerializer):
 User = get_user_model()
 
 class SignupOTPRequestSerializer(serializers.Serializer):
-    """Step 1 of signup: request a verification code for an email address."""
+    """Step 1 of signup: request a verification code for an email address.
+
+    Also checks the chosen login username's availability here, so a taken
+    username is rejected on the signup form instead of surfacing later, on
+    the OTP verification page, as SignupSerializer's own uniqueness check.
+    """
     email = serializers.EmailField(required=True)
+    username = serializers.CharField(required=True, max_length=150)
+
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("A user with that username already exists.")
+        return value
 
 
 class SignupSerializer(serializers.ModelSerializer):

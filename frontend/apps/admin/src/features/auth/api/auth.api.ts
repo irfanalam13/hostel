@@ -169,7 +169,7 @@ export const authApi = {
   },
 
   /** Step 1: email a 6-digit verification code to the given address. */
-  requestSignupOtp(payload: { email: string }) {
+  requestSignupOtp(payload: { email: string; username: string }) {
     return apiFetch<{ detail: string }>("/auth/signup/request-otp/", {
       method: "POST",
       auth: false,
