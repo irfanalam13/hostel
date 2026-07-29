@@ -18,15 +18,23 @@ a dict lookup, not a query, on the hot path.
 from __future__ import annotations
 
 import hashlib
+import logging
 
 from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
 
 _CACHE_KEY = "platformops:flags:v1"
 _CACHE_TTL = 30  # seconds; also invalidated on save/delete via signals
 
 
 def _load_flags() -> dict:
-    cached = cache.get(_CACHE_KEY)
+    try:
+        cached = cache.get(_CACHE_KEY)
+    except Exception:  # cache down — fall through to the DB, don't 500 the request
+        logger.warning("flag cache read failed for %s", _CACHE_KEY, exc_info=True)
+        cached = None
+
     if cached is not None:
         return cached
 
@@ -42,7 +50,10 @@ def _load_flags() -> dict:
             "blocked_hostels": {str(h) for h in (f.blocked_hostels or [])},
             "allowed_roles": {str(r) for r in (f.allowed_roles or [])},
         }
-    cache.set(_CACHE_KEY, flags, _CACHE_TTL)
+    try:
+        cache.set(_CACHE_KEY, flags, _CACHE_TTL)
+    except Exception:
+        logger.warning("flag cache write failed for %s", _CACHE_KEY, exc_info=True)
     return flags
 
 
