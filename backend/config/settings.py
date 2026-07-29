@@ -446,7 +446,7 @@ BREVO_API_URL = env("BREVO_API_URL", default="https://api.brevo.com/v3/smtp/emai
 EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 # Must be a verified sender in Brevo (Senders, Domains & Dedicated IPs).
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@hostel.local")
-FRONTEND_URL = env("FRONTEND_URL", default="https://hostel-ten-hazel.vercel.app/")
+FRONTEND_URL = env("FRONTEND_URL", default="https://www.alhudanepal.com/")
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Hostel SaaS API",

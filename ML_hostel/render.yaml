@@ -25,11 +25,11 @@ services:
       - key: ML_EMBED_MODEL
         value: gemini-embedding-001
       - key: ML_DJANGO_API_URL
-        value: https://hostel-mwre.onrender.com/api   # your backend's public API base
+        value: https://api.alhudanepal.com/api   # your backend's public API base
       # --- secrets: set in the dashboard, never in git (sync: false) ---
       - key: ML_GEMINI_API_KEY
         sync: false          # your Google Gemini API key (ROTATE the one shared in chat)
       - key: ML_SHARED_SECRET
         sync: false          # MUST be identical to the backend's ML_SHARED_SECRET
       - key: ML_ALLOWED_ORIGINS
-        sync: false          # your admin app origin, e.g. https://your-admin.vercel.app
+        sync: false          # your admin app origin, e.g. https://alhudanepal.com

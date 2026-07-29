@@ -22,7 +22,7 @@ deploy/
 3. Copy `.env.prod.example` → `~/hostel/deploy/.env` and fill in real values.
    `.env` is **never** shipped by CI, so your secrets persist across deploys.
 4. Put TLS certs at `nginx/certs/fullchain.pem` and `privkey.pem` (e.g. certbot:
-   `certbot certonly --standalone -d app.yourdomain.com`, then symlink/copy).
+   `certbot certonly --standalone -d app.alhudanepal.com`, then symlink/copy).
 5. First deploy can be run manually:
    `GHCR_USER=… GHCR_TOKEN=… ./deploy.sh ghcr.io/owner/hostel-backend:vX ghcr.io/owner/hostel-client:vX ghcr.io/owner/hostel-admin:vX`
 

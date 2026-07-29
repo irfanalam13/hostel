@@ -70,3 +70,4 @@ Thumbs.db
 frontend/_capture_tmp.mjs
 frontend/_students_shot.png
 frontend/e2e/_debug_students.spec.ts
+.env*

@@ -36,7 +36,7 @@ Render injects `$PORT`; the Dockerfile already binds it.
 | `ML_PROVIDER` | `gemini` | no |
 | `ML_MODEL` | `gemini-flash-latest` | no |
 | `ML_EMBED_MODEL` | `gemini-embedding-001` | no |
-| `ML_DJANGO_API_URL` | `https://hostel-mwre.onrender.com/api` (your backend) | no |
+| `ML_DJANGO_API_URL` | `https://api.alhudanepal.com/api` (your backend) | no |
 | `ML_GEMINI_API_KEY` | your (rotated) Gemini key | **yes** |
 | `ML_SHARED_SECRET` | a long random string — **must equal the backend's** | **yes** |
 | `ML_ALLOWED_ORIGINS` | your admin app origin, e.g. `https://your-admin.vercel.app` | **yes** |
@@ -85,11 +85,11 @@ Remove the `hostel-mufv-self` Vercel project — it can never serve this service
 
 ```
 Browser (admin, Vercel)
-  ├─ POST https://hostel-mwre.onrender.com/api/ai/chat/   (cookie) → context token + stream_url
+  ├─ POST https://api.alhudanepal.com/api/ai/chat/   (cookie) → context token + stream_url
   └─ SSE  https://hostel-ml.onrender.com/v1/chat/stream   (Bearer token; CORS + CSP allow it)
                      │
              hostel-ml (Render, this service) ── Gemini API (chat + embeddings)
-                     └─ tool calls → https://hostel-mwre.onrender.com/api/ai/tools/…  (Bearer token)
+                     └─ tool calls → https://api.alhudanepal.com/api/ai/tools/…  (Bearer token)
 ```
 
 Tenancy + RBAC stay enforced by Django on every hop; the ML service holds no data
