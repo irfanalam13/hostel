@@ -28,19 +28,6 @@ type Props = {
   showSignup?: boolean;
 };
 
-function extractErrorMessage(data: unknown): string {
-  if (!data) return "Login failed";
-  if (typeof data === "string") return data;
-  if (typeof data === "object") {
-    const obj = data as Record<string, unknown>;
-    if (typeof obj.detail === "string") return obj.detail;
-    const first = Object.values(obj)[0];
-    if (Array.isArray(first) && first.length) return String(first[0]);
-    if (typeof first === "string") return first;
-  }
-  return "Login failed";
-}
-
 /**
  * Workspace-aware portal login (Prompt 02).
  *
@@ -177,10 +164,17 @@ export function WorkspaceLoginForm({
         setWorkspaceError(e.code);
         return;
       }
-      const anyErr = e as { data?: unknown; message?: string };
-      const msg = anyErr?.data !== undefined
-        ? extractErrorMessage(anyErr.data)
-        : anyErr?.message || "Something went wrong";
+      // apiClient's throwApiError already resolves the best available message
+      // for every shape the backend sends — the platform's own
+      // {success,message,data,meta} envelope (used by e.g. the security
+      // middleware's block responses) as well as DRF's {field: [...]} shape.
+      // Re-deriving from err.data here was redundant, and actively wrong for
+      // the envelope shape: Object.values({success,message,...})[0] is the
+      // boolean `success`, not the message, so it silently fell back to a
+      // generic "Login failed" and discarded the real reason (e.g. "Access
+      // temporarily blocked").
+      const anyErr = e as { message?: string };
+      const msg = anyErr?.message || "Something went wrong";
       setErr(msg);
       toast.error(msg, "Login failed");
     } finally {
